@@ -23,23 +23,24 @@ npm run dev
 ```
 
 - `http://localhost:3000` — página da Livo Agenda
-- `http://localhost:3000/ambar` · `/navalha` · `/jade` — páginas de exemplo (3 nichos)
-- `http://localhost:3000/painel/entrar` — login, ou "explorar demonstração"
+- `http://localhost:3000/depiled` — página da DepiLED, o primeiro negócio (piloto)
+- `http://localhost:3000/depiled/agendar` — agendamento: categoria → opções → calendário → horário
+- `http://localhost:3000/painel/entrar` — login (só com conta)
 
-Sem as variáveis do Supabase, os três negócios de exemplo continuam no ar e
-qualquer outro endereço mostra "Negócio não encontrado".
+Sem as variáveis do Supabase, só os negócios com semente no código
+(`lib/sementes/`) abrem; qualquer outro endereço mostra "Negócio não encontrado".
 
 ## Banco
 
 ```bash
-./supabase/tests/rodar.sh   # Postgres descartável: aplica as migrations e roda a suíte
+./supabase/tests/rodar.sh   # Postgres descartável: aplica cada migration e roda a suíte dela
 ```
 
 ## Documentos
 
 | | |
 |---|---|
-| [`docs/ESTADO.md`](docs/ESTADO.md) | o que está pronto, o que é demonstração, como criar o login, próximos passos |
+| [`docs/ESTADO.md`](docs/ESTADO.md) | o que está pronto, o que falta confirmar com a DepiLED, como criar o login, próximos passos |
 | [`docs/PLANEJAMENTO.md`](docs/PLANEJAMENTO.md) | plano completo: público, métricas, modelo de dados, fases |
 | [`docs/ORIGEM.md`](docs/ORIGEM.md) | o que veio do `livo` |
 | [`docs/REFERENCIAS.md`](docs/REFERENCIAS.md) | skills, bibliotecas e repositórios usados |
