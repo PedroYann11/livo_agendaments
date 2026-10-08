@@ -40,6 +40,7 @@ cópia, com a linha `// Origem: livo@<commit> · <caminho>` no topo e registro e
 |---|---|
 | Supabase | `livo-agenda` · `tgjbrabbimdwafvcshtx` (sa-east-1) |
 | Endereço público | `agenda.livo.tec.br/<negocio>` |
+| Vercel | projeto **`livo-agenda`** (time `pedro-yan`) — não confundir com `duo-acai`, que é a Livo dos restaurantes |
 | Dados do painel | ainda na **demonstração** (`lib/dados/loja.tsx`); a troca pelo banco é a fase de backend |
 | Testes do banco | `./supabase/tests/rodar.sh` (Postgres descartável) |
 | Stack | Next.js 16 · React 19 · TypeScript · CSS puro com variáveis · Motion · Supabase |

@@ -76,7 +76,17 @@ navegador** (até entre abas), mas não no celular de outra pessoa.
    ```
 3. Em `/painel/entrar`, entrar com o e-mail e a senha.
 
-## Variáveis para a Vercel
+## Publicação (Vercel)
+
+| Item | Valor |
+|---|---|
+| Projeto | **`livo-agenda`** (time `pedro-yan`), região das funções `gru1` (São Paulo, perto do Supabase) |
+| Endereço | **https://agenda.livo.tec.br** — domínio verificado, certificado da Vercel |
+| Branch de produção | `claude/peaceful-cerf-4g1pqx` (a única do repositório hoje). Quando existir uma `main`, trocar em Settings › Git |
+| Proteção | URLs `*.vercel.app` pedem login da Vercel; o domínio próprio é público |
+| Primeiro deploy | 08/10/2026, commit `88311ac`, build ok em ~40 s |
+
+Variáveis (Production, Preview e Development):
 
 | Variável | Valor |
 |---|---|
@@ -84,7 +94,10 @@ navegador** (até entre abas), mas não no celular de outra pessoa.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | a chave **publishable** do projeto (Settings › API) |
 | `NEXT_PUBLIC_DEMO` | `1` enquanto quiser o botão de demonstração no login |
 
-Domínio: adicionar `agenda.livo.tec.br` ao projeto novo na Vercel.
+Conferido depois do deploy: `/`, `/ambar`, `/navalha/agendar` e
+`/painel/entrar` respondem 200; `/nao-existe` responde 404 "Negócio não
+encontrado"; a página do negócio chama `negocio_publico` no banco (log do
+Supabase, POST 200); nenhum erro de execução na Vercel.
 
 ## Próximo: backend completo, função por função
 
