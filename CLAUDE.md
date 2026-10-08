@@ -1,7 +1,7 @@
 # CLAUDE.md — Livo Agenda
 
 > Lido no início de toda sessão. Contém o que **não muda**. O plano e as fases
-> estão em `docs/PLANEJAMENTO.md`.
+> estão em `docs/PLANEJAMENTO.md`; o que já existe, em `docs/ESTADO.md`.
 
 ## 1. O que é
 
@@ -20,8 +20,10 @@ cópia, com a linha `// Origem: livo@<commit> · <caminho>` no topo e registro e
   Filtro no frontend não é segurança.
 - `anon` nunca faz SELECT direto em tabela de negócio: só RPCs
   `SECURITY DEFINER` filtradas por `p_tenant`, com colunas em whitelist.
-- O tenant vem do **Host** (middleware → `resolverTenant()`), nunca do front.
-  Host desconhecido falha fechado: "Negócio não encontrado".
+- O negócio vem do **endereço**, decidido no servidor
+  (`agenda.livo.tec.br/<negocio>` → `resolverNegocio()` em
+  `lib/negocio-server.ts`), nunca de algo que o front escolha. Endereço
+  desconhecido falha fechado: "Negócio não encontrado".
 - `tenant_id NOT NULL` **sem default** em toda tabela de negócio; FKs compostas
   `(id, tenant_id)`.
 - **Disponibilidade e preço são decididos no banco.** A função que mostra os
@@ -32,7 +34,17 @@ cópia, com a linha `// Origem: livo@<commit> · <caminho>` no topo e registro e
 - Segredos só no Supabase Vault. Mensagens de WhatsApp em texto puro.
 - O painel é da Livo (cores fixas, contraste testado); a vitrine é do negócio.
 
-## 3. Como trabalhar
+## 3. Fatos
+
+| Item | Valor |
+|---|---|
+| Supabase | `livo-agenda` · `tgjbrabbimdwafvcshtx` (sa-east-1) |
+| Endereço público | `agenda.livo.tec.br/<negocio>` |
+| Dados do painel | ainda na **demonstração** (`lib/dados/loja.tsx`); a troca pelo banco é a fase de backend |
+| Testes do banco | `./supabase/tests/rodar.sh` (Postgres descartável) |
+| Stack | Next.js 16 · React 19 · TypeScript · CSS puro com variáveis · Motion · Supabase |
+
+## 4. Como trabalhar
 
 - Português claro, sem jargão; diagnóstico antes da solução.
 - **SQL primeiro**: toda mudança de banco é migration versionada em

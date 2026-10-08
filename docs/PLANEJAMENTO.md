@@ -1,6 +1,9 @@
 # Livo Agenda — Planejamento
 
 > 08/10/2026 · documento de partida, escrito **antes de qualquer código**.
+> **Atualização:** decisões D-1 a D-3 tomadas e frontend completo entregue —
+> ver `docs/ESTADO.md`. O domínio ficou no caminho (`agenda.livo.tec.br/<negocio>`),
+> não no subdomínio; o motivo está lá.
 > Referência de mercado: MinhaAgenda (maapp.com.br).
 > Base técnica: repositório `PedroYann11/livo` no commit `d74d591`, lido e
 > **não alterado**.
