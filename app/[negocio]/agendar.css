@@ -669,3 +669,187 @@
 .ag-estrelas-escolha button {
   padding: 4px;
 }
+
+/* ---------------------------------------------------------------------
+   Categorias — a primeira escolha do cliente
+   --------------------------------------------------------------------- */
+
+.ag-categorias {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+.ag-categoria {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 92px;
+  padding: 18px 18px 18px 20px;
+  border-radius: var(--raio-cartao);
+  background: var(--c-superficie);
+  border: 1px solid var(--c-linha);
+  text-align: left;
+  color: var(--c-texto);
+  transition: border-color 180ms ease, box-shadow 200ms ease, transform 150ms var(--ease-out);
+}
+.ag-categoria:hover {
+  border-color: color-mix(in srgb, var(--c-marca) 45%, var(--c-linha));
+  box-shadow: 0 10px 26px -18px color-mix(in srgb, var(--c-texto) 60%, transparent);
+}
+.ag-categoria:active {
+  transform: scale(0.985);
+}
+.ag-categoria > svg {
+  color: var(--c-texto-3);
+  flex-shrink: 0;
+}
+.ag-categoria-info {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+.ag-categoria-info strong {
+  font-size: 25px;
+}
+.ag-categoria-info small {
+  font-size: 13.5px;
+  color: var(--c-texto-2);
+  line-height: 1.4;
+}
+.ag-categoria-conta {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--c-marca);
+  color: var(--c-sobre-marca);
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.ag-outra {
+  margin-top: 16px;
+  padding-left: 0;
+}
+
+/* ---------------------------------------------------------------------
+   Calendário do mês (DiaHora)
+   --------------------------------------------------------------------- */
+
+.cal {
+  margin-top: 16px;
+  padding: 14px 12px 12px;
+  border-radius: var(--raio-cartao);
+  background: var(--c-superficie);
+  border: 1px solid var(--c-linha);
+  overflow: hidden;
+}
+.cal-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.cal-topo strong {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.cal-topo .ui-botao-icone:disabled {
+  opacity: 0.3;
+}
+.cal-semana,
+.cal-grade {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-semana span {
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--c-texto-3);
+  padding: 6px 0;
+}
+.cal-dia {
+  position: relative;
+  isolation: isolate;
+  aspect-ratio: 1;
+  max-height: 52px;
+  width: 100%;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-texto-3);
+  transition: color 160ms ease, background-color 160ms ease, transform 140ms var(--ease-out);
+}
+.cal-dia:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.cal-dia.livre {
+  color: var(--c-texto);
+  font-weight: 650;
+  background: var(--c-marca-sutil);
+}
+.cal-dia.livre:hover {
+  background: color-mix(in srgb, var(--c-marca) 16%, var(--c-superficie));
+}
+.cal-dia.livre:active {
+  transform: scale(0.92);
+}
+.cal-dia.hoje:not(.ativo) {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--c-texto) 35%, transparent);
+}
+.cal-dia.ativo {
+  color: var(--c-sobre-marca);
+  background: transparent;
+}
+.cal-dia-fundo {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--c-marca);
+  z-index: -1;
+  box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--c-marca) 80%, transparent);
+}
+.cal-legenda {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--c-texto-3);
+}
+.cal-legenda i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--c-marca-sutil);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-marca) 30%, transparent);
+}
+.cal-horarios {
+  margin-top: 20px;
+  scroll-margin-top: 110px;
+}
+.cal-dia-titulo {
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+.cal-dica {
+  text-align: center;
+  font-size: 14px;
+  color: var(--c-texto-3);
+  padding: 8px 0;
+}

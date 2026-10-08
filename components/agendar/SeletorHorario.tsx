@@ -1,9 +1,9 @@
 "use client";
 
 // =====================================================================
-// Faixa de dias + horários livres. O mesmo componente serve ao cliente
-// (agendar e remarcar) e ao painel (novo agendamento, encaixe, remarcar):
-// a regra de vaga é uma só — lib/disponibilidade.
+// Faixa de dias + horários livres — o jeito do PAINEL escolher (novo
+// agendamento, encaixe, remarcar). O cliente usa o calendário do mês
+// (DiaHora). A regra de vaga é uma só — lib/disponibilidade.
 // =====================================================================
 
 import { useEffect, useMemo, useRef } from "react";
@@ -13,6 +13,7 @@ import { horariosDisponiveis, diaFechado, type Vaga } from "@/lib/disponibilidad
 import { NOMES_DIAS_CURTOS, NOMES_MESES, dataCurta, diaDaSemana, somarDias } from "@/lib/datas";
 import { Icone } from "@/components/ui/Icone";
 import { Botao } from "@/components/ui/basicos";
+import { GradeHorarios } from "./DiaHora";
 
 export type Escolha = { data: string; hora: string; profissionalId: string };
 
@@ -75,12 +76,6 @@ export function SeletorHorario({
   const fechado = data ? diaFechado(banco, data) : null;
   const mesVisivel = data ?? hoje;
 
-  const periodos = [
-    { nome: "Manhã", icone: "relogio" as const, filtro: (h: string) => h < "12:00" },
-    { nome: "Tarde", icone: "relogio" as const, filtro: (h: string) => h >= "12:00" && h < "18:00" },
-    { nome: "Noite", icone: "relogio" as const, filtro: (h: string) => h >= "18:00" },
-  ];
-
   return (
     <div>
       <div className="ag-mes">
@@ -126,36 +121,7 @@ export function SeletorHorario({
           </div>
         ) : (
           <motion.div key={data} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: [0.23, 1, 0.32, 1] }}>
-            {periodos.map((p) => {
-              const lista = vagas.filter((v) => p.filtro(v.hora));
-              if (!lista.length) return null;
-              return (
-                <div className="ag-periodo" key={p.nome}>
-                  <h4>
-                    <Icone nome={p.icone} tamanho={15} />
-                    {p.nome}
-                    <span style={{ fontWeight: 450 }}>· {lista.length}</span>
-                  </h4>
-                  <div className="ag-horas">
-                    {lista.map((v) => {
-                      const ativo = v.hora === hora;
-                      return (
-                        <button
-                          key={v.hora}
-                          type="button"
-                          className={`ag-hora${ativo ? " ativo" : ""}`}
-                          aria-pressed={ativo}
-                          onClick={() => data && onHora({ data, hora: v.hora, profissionalId: v.profissionalId })}
-                        >
-                          {ativo && <motion.span layoutId="ag-hora" className="ag-hora-fundo" transition={{ type: "spring", stiffness: 520, damping: 34 }} />}
-                          {v.hora}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+            <GradeHorarios vagas={vagas} hora={hora} onEscolher={(v) => data && onHora({ data, hora: v.hora, profissionalId: v.profissionalId })} />
           </motion.div>
         )}
       </div>

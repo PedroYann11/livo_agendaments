@@ -17,7 +17,8 @@ import type { Agendamento } from "@/lib/tipos";
 import { Icone } from "@/components/ui/Icone";
 import { Botao, Campo, Esqueleto, EstadoVazio, Selo, Texto } from "@/components/ui/basicos";
 import { useAvisos, useConfirmar } from "@/components/ui/Avisos";
-import { SeletorHorario, type Escolha } from "./SeletorHorario";
+import type { Escolha } from "./SeletorHorario";
+import { DiaHora } from "./DiaHora";
 import { SeloAnimado, dadosIcs } from "./Confirmado";
 import { cancelar, mudarStatus, remarcar, salvarDepoimento } from "@/lib/dados/acoes";
 import { brl, duracao, primeiroNome } from "@/lib/formato";
@@ -124,7 +125,7 @@ export function Gerenciar({ token }: { token: string }) {
             <p className="ag-passo-texto">
               {ag.itens.map((i) => i.nome).join(" + ")} com {primeiroNome(pro?.nome ?? "")}.
             </p>
-            <SeletorHorario
+            <DiaHora
               banco={b}
               servicosIds={ag.itens.map((i) => i.servicoId)}
               profissionalId={ag.profissionalId}

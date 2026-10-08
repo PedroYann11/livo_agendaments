@@ -1,34 +1,38 @@
 "use client";
 
 // =====================================================================
-// O fluxo do cliente: serviço → profissional → dia e hora → dados.
+// O fluxo do cliente: categoria → opções → dia → horário → dados.
 //
-// Meta: menos de um minuto, sem conta, sem senha. Passos que não fazem
-// sentido são pulados (uma profissional só, ou a loja não deixa escolher).
-// Os passos deslizam na direção em que se anda — voltar desliza para trás.
+// Pouco texto e uma decisão por tela: primeiro o tipo de serviço, depois
+// as opções dele, depois o mês com os dias livres em destaque e, tocado o
+// dia, os horários. Passos que não fazem sentido somem (uma categoria só,
+// uma profissional só). Escolher em mais de uma categoria é possível: a
+// seleção fica guardada enquanto se volta às categorias.
 // =====================================================================
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useLoja } from "@/lib/dados/loja";
 import type { Agendamento, Banco, Servico } from "@/lib/tipos";
 import { Icone } from "@/components/ui/Icone";
 import { Avatar, Botao, BotaoIcone, Campo, Entrada, Esqueleto, Texto } from "@/components/ui/basicos";
 import { useAvisos } from "@/components/ui/Avisos";
-import { SeletorHorario, type Escolha } from "./SeletorHorario";
+import type { Escolha } from "./SeletorHorario";
+import { DiaHora } from "./DiaHora";
 import { Confirmado } from "./Confirmado";
 import { aplicarCupom, criarAgendamento } from "@/lib/dados/acoes";
 import { duracaoTotal, horariosDisponiveis, profissionaisAptos } from "@/lib/disponibilidade";
-import { brl, duracao, primeiroNome } from "@/lib/formato";
+import { brl, duracao, plural, primeiroNome } from "@/lib/formato";
 import { dataLonga, dataRelativa, somarDias, somarMin, juntar } from "@/lib/datas";
 import { capitalizarNome, mascaraTelefone, telefoneValido } from "@/lib/masks";
-import { servicosVisiveis, capitalizar } from "@/components/vitrine/util";
+import { capitalizar, gruposVisiveis, menorPreco, servicosVisiveis, type Grupo } from "@/components/vitrine/util";
 
-type Passo = "servicos" | "profissional" | "horario" | "dados";
+type Passo = "categoria" | "servicos" | "profissional" | "horario" | "dados";
 
 const CHAVE_CLIENTE = "livo-agenda:cliente";
+const SAIDA = [0.23, 1, 0.32, 1] as const;
 
 function lerClienteSalvo(): { nome: string; telefone: string; email: string } {
   try {
@@ -45,8 +49,8 @@ export function Fluxo() {
     return (
       <div className="ag-miolo" style={{ display: "grid", gap: 12, paddingTop: 90 }}>
         <Esqueleto altura={40} largura="70%" />
-        {[0, 1, 2, 3].map((i) => (
-          <Esqueleto key={i} altura={72} raio={16} />
+        {[0, 1, 2].map((i) => (
+          <Esqueleto key={i} altura={84} raio={18} />
         ))}
       </div>
     );
@@ -60,14 +64,22 @@ function FluxoComDados({ b }: { b: Banco }) {
   const params = useSearchParams();
   const avisar = useAvisos();
   const n = b.negocio;
-  const servicos = servicosVisiveis(b);
+  const grupos = useMemo(() => gruposVisiveis(b), [b]);
+  const visiveis = useMemo(() => servicosVisiveis(b), [b]);
+  const umaCategoria = grupos.length <= 1;
 
-  const inicial = params.get("servico");
-  const [selecionados, setSelecionados] = useState<string[]>(inicial && servicos.some((s) => s.id === inicial) ? [inicial] : []);
+  // atalhos vindos da página: ?categoria=… abre as opções; ?servico=… já vai para o dia
+  const servicoInicial = visiveis.find((s) => s.id === params.get("servico")) ?? null;
+  const grupoDoServico = servicoInicial ? grupos.find((g) => g.servicos.includes(servicoInicial))?.id ?? null : null;
+  const categoriaParam = grupos.some((g) => g.id === params.get("categoria")) ? params.get("categoria") : null;
+
+  const [categoria, setCategoria] = useState<string | null>(grupoDoServico ?? categoriaParam ?? (umaCategoria ? grupos[0]?.id ?? null : null));
+  const [selecionados, setSelecionados] = useState<string[]>(servicoInicial ? [servicoInicial.id] : []);
   const [profissional, setProfissional] = useState<string | null | undefined>(undefined);
   const [data, setData] = useState<string | null>(params.get("data"));
   const [escolha, setEscolha] = useState<Escolha | null>(null);
   const [cliente, setCliente] = useState({ nome: "", telefone: "", email: "", nascimento: "", observacao: "" });
+  const [mais, setMais] = useState(false);
   const [cupom, setCupom] = useState("");
   const [cupomAberto, setCupomAberto] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
@@ -82,10 +94,20 @@ function FluxoComDados({ b }: { b: Banco }) {
   const aptos = useMemo(() => profissionaisAptos(b, selecionados), [b, selecionados]);
   const pularProfissional = !n.regras.escolherProfissional || aptos.length <= 1;
 
-  const passos: Passo[] = pularProfissional ? ["servicos", "horario", "dados"] : ["servicos", "profissional", "horario", "dados"];
-  const [passo, setPasso] = useState<Passo>(inicial && selecionados.length ? (pularProfissional ? "horario" : "profissional") : "servicos");
+  const passos: Passo[] = [
+    ...(umaCategoria ? [] : (["categoria"] as Passo[])),
+    "servicos",
+    ...(pularProfissional ? [] : (["profissional"] as Passo[])),
+    "horario",
+    "dados",
+  ];
+  const [passo, setPasso] = useState<Passo>(() => {
+    if (servicoInicial) return pularProfissional ? "horario" : "profissional";
+    if (categoriaParam || umaCategoria) return "servicos";
+    return "categoria";
+  });
   const [direcao, setDirecao] = useState(1);
-  const indice = passos.indexOf(passo);
+  const indice = Math.max(0, passos.indexOf(passo));
 
   const profEfetivo = pularProfissional ? (aptos.length === 1 ? aptos[0].id : null) : profissional ?? null;
 
@@ -96,20 +118,22 @@ function FluxoComDados({ b }: { b: Banco }) {
   const total = subtotal - desconto;
   const temPrecoOculto = escolhidos.some((s) => s.modoPreco === "oculto");
   const aPartirDe = escolhidos.some((s) => s.modoPreco === "a_partir_de");
+  const grupoAtual = grupos.find((g) => g.id === categoria) ?? null;
 
-  const ir = useCallback(
-    (p: Passo) => {
-      setDirecao(passos.indexOf(p) >= indice ? 1 : -1);
-      setPasso(p);
-      window.scrollTo({ top: 0 });
-    },
-    [passos, indice],
-  );
+  const ir = (p: Passo) => {
+    setDirecao(passos.indexOf(p) >= indice ? 1 : -1);
+    setPasso(p);
+    window.scrollTo({ top: 0 });
+  };
+
+  const depoisDosServicos = (ids: string[]): Passo => {
+    const apt = profissionaisAptos(b, ids);
+    return !n.regras.escolherProfissional || apt.length <= 1 ? "horario" : "profissional";
+  };
 
   const avancar = () => {
     if (passo === "servicos") {
-      if (!selecionados.length) return;
-      ir(pularProfissional ? "horario" : "profissional");
+      if (selecionados.length) ir(depoisDosServicos(selecionados));
     } else if (passo === "profissional") ir("horario");
     else if (passo === "horario" && escolha) ir("dados");
     else if (passo === "dados") confirmar();
@@ -120,20 +144,22 @@ function FluxoComDados({ b }: { b: Banco }) {
     else ir(passos[indice - 1]);
   };
 
+  const abrirCategoria = (id: string) => {
+    setCategoria(id);
+    setDirecao(1);
+    setPasso("servicos");
+    window.scrollTo({ top: 0 });
+  };
+
   const alternarServico = (id: string) => {
     setEscolha(null);
+    setProfissional(undefined);
     if (!n.regras.multiplosServicos) {
       setSelecionados([id]);
-      setProfissional(undefined);
-      setTimeout(() => {
-        setDirecao(1);
-        const apt = profissionaisAptos(b, [id]);
-        setPasso(!n.regras.escolherProfissional || apt.length <= 1 ? "horario" : "profissional");
-      }, 220);
+      setTimeout(() => ir(depoisDosServicos([id])), 220);
       return;
     }
     setSelecionados((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
-    setProfissional(undefined);
   };
 
   const confirmar = () => {
@@ -179,8 +205,23 @@ function FluxoComDados({ b }: { b: Banco }) {
 
   if (feito) return <Confirmado ag={feito} />;
 
+  if (!grupos.length) {
+    return (
+      <div className="ag">
+        <main className="ag-miolo" style={{ paddingTop: 80 }}>
+          <h1 className="vt-titulo ag-passo-titulo">Agenda fechada</h1>
+          <p className="ag-passo-texto">Nenhum serviço pode ser marcado pelo link agora.</p>
+          <Link href={`/${slug}`} className="vt-link" style={{ paddingLeft: 0 }}>
+            <Icone nome="voltar" tamanho={18} /> Voltar para {n.nome}
+          </Link>
+        </main>
+      </div>
+    );
+  }
+
   const titulos: Record<Passo, string> = {
-    servicos: "Serviço",
+    categoria: "Serviço",
+    servicos: grupoAtual?.nome ?? "Serviço",
     profissional: "Profissional",
     horario: "Dia e horário",
     dados: "Seus dados",
@@ -192,7 +233,7 @@ function FluxoComDados({ b }: { b: Banco }) {
     (passo === "horario" && !!escolha) ||
     passo === "dados";
 
-  const rotuloBotao = passo === "dados" ? "Confirmar" : passo === "horario" ? "Continuar" : "Continuar";
+  const mostrarBotao = passo !== "categoria" && passo !== "profissional";
 
   return (
     <div className="ag">
@@ -211,7 +252,7 @@ function FluxoComDados({ b }: { b: Banco }) {
           <div className="ag-progresso" style={{ gridTemplateColumns: `repeat(${passos.length}, 1fr)` }}>
             {passos.map((p, i) => (
               <span key={p}>
-                <motion.i initial={false} animate={{ scaleX: i <= indice ? 1 : 0 }} transition={{ duration: 0.45, ease: [0.23, 1, 0.32, 1] }} />
+                <motion.i initial={false} animate={{ scaleX: i <= indice ? 1 : 0 }} transition={{ duration: 0.45, ease: SAIDA }} />
               </span>
             ))}
           </div>
@@ -221,7 +262,7 @@ function FluxoComDados({ b }: { b: Banco }) {
       <main className="ag-miolo">
         <AnimatePresence mode="wait" custom={direcao} initial={false}>
           <motion.section
-            key={passo}
+            key={passo === "servicos" ? `servicos-${categoria}` : passo}
             custom={direcao}
             variants={{
               entra: (d: number) => ({ opacity: 0, x: d * 36 }),
@@ -231,11 +272,21 @@ function FluxoComDados({ b }: { b: Banco }) {
             initial="entra"
             animate="fica"
             exit="sai"
-            transition={{ duration: 0.26, ease: [0.23, 1, 0.32, 1] }}
+            transition={{ duration: 0.26, ease: SAIDA }}
           >
-            {passo === "servicos" && (
-              <PassoServicos b={b} servicos={servicos} selecionados={selecionados} multiplo={n.regras.multiplosServicos} onAlternar={alternarServico} />
+            {passo === "categoria" && <PassoCategoria grupos={grupos} selecionados={selecionados} onAbrir={abrirCategoria} />}
+
+            {passo === "servicos" && grupoAtual && (
+              <PassoServicos
+                grupo={grupoAtual}
+                selecionados={selecionados}
+                multiplo={n.regras.multiplosServicos}
+                outrasCategorias={!umaCategoria}
+                onAlternar={alternarServico}
+                onOutraCategoria={() => ir("categoria")}
+              />
             )}
+
             {passo === "profissional" && (
               <PassoProfissional
                 b={b}
@@ -250,14 +301,15 @@ function FluxoComDados({ b }: { b: Banco }) {
                 }}
               />
             )}
+
             {passo === "horario" && (
               <div>
-                <h1 className="vt-titulo ag-passo-titulo">Quando fica bom?</h1>
+                <h1 className="vt-titulo ag-passo-titulo">Escolha o dia</h1>
                 <p className="ag-passo-texto">
-                  {duracao(atendimento)} de atendimento
-                  {profEfetivo && !pularProfissional ? ` com ${primeiroNome(b.profissionais.find((p) => p.id === profEfetivo)?.nome ?? "")}` : ""}.
+                  {escolhidos.map((s) => s.nome).join(" + ")} · {duracao(atendimento)}
+                  {profEfetivo && !pularProfissional ? ` · com ${primeiroNome(b.profissionais.find((p) => p.id === profEfetivo)?.nome ?? "")}` : ""}
                 </p>
-                <SeletorHorario
+                <DiaHora
                   banco={b}
                   servicosIds={selecionados}
                   profissionalId={profEfetivo}
@@ -266,15 +318,16 @@ function FluxoComDados({ b }: { b: Banco }) {
                   hora={escolha && escolha.data === data ? escolha.hora : null}
                   onData={(d) => {
                     setData(d);
+                    if (escolha?.data !== d) setEscolha(null);
                   }}
-                  onHora={(e) => setEscolha(e)}
+                  onHora={setEscolha}
                 />
               </div>
             )}
+
             {passo === "dados" && escolha && (
               <div>
-                <h1 className="vt-titulo ag-passo-titulo">Quase lá</h1>
-                <p className="ag-passo-texto">Só para a gente saber quem vem — e te avisar antes.</p>
+                <h1 className="vt-titulo ag-passo-titulo">Seus dados</h1>
                 <div className="ag-form">
                   <Campo rotulo="Nome completo" erro={erros.nome}>
                     <Entrada
@@ -282,10 +335,10 @@ function FluxoComDados({ b }: { b: Banco }) {
                       value={cliente.nome}
                       onChange={(e) => setCliente({ ...cliente, nome: e.target.value })}
                       onBlur={() => setCliente((c) => ({ ...c, nome: capitalizarNome(c.nome) }))}
-                      placeholder="Como você se chama?"
+                      placeholder="Nome e sobrenome"
                     />
                   </Campo>
-                  <Campo rotulo="WhatsApp" erro={erros.telefone} ajuda="A confirmação e o lembrete chegam por aqui.">
+                  <Campo rotulo="WhatsApp" erro={erros.telefone}>
                     <Entrada
                       inputMode="tel"
                       autoComplete="tel-national"
@@ -295,19 +348,22 @@ function FluxoComDados({ b }: { b: Banco }) {
                       icone="whatsapp"
                     />
                   </Campo>
-                  {n.modulos.aniversarios && (
-                    <Campo rotulo="Data de nascimento" opcional ajuda="Tem mimo no seu aniversário.">
-                      <Entrada type="date" value={cliente.nascimento} onChange={(e) => setCliente({ ...cliente, nascimento: e.target.value })} />
-                    </Campo>
+                  {mais ? (
+                    <>
+                      {n.modulos.aniversarios && (
+                        <Campo rotulo="Data de nascimento" opcional>
+                          <Entrada type="date" value={cliente.nascimento} onChange={(e) => setCliente({ ...cliente, nascimento: e.target.value })} />
+                        </Campo>
+                      )}
+                      <Campo rotulo="Observação" opcional>
+                        <Texto rows={2} value={cliente.observacao} onChange={(e) => setCliente({ ...cliente, observacao: e.target.value })} />
+                      </Campo>
+                    </>
+                  ) : (
+                    <button type="button" className="vt-link" style={{ justifySelf: "start", padding: 0 }} onClick={() => setMais(true)}>
+                      <Icone nome="mais" tamanho={18} /> Adicionar observação
+                    </button>
                   )}
-                  <Campo rotulo="Observação" opcional>
-                    <Texto
-                      rows={2}
-                      value={cliente.observacao}
-                      onChange={(e) => setCliente({ ...cliente, observacao: e.target.value })}
-                      placeholder="Algo que a gente precisa saber?"
-                    />
-                  </Campo>
                   {b.cupons.some((c) => c.ativo) &&
                     (cupomAberto ? (
                       <Campo rotulo="Cupom" erro={cupom && !cupomValido ? "Cupom não encontrado." : null} ajuda={cupomValido ? `Desconto de ${brl(desconto)} aplicado.` : undefined}>
@@ -339,13 +395,15 @@ function FluxoComDados({ b }: { b: Banco }) {
                       <small>{duracao(atendimento)}</small>
                     </div>
                   </div>
-                  <div className="ag-resumo-linha">
-                    <Icone nome="cliente" />
-                    <div>
-                      <strong>{b.profissionais.find((p) => p.id === escolha.profissionalId)?.nome}</strong>
-                      <small>{b.profissionais.find((p) => p.id === escolha.profissionalId)?.cargo}</small>
+                  {!pularProfissional && (
+                    <div className="ag-resumo-linha">
+                      <Icone nome="cliente" />
+                      <div>
+                        <strong>{b.profissionais.find((p) => p.id === escolha.profissionalId)?.nome}</strong>
+                        <small>{b.profissionais.find((p) => p.id === escolha.profissionalId)?.cargo}</small>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   {!temPrecoOculto && (
                     <div className="ag-resumo-total">
                       <span>{aPartirDe ? "A partir de" : "Total"}</span>
@@ -359,10 +417,9 @@ function FluxoComDados({ b }: { b: Banco }) {
                   )}
                 </div>
                 <p className="ag-politica">
-                  Ao confirmar, você recebe um link para remarcar ou cancelar até {n.regras.cancelamentoAteHoras}h antes do horário.
-                  {n.regras.confirmacao === "manual" && " O horário fica reservado e o negócio confirma em seguida."}
-                  {n.modulos.sinal && escolhidos.some((s) => n.sinal.servicosIds.includes(s.id)) &&
-                    ` Este serviço pede um sinal de ${n.sinal.percentual}% via Pix para garantir o horário.`}
+                  Você recebe um link para remarcar ou cancelar até {n.regras.cancelamentoAteHoras}h antes.
+                  {n.regras.confirmacao === "manual" && " O negócio confirma em seguida."}
+                  {n.modulos.sinal && escolhidos.some((s) => n.sinal.servicosIds.includes(s.id)) && ` Sinal de ${n.sinal.percentual}% via Pix para garantir o horário.`}
                 </p>
               </div>
             )}
@@ -370,88 +427,146 @@ function FluxoComDados({ b }: { b: Banco }) {
         </AnimatePresence>
       </main>
 
-      <motion.footer className="ag-barra" initial={{ y: 100 }} animate={{ y: 0 }} transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}>
-        <div className="ag-barra-linha">
-          <div className="ag-barra-info">
-            {escolhidos.length ? (
-              <>
+      <AnimatePresence>
+        {(mostrarBotao || selecionados.length > 0) && (
+          <motion.footer className="ag-barra" initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}>
+            <div className="ag-barra-linha">
+              <div className="ag-barra-info">
+                {escolhidos.length ? (
+                  <>
+                    <small>
+                      {escolhidos.length === 1 ? escolhidos[0].nome : plural(escolhidos.length, "serviço", "serviços")} · {duracao(atendimento)}
+                      {escolha ? ` · ${capitalizar(dataRelativa(escolha.data, agora().slice(0, 10)))}, ${escolha.hora}` : ""}
+                    </small>
+                    <strong>{temPrecoOculto ? "Sob consulta" : `${aPartirDe ? "a partir de " : ""}${brl(total)}`}</strong>
+                  </>
+                ) : (
+                  <>
+                    <small>Nada escolhido ainda</small>
+                    <strong>Toque numa opção</strong>
+                  </>
+                )}
+              </div>
+              {passo === "categoria" ? (
+                <Botao variante="principal" onClick={() => ir(depoisDosServicos(selecionados))} iconeDepois="avancar">
+                  Continuar
+                </Botao>
+              ) : (
+                mostrarBotao && (
+                  <Botao variante="principal" disabled={!podeAvancar} carregando={enviando} onClick={avancar} iconeDepois={passo === "dados" ? undefined : "avancar"}>
+                    {passo === "dados" ? "Confirmar" : "Continuar"}
+                  </Botao>
+                )
+              )}
+            </div>
+          </motion.footer>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function PassoCategoria({ grupos, selecionados, onAbrir }: { grupos: Grupo[]; selecionados: string[]; onAbrir: (id: string) => void }) {
+  return (
+    <div>
+      <h1 className="vt-titulo ag-passo-titulo">O que você procura?</h1>
+      <div className="ag-categorias">
+        {grupos.map((g, i) => {
+          const escolhidos = g.servicos.filter((s) => selecionados.includes(s.id)).length;
+          const minimo = menorPreco(g.servicos);
+          return (
+            <motion.button
+              key={g.id}
+              type="button"
+              className="ag-categoria"
+              onClick={() => onAbrir(g.id)}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: i * 0.05, ease: SAIDA }}
+            >
+              <span className="ag-categoria-info">
+                <strong className="vt-titulo">{g.nome}</strong>
                 <small>
-                  {escolhidos.length === 1 ? escolhidos[0].nome : `${escolhidos.length} serviços`} · {duracao(atendimento)}
-                  {escolha ? ` · ${capitalizar(dataRelativa(escolha.data, agora().slice(0, 10)))}, ${escolha.hora}` : ""}
+                  {g.descricao ? `${g.descricao} · ` : ""}
+                  {plural(g.servicos.length, "opção", "opções")}
+                  {minimo !== null ? ` · a partir de ${brl(minimo)}` : ""}
                 </small>
-                <strong>{temPrecoOculto ? "Sob consulta" : `${aPartirDe ? "a partir de " : ""}${brl(total)}`}</strong>
-              </>
-            ) : (
-              <>
-                <small>Nenhum serviço ainda</small>
-                <strong>Escolha um serviço</strong>
-              </>
-            )}
-          </div>
-          {(passo !== "profissional" || pularProfissional) && (
-            <Botao variante="principal" disabled={!podeAvancar} carregando={enviando} onClick={avancar} iconeDepois={passo === "dados" ? undefined : "avancar"}>
-              {rotuloBotao}
-            </Botao>
-          )}
-        </div>
-      </motion.footer>
+              </span>
+              {escolhidos > 0 ? <span className="ag-categoria-conta">{escolhidos}</span> : <Icone nome="direita" tamanho={20} />}
+            </motion.button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 function PassoServicos({
-  b,
-  servicos,
+  grupo,
   selecionados,
   multiplo,
+  outrasCategorias,
   onAlternar,
+  onOutraCategoria,
 }: {
-  b: Banco;
-  servicos: Servico[];
+  grupo: Grupo;
   selecionados: string[];
   multiplo: boolean;
+  outrasCategorias: boolean;
   onAlternar: (id: string) => void;
+  onOutraCategoria: () => void;
 }) {
-  const categorias = b.categorias.slice().sort((a, c) => a.ordem - c.ordem);
-  const grupos = [
-    ...categorias.map((c) => ({ id: c.id, nome: c.nome, lista: servicos.filter((s) => s.categoriaId === c.id) })),
-    { id: "_", nome: "Outros", lista: servicos.filter((s) => !s.categoriaId || !categorias.some((c) => c.id === s.categoriaId)) },
-  ].filter((g) => g.lista.length);
   return (
     <div>
-      <h1 className="vt-titulo ag-passo-titulo">O que vamos fazer?</h1>
-      <p className="ag-passo-texto">{multiplo ? "Pode escolher mais de um — a gente soma o tempo." : "Escolha o serviço."}</p>
-      {grupos.map((g) => (
-        <div className="ag-grupo" key={g.id}>
-          {grupos.length > 1 && <h3>{g.nome}</h3>}
-          <div className="ag-lista">
-            {g.lista.map((s) => {
-              const ativo = selecionados.includes(s.id);
-              return (
-                <button key={s.id} type="button" className="ag-opcao" aria-pressed={ativo} onClick={() => onAlternar(s.id)}>
-                  <span className={`ag-marcador${multiplo ? " quadrado" : ""}`}>
-                    <AnimatePresence>
-                      {ativo && (
-                        <motion.span initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.4, opacity: 0 }} transition={{ type: "spring", stiffness: 600, damping: 30 }}>
-                          <Icone nome="ok" tamanho={14} peso="bold" />
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </span>
-                  <span className="ag-opcao-info">
-                    <strong>{s.nome}</strong>
-                    {s.descricao && <small>{s.descricao}</small>}
-                  </span>
-                  <span className="ag-opcao-lado">
-                    <b>{s.modoPreco === "oculto" ? "Consulte" : brl(s.preco)}</b>
-                    {duracao(s.duracaoMin)}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+      <h1 className="vt-titulo ag-passo-titulo">{grupo.nome}</h1>
+      {multiplo && <p className="ag-passo-texto">Pode escolher mais de um.</p>}
+      <div className="ag-lista">
+        {grupo.servicos.map((s, i) => {
+          const ativo = selecionados.includes(s.id);
+          return (
+            <motion.button
+              key={s.id}
+              type="button"
+              className="ag-opcao"
+              aria-pressed={ativo}
+              onClick={() => onAlternar(s.id)}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: Math.min(i, 8) * 0.03, ease: SAIDA }}
+            >
+              <span className={`ag-marcador${multiplo ? " quadrado" : ""}`}>
+                <AnimatePresence>
+                  {ativo && (
+                    <motion.span initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.4, opacity: 0 }} transition={{ type: "spring", stiffness: 600, damping: 30 }}>
+                      <Icone nome="ok" tamanho={14} peso="bold" />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </span>
+              <span className="ag-opcao-info">
+                <strong>{s.nome}</strong>
+                {/* a descrição só aparece em quem foi escolhido: a lista fica curta */}
+                <AnimatePresence initial={false}>
+                  {ativo && s.descricao && (
+                    <motion.small initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22, ease: SAIDA }} style={{ overflow: "hidden" }}>
+                      {s.descricao}
+                    </motion.small>
+                  )}
+                </AnimatePresence>
+              </span>
+              <span className="ag-opcao-lado">
+                <b>{s.modoPreco === "oculto" ? "Consulte" : `${s.modoPreco === "a_partir_de" ? "a partir de " : ""}${brl(s.preco)}`}</b>
+                {duracao(s.duracaoMin)}
+              </span>
+            </motion.button>
+          );
+        })}
+      </div>
+      {multiplo && outrasCategorias && (
+        <button type="button" className="vt-link ag-outra" onClick={onOutraCategoria}>
+          <Icone nome="mais" tamanho={18} /> Somar de outra categoria
+        </button>
+      )}
     </div>
   );
 }
@@ -491,7 +606,6 @@ function PassoProfissional({
   return (
     <div>
       <h1 className="vt-titulo ag-passo-titulo">Com quem?</h1>
-      <p className="ag-passo-texto">Sem preferência, você pega o primeiro horário livre.</p>
       <div className="ag-lista">
         <button type="button" className="ag-opcao" aria-pressed={valor === null} onClick={() => onEscolher(null)}>
           <span className="ag-qualquer">
