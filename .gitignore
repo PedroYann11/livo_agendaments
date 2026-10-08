@@ -1,0 +1,26 @@
+# dependências
+node_modules/
+
+# build do Next
+.next/
+out/
+build/
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# variáveis de ambiente — as reais vivem na Vercel, nunca no repo
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel
+
+# logs e sistema
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# local do Claude Code
+.claude/settings.local.json
