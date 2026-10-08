@@ -11,7 +11,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import QRCode from "qrcode";
-import { useBanco, useLoja, restaurarDemo } from "@/lib/dados/loja";
+import { useBanco, useLoja } from "@/lib/dados/loja";
 import { usePainel } from "../PainelRaiz";
 import { Cabecalho } from "../Cabecalho";
 import { EditorSemana } from "../EditorSemana";
@@ -223,15 +223,15 @@ function SecaoPagina({ n, muda }: PropsSecao) {
         <Interruptor ligado={n.aviso.ativo} onMudar={(v) => muda({ aviso: { ...n.aviso, ativo: v } })} rotulo="Mostrar aviso" mostrarRotulo />
         <Entrada value={n.aviso.texto} onChange={(e) => muda({ aviso: { ...n.aviso, texto: e.target.value } })} placeholder="Ex.: 15% off no laser de axilas em outubro" disabled={!n.aviso.ativo} />
       </Bloco>
-      <Bloco titulo="Logo" texto="Quadrada, de preferência. Aparece no topo da página e no painel.">
+      <Bloco titulo="Símbolo" texto="Quadrado, de preferência. Aparece no topo da página e no painel.">
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          <span className="pn-negocio-simbolo" style={{ width: 64, height: 64, borderRadius: 16, fontSize: 26, overflow: "hidden" }}>
+          <span className={`pn-negocio-simbolo${n.logoUrl ? " com-imagem" : ""}`} style={{ width: 64, height: 64, borderRadius: 16, fontSize: 26 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            {n.logoUrl ? <img src={n.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : n.nome.charAt(0)}
+            {n.logoUrl ? <img src={n.logoUrl} alt="" /> : n.nome.charAt(0)}
           </span>
           <label className="ui-botao ui-botao-secundario ui-botao-m" style={{ cursor: "pointer" }}>
             <Icone nome="imagem" tamanho={18} /> Escolher imagem
-            <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) muda({ logoUrl: await reduzirImagem(f, 256) }); }} />
+            <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) muda({ logoUrl: await reduzirImagem(f, 256, true) }); }} />
           </label>
           {n.logoUrl && (
             <Botao variante="fantasma" onClick={() => muda({ logoUrl: null })}>
@@ -240,12 +240,37 @@ function SecaoPagina({ n, muda }: PropsSecao) {
           )}
         </div>
       </Bloco>
+      <Bloco titulo="Logo com o nome" texto="Aparece grande no começo da sua página. PNG com fundo transparente fica melhor.">
+        <div style={{ display: "grid", gap: 12, justifyItems: "start" }}>
+          {n.logoCompletoUrl && (
+            <span style={{ display: "grid", placeItems: "center", padding: 14, borderRadius: 14, background: n.tema.fundo, border: "1px solid var(--c-linha)" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={n.logoCompletoUrl} alt="" style={{ maxWidth: 220, maxHeight: 120, objectFit: "contain" }} />
+            </span>
+          )}
+          <div style={{ display: "flex", gap: 10 }}>
+            <label className="ui-botao ui-botao-secundario ui-botao-m" style={{ cursor: "pointer" }}>
+              <Icone nome="imagem" tamanho={18} /> Escolher imagem
+              <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) muda({ logoCompletoUrl: await reduzirImagem(f, 720, false) }); }} />
+            </label>
+            {n.logoCompletoUrl && (
+              <Botao variante="fantasma" onClick={() => muda({ logoCompletoUrl: null })}>
+                Remover
+              </Botao>
+            )}
+          </div>
+        </div>
+      </Bloco>
     </>
   );
 }
 
-/** Reduz a imagem no navegador antes de guardar (ideia de livo/lib/image.ts). */
-async function reduzirImagem(file: File, lado: number): Promise<string> {
+/**
+ * Reduz a imagem no navegador antes de guardar (ideia de livo/lib/image.ts).
+ * Quadrada: recorta o centro. Inteira: mantém a proporção, limitada a `lado`
+ * de largura. PNG e WebP continuam PNG, para não perder a transparência.
+ */
+async function reduzirImagem(file: File, lado: number, quadrada: boolean): Promise<string> {
   const url = URL.createObjectURL(file);
   const img = await new Promise<HTMLImageElement>((ok, erro) => {
     const i = new Image();
@@ -253,13 +278,22 @@ async function reduzirImagem(file: File, lado: number): Promise<string> {
     i.onerror = erro;
     i.src = url;
   });
-  const menor = Math.min(img.width, img.height);
   const c = document.createElement("canvas");
-  c.width = lado;
-  c.height = lado;
-  c.getContext("2d")!.drawImage(img, (img.width - menor) / 2, (img.height - menor) / 2, menor, menor, 0, 0, lado, lado);
+  const ctx = c.getContext("2d")!;
+  if (quadrada) {
+    const menor = Math.min(img.width, img.height);
+    c.width = lado;
+    c.height = lado;
+    ctx.drawImage(img, (img.width - menor) / 2, (img.height - menor) / 2, menor, menor, 0, 0, lado, lado);
+  } else {
+    const escala = Math.min(1, lado / img.width);
+    c.width = Math.round(img.width * escala);
+    c.height = Math.round(img.height * escala);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+  }
   URL.revokeObjectURL(url);
-  return c.toDataURL("image/jpeg", 0.86);
+  const transparente = file.type === "image/png" || file.type === "image/webp";
+  return transparente ? c.toDataURL("image/png") : c.toDataURL("image/jpeg", 0.86);
 }
 
 function SecaoAparencia({ n, muda }: PropsSecao) {
@@ -748,9 +782,7 @@ function SecaoAvaliacoes() {
 }
 
 function SecaoConta() {
-  const b = useBanco();
   const { sessao } = usePainel();
-  const confirmar = useConfirmar();
   return (
     <>
       <Bloco titulo="Sua conta">
@@ -759,27 +791,13 @@ function SecaoConta() {
             <b>{sessao.nome}</b> · {sessao.email}
           </span>
           <span style={{ color: "var(--c-texto-2)" }}>
-            {sessao.tipo === "demo" ? "Demonstração — os dados ficam só neste navegador." : "Conta conectada à Livo."}
+            Conta conectada à Livo.
           </span>
         </div>
         <Botao variante="secundario" icone="sair" onClick={() => sair()}>
           Sair
         </Botao>
       </Bloco>
-      {b.negocio.demo && (
-        <Bloco titulo="Demonstração" texto="Volta todos os dados deste negócio ao exemplo original.">
-          <Botao
-            variante="perigo"
-            icone="desfazer"
-            onClick={async () => {
-              const ok = await confirmar({ titulo: "Restaurar a demonstração?", confirmar: "Restaurar", perigo: true });
-              if (ok) restaurarDemo(b.negocio.slug);
-            }}
-          >
-            Restaurar dados de exemplo
-          </Botao>
-        </Bloco>
-      )}
     </>
   );
 }

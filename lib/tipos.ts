@@ -2,7 +2,7 @@
 // O vocabulário da Livo Agenda.
 //
 // Estes tipos são o contrato entre as telas e a camada de dados. Hoje a
-// camada de dados é a demonstração local (lib/dados); na fase de backend
+// camada de dados é local (lib/dados, no navegador); na fase de backend
 // ela passa a ser o Supabase, e as telas não mudam. Por isso os nomes aqui
 // já seguem o modelo do docs/PLANEJAMENTO.md (seção 4).
 //
@@ -92,7 +92,10 @@ export type Negocio = {
   sobre: string;
   destaques: string[];
   tema: Tema;
+  /** símbolo compacto: topo da página, painel, ícone */
   logoUrl: string | null;
+  /** logo com o nome, no começo da página */
+  logoCompletoUrl: string | null;
   capaUrl: string | null;
   galeria: string[];
   contato: { whatsapp: string; instagram: string; telefone: string; email: string };
@@ -105,11 +108,17 @@ export type Negocio = {
   sinal: { percentual: number; servicosIds: string[] };
   metaMensal: number;
   aviso: { texto: string; ativo: boolean };
-  /** só a demonstração: aparece um selo "demonstração" no painel */
-  demo: boolean;
 };
 
-export type Categoria = { id: string; nome: string; ordem: number };
+export type Categoria = {
+  id: string;
+  nome: string;
+  /** uma linha no cartão da categoria, na hora de agendar */
+  descricao: string;
+  ordem: number;
+  /** some da página sem apagar nada (os serviços dela também somem) */
+  pausada: boolean;
+};
 
 export type ModoPreco = "fixo" | "a_partir_de" | "oculto";
 
@@ -318,7 +327,7 @@ export type Cupom = {
   usos: number;
 };
 
-/** Tudo de um negócio. Na demonstração, vive no navegador. */
+/** Tudo de um negócio. Até a fase de backend, vive no navegador. */
 export type Banco = {
   versao: number;
   negocio: Negocio;

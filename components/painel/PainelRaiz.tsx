@@ -12,8 +12,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { MotionConfig, motion } from "motion/react";
-import { BancoProvider, restaurarDemo, useLoja } from "@/lib/dados/loja";
-import { Provedores, useConfirmar } from "@/components/ui/Avisos";
+import { BancoProvider, useLoja } from "@/lib/dados/loja";
+import { Provedores } from "@/components/ui/Avisos";
 import { Folha } from "@/components/ui/Folha";
 import { Icone, type NomeIcone } from "@/components/ui/Icone";
 import { Avatar, BotaoIcone, Esqueleto } from "@/components/ui/basicos";
@@ -136,7 +136,6 @@ function Casca({ sessao, children }: { sessao: Sessao; children: ReactNode }) {
   const [detalhe, setDetalhe] = useState<string | null>(null);
   const [mais, setMais] = useState(false);
   const [rolou, setRolou] = useState(false);
-  const confirmar = useConfirmar();
 
   useEffect(() => {
     const f = () => setRolou(window.scrollY > 8);
@@ -222,7 +221,7 @@ function Casca({ sessao, children }: { sessao: Sessao; children: ReactNode }) {
               <Avatar nome={sessao.nome} tamanho={32} />
               <div>
                 <strong>{sessao.nome}</strong>
-                <small>{NOME_PAPEL[sessao.papel]}{sessao.tipo === "demo" ? " · demonstração" : ` · ${sessao.email}`}</small>
+                <small>{NOME_PAPEL[sessao.papel]} · {sessao.email}</small>
               </div>
               <BotaoIcone icone="sair" rotulo="Sair" tamanho={18} onClick={() => sair()} />
             </div>
@@ -230,23 +229,13 @@ function Casca({ sessao, children }: { sessao: Sessao; children: ReactNode }) {
         </aside>
 
         <div className="pn-conteudo">
-          {sessao.tipo === "demo" && (
-            <div className="pn-faixa-demo">
-              <Icone nome="info" tamanho={15} />
-              <span>Demonstração: os dados ficam só neste navegador.</span>
-              <button
-                type="button"
-                onClick={async () => {
-                  const ok = await confirmar({ titulo: "Restaurar a demonstração?", texto: "Tudo o que você mudou neste negócio volta ao exemplo original.", confirmar: "Restaurar" });
-                  if (ok) restaurarDemo(n.slug);
-                }}
-              >
-                Restaurar
-              </button>
-            </div>
-          )}
+          {/* até a fase de backend, o painel grava no navegador — dizer isso com todas as letras */}
+          <div className="pn-faixa-demo">
+            <Icone nome="info" tamanho={15} />
+            <span>Fase de testes: o que você muda aqui fica só neste aparelho.</span>
+          </div>
           <header className={`pn-topo-movel${rolou ? " rolou" : ""}`}>
-            <span className="pn-negocio-simbolo">{n.nome.charAt(0)}</span>
+            <SimboloNegocio n={n} />
             <strong>{n.nome}</strong>
             <a href={`/${n.slug}`} target="_blank" rel="noopener noreferrer" className="ui-botao-icone" aria-label="Ver minha página">
               <Icone nome="navegador" />
@@ -333,14 +322,14 @@ function SeletorNegocio({ sessao, banco }: { sessao: Sessao; banco: Banco }) {
   return (
     <>
       <button type="button" className="pn-negocio" onClick={() => setAberto(true)} disabled={sessao.negocios.length < 2}>
-        <span className="pn-negocio-simbolo">{n.nome.charAt(0)}</span>
+        <SimboloNegocio n={n} />
         <span className="pn-negocio-nome">
           <strong>{n.nome}</strong>
           <small>/{n.slug}</small>
         </span>
         {sessao.negocios.length > 1 && <Icone nome="baixo" tamanho={16} />}
       </button>
-      <Folha aberta={aberto} onFechar={() => setAberto(false)} titulo="Trocar de negócio" subtitulo={sessao.tipo === "demo" ? "Cada demonstração mostra um nicho diferente." : undefined}>
+      <Folha aberta={aberto} onFechar={() => setAberto(false)} titulo="Trocar de negócio">
         <div className="pn-checks">
           {sessao.negocios.map((x) => (
             <button
@@ -360,6 +349,15 @@ function SeletorNegocio({ sessao, banco }: { sessao: Sessao; banco: Banco }) {
         </div>
       </Folha>
     </>
+  );
+}
+
+function SimboloNegocio({ n }: { n: Banco["negocio"] }) {
+  return (
+    <span className={`pn-negocio-simbolo${n.logoUrl ? " com-imagem" : ""}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {n.logoUrl ? <img src={n.logoUrl} alt="" /> : n.nome.charAt(0)}
+    </span>
   );
 }
 

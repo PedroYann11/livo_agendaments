@@ -63,8 +63,7 @@ export function Inicio() {
   const aniver = n.modulos.aniversarios ? aniversariantes(b, hoje, somarDias(hoje, 6)) : [];
   const retorno = n.modulos.retorno ? clientesParaRetorno(b, hoje) : [];
 
-  const dono = b.profissionais.find((p) => p.acesso?.papel === "owner");
-  const nome = sessao.tipo === "demo" ? primeiroNome(dono?.nome ?? "") : primeiroNome(sessao.nome);
+  const nome = primeiroNome(sessao.nome);
   const hora = Number(momento.slice(11, 13));
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
 

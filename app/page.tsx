@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { Icone, type NomeIcone } from "@/components/ui/Icone";
-import { DEMOS } from "@/lib/demo/negocios";
-import { textoSobre } from "@/lib/cor";
+import { MODULOS, NICHOS, modulosDoNicho } from "@/lib/padroes";
 
-const NICHO: Record<string, string> = {
-  ambar: "Clínica de depilação",
-  navalha: "Barbearia",
-  jade: "Nail designer (MEI)",
-};
+// O mesmo sistema para todos: cada tipo de negócio já nasce com as funções
+// que fazem sentido para ele, e o dono liga ou desliga o resto no painel.
+const PADRAO = new Set(["financeiro", "retorno", "avaliacoes", "aniversarios"]);
+const nichos = NICHOS.filter((n) => n.id !== "outro").map((n) => {
+  const extras = MODULOS.filter((m) => modulosDoNicho(n.id)[m.id] && !PADRAO.has(m.id)).map((m) => m.nome.toLowerCase());
+  return { nome: n.nome, funcoes: extras.length ? `Agenda + ${extras.join(", ")}` : "Agenda, lembretes e financeiro" };
+});
 
 const RECURSOS: { icone: NomeIcone; titulo: string; texto: string }[] = [
   { icone: "navegador", titulo: "Link com a sua cara", texto: "Página com as cores, a fonte e o jeito do seu negócio — não um formulário genérico." },
@@ -19,7 +20,6 @@ const RECURSOS: { icone: NomeIcone; titulo: string; texto: string }[] = [
 ];
 
 export default function Inicio() {
-  const demos = Object.values(DEMOS).map((d) => d.negocio);
   return (
     <main className="li">
       <header className="li-topo">
@@ -44,30 +44,19 @@ export default function Inicio() {
         </p>
         <div className="li-acoes">
           <Link href="/painel/entrar" className="ui-botao ui-botao-principal ui-botao-g">
-            Ver o painel por dentro <Icone nome="avancar" tamanho={18} />
+            Entrar no painel <Icone nome="avancar" tamanho={18} />
           </Link>
         </div>
       </section>
 
-      <section className="li-demos" aria-label="Demonstrações">
-        <p className="li-rotulo">Veja como fica para o seu cliente</p>
-        <div className="li-cartoes">
-          {demos.map((d) => (
-            <Link
-              key={d.slug}
-              href={`/${d.slug}`}
-              className={`li-demo pele-${d.pele}`}
-              style={{ ["--d-fundo" as string]: d.tema.fundo, ["--d-texto" as string]: d.tema.texto, ["--d-marca" as string]: d.tema.marca, ["--d-sobre" as string]: textoSobre(d.tema.marca) }}
-            >
-              <small>{NICHO[d.slug]}</small>
-              <strong>{d.tagline}</strong>
-              <span className="li-demo-pe">
-                <span>{d.nome}</span>
-                <span className="li-demo-botao">
-                  Agendar <Icone nome="seta" tamanho={14} />
-                </span>
-              </span>
-            </Link>
+      <section aria-label="Tipos de negócio">
+        <p className="li-rotulo">Um sistema, vários tipos de negócio</p>
+        <div className="li-nichos">
+          {nichos.map((n) => (
+            <div key={n.nome} className="li-nicho">
+              <strong>{n.nome}</strong>
+              <span>{n.funcoes}</span>
+            </div>
           ))}
         </div>
       </section>

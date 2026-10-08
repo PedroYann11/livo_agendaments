@@ -4,15 +4,15 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { useLoja } from "@/lib/dados/loja";
-import type { Banco, Servico } from "@/lib/tipos";
+import type { Banco } from "@/lib/tipos";
 import { Icone } from "@/components/ui/Icone";
 import { Avatar, Esqueleto, Estrelas } from "@/components/ui/basicos";
-import { brl, duracao } from "@/lib/formato";
+import { brl, duracao, plural } from "@/lib/formato";
 import { NOMES_DIAS, dataRelativa, diaDaSemana, somarDias } from "@/lib/datas";
 import { horariosDisponiveis, situacaoAgora } from "@/lib/disponibilidade";
 import { linkWhatsApp, enderecoTexto } from "@/lib/whatsapp";
 import { Arte, Emergir, Revelar } from "./efeitos";
-import { capitalizar, precoTexto, servicosVisiveis } from "./util";
+import { capitalizar, gruposVisiveis, menorPreco, servicosVisiveis } from "./util";
 
 /** Os próximos horários livres do serviço mais pedido — o atalho do herói. */
 function proximasVagas(b: Banco, agora: string, quantas = 3) {
@@ -59,31 +59,21 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
   const situacao = situacaoAgora(b, agora);
   const servicos = servicosVisiveis(b);
   const destaques = servicos.filter((s) => s.destaque);
-  const categorias = b.categorias
-    .slice()
-    .sort((a, c) => a.ordem - c.ordem)
-    .filter((c) => servicos.some((s) => s.categoriaId === c.id));
-  const semCategoria = servicos.filter((s) => !s.categoriaId || !categorias.some((c) => c.id === s.categoriaId));
+  const grupos = gruposVisiveis(b);
   const equipe = b.profissionais.filter((p) => p.ativo).sort((a, c) => a.ordem - c.ordem);
   const depoimentos = n.modulos.avaliacoes ? b.depoimentos.filter((d) => d.visivel) : [];
   const media = depoimentos.length ? depoimentos.reduce((s, d) => s + d.nota, 0) / depoimentos.length : 0;
   const { servico: alvo, vagas } = useMemo(() => proximasVagas(b, agora), [b, agora]);
   const hoje = agora.slice(0, 10);
-  const [categoriaAtiva, setCategoriaAtiva] = useState(categorias[0]?.id ?? "");
   const agendar = `/${slug}/agendar`;
   const mapa = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${n.nome}, ${enderecoTexto(b)}`)}`;
-
-  const irPara = (id: string) => {
-    setCategoriaAtiva(id);
-    document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   return (
     <>
       <header className={`vt-topo${rolou ? " rolou" : ""}`}>
         <div className="vt-container vt-topo-linha">
           <Link href={`/${slug}`} className="vt-marca">
-            <span className="vt-marca-simbolo">
+            <span className={`vt-marca-simbolo${n.logoUrl ? " com-imagem" : ""}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {n.logoUrl ? <img src={n.logoUrl} alt="" /> : n.nome.charAt(0)}
             </span>
@@ -111,6 +101,17 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
         <Arte pele={n.pele} nome={n.nome} />
         <div className="vt-container vt-heroi-grade">
           <div>
+            {n.logoCompletoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <motion.img
+                src={n.logoCompletoUrl}
+                alt={n.nome}
+                className="vt-logo"
+                initial={{ opacity: 0, y: 12, filter: "blur(8px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+              />
+            )}
             <motion.span
               className={`vt-estado${situacao.aberto ? " aberto" : ""}`}
               initial={{ opacity: 0, y: 8 }}
@@ -199,55 +200,69 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
           <Revelar className="vt-secao-topo">
             <div>
               <span className="vt-sobretitulo">Serviços</span>
-              <h2 className="vt-titulo">Escolha o seu momento</h2>
+              <h2 className="vt-titulo">O que você procura?</h2>
             </div>
           </Revelar>
 
-          {destaques.length > 1 && (
-            <div className="vt-carrossel">
-              {destaques.map((s, i) => (
+          <div className="vt-cats">
+            {grupos.map((g, i) => {
+              const minimo = menorPreco(g.servicos);
+              return (
                 <motion.div
-                  key={s.id}
-                  initial={{ opacity: 0, y: 18 }}
+                  key={g.id}
+                  initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-40px" }}
+                  viewport={{ once: true, margin: "-30px" }}
                   transition={{ duration: 0.5, delay: Math.min(i, 4) * 0.06, ease: [0.23, 1, 0.32, 1] }}
-                  style={{ display: "contents" }}
                 >
-                  <Link href={`${agendar}?servico=${s.id}`} className="vt-destaque">
-                    <span className="vt-destaque-selo">Mais procurado</span>
-                    <strong>{s.nome.replace(/^.*·\s*/, "")}</strong>
-                    <span className="vt-destaque-rodape">
-                      <span>
-                        {duracao(s.duracaoMin)} · {s.modoPreco === "oculto" ? "sob consulta" : brl(s.preco)}
-                      </span>
-                      <span>
-                        Agendar <Icone nome="avancar" tamanho={16} />
-                      </span>
+                  <Link href={`${agendar}?categoria=${g.id}`} className="vt-cat">
+                    <span className="vt-cat-info">
+                      <strong className="vt-titulo">{g.nome}</strong>
+                      <small>
+                        {g.descricao ? `${g.descricao} · ` : ""}
+                        {plural(g.servicos.length, "opção", "opções")}
+                        {minimo !== null ? ` · a partir de ${brl(minimo)}` : ""}
+                      </small>
+                    </span>
+                    <span className="vt-mais" aria-hidden="true">
+                      <Icone nome="direita" tamanho={18} peso="bold" />
                     </span>
                   </Link>
                 </motion.div>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
 
-          {categorias.length > 1 && (
-            <nav className="vt-categorias" aria-label="Categorias">
-              {categorias.map((c) => (
-                <button key={c.id} type="button" className={categoriaAtiva === c.id ? "ativo" : ""} onClick={() => irPara(c.id)}>
-                  {categoriaAtiva === c.id && (
-                    <motion.span layoutId="vt-cat" className="vt-categorias-fundo" transition={{ type: "spring", stiffness: 500, damping: 38 }} />
-                  )}
-                  <span>{c.nome}</span>
-                </button>
-              ))}
-            </nav>
+          {destaques.length > 1 && (
+            <>
+              <h3 className="vt-subtitulo">Mais procurados</h3>
+              <div className="vt-carrossel">
+                {destaques.map((s, i) => (
+                  <motion.div
+                    key={s.id}
+                    initial={{ opacity: 0, y: 18 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-40px" }}
+                    transition={{ duration: 0.5, delay: Math.min(i, 4) * 0.06, ease: [0.23, 1, 0.32, 1] }}
+                    style={{ display: "contents" }}
+                  >
+                    <Link href={`${agendar}?servico=${s.id}`} className="vt-destaque">
+                      <span className="vt-destaque-selo">Mais procurado</span>
+                      <strong>{s.nome}</strong>
+                      <span className="vt-destaque-rodape">
+                        <span>
+                          {duracao(s.duracaoMin)} · {s.modoPreco === "oculto" ? "sob consulta" : brl(s.preco)}
+                        </span>
+                        <span>
+                          Agendar <Icone nome="avancar" tamanho={16} />
+                        </span>
+                      </span>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            </>
           )}
-
-          {categorias.map((c) => (
-            <Grupo key={c.id} id={c.id} titulo={c.nome} servicos={servicos.filter((s) => s.categoriaId === c.id)} agendar={agendar} onVisivel={setCategoriaAtiva} />
-          ))}
-          {semCategoria.length > 0 && <Grupo id="outros" titulo={categorias.length ? "Outros" : ""} servicos={semCategoria} agendar={agendar} />}
         </div>
       </section>
 
@@ -407,57 +422,5 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
         </Link>
       </motion.div>
     </>
-  );
-}
-
-function Grupo({
-  id,
-  titulo,
-  servicos,
-  agendar,
-  onVisivel,
-}: {
-  id: string;
-  titulo: string;
-  servicos: Servico[];
-  agendar: string;
-  onVisivel?: (id: string) => void;
-}) {
-  return (
-    <motion.div
-      className="vt-grupo"
-      onViewportEnter={() => onVisivel?.(id)}
-      viewport={{ margin: "-45% 0px -50% 0px" }}
-    >
-      {titulo && <h3 id={`cat-${id}`}>{titulo}</h3>}
-      <div className="vt-servicos">
-        {servicos.map((s, i) => (
-          <motion.div
-            key={s.id}
-            initial={{ opacity: 0, y: 14 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-30px" }}
-            transition={{ duration: 0.45, delay: Math.min(i, 5) * 0.04, ease: [0.23, 1, 0.32, 1] }}
-          >
-            <Link href={`${agendar}?servico=${s.id}`} className="vt-servico">
-              <span className="vt-servico-info">
-                <span className="vt-servico-nome">{s.nome}</span>
-                {s.descricao && <span className="vt-servico-desc">{s.descricao}</span>}
-                <span className="vt-servico-meta">
-                  <span>
-                    <Icone nome="relogio" tamanho={14} />
-                    {duracao(s.duracaoMin)}
-                  </span>
-                  {precoTexto(s)}
-                </span>
-              </span>
-              <span className="vt-mais" aria-hidden="true">
-                <Icone nome="mais" tamanho={18} peso="bold" />
-              </span>
-            </Link>
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
   );
 }

@@ -8,10 +8,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 const URL_SB = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const CHAVE = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
-/** Há backend configurado? Sem ele, o app roda só em demonstração. */
+/** Há backend configurado? Sem ele, o login fica indisponível. */
 export const supabaseOn = Boolean(URL_SB && CHAVE);
-
-export const demoLiberada = process.env.NEXT_PUBLIC_DEMO !== "0";
 
 let cliente: SupabaseClient | null = null;
 

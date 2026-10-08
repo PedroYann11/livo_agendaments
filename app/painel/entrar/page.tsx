@@ -4,18 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Botao, Campo, Entrada } from "@/components/ui/basicos";
-import { Icone } from "@/components/ui/Icone";
-import { entrarComSenha, entrarDemo } from "@/lib/sessao";
-import { DEMOS } from "@/lib/demo/negocios";
-import { demoLiberada, supabaseOn } from "@/lib/supabase";
-import { textoSobre } from "@/lib/cor";
+import { entrarComSenha } from "@/lib/sessao";
+import { supabaseOn } from "@/lib/supabase";
 import { PALETA } from "@/lib/paleta";
-
-const NICHO: Record<string, string> = {
-  ambar: "Clínica de depilação · 3 profissionais",
-  navalha: "Barbearia · 3 barbeiros",
-  jade: "Nail designer · MEI, uma pessoa",
-};
 
 export default function Entrar() {
   const router = useRouter();
@@ -23,7 +14,6 @@ export default function Entrar() {
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
-  const demos = Object.values(DEMOS).map((d) => d.negocio);
 
   const entrar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,14 +22,6 @@ export default function Entrar() {
     const r = await entrarComSenha(email, senha);
     setCarregando(false);
     if (!r.ok) return setErro(r.motivo);
-    router.replace("/painel");
-  };
-
-  const demo = (slug: string) => {
-    entrarDemo(
-      slug,
-      demos.map((d) => ({ slug: d.slug, nome: d.nome })),
-    );
     router.replace("/painel");
   };
 
@@ -59,9 +41,9 @@ export default function Entrar() {
         </div>
         <div className="en-agenda-mini">
           {[
-            ["09:00", "Mariana · Laser axilas", PALETA[0]],
-            ["09:30", "Juliana · Design com henna", PALETA[2]],
-            ["10:15", "Patrícia · Cera virilha", PALETA[1]],
+            ["09:00", "Axilas · 5 min", PALETA[0]],
+            ["09:10", "Virilha completa · 10 min", PALETA[2]],
+            ["09:30", "Perna completa · 10 min", PALETA[1]],
           ].map(([h, t, c], i) => (
             <motion.div key={h} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.12, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}>
               <b>{h}</b>
@@ -89,25 +71,6 @@ export default function Entrar() {
             {!supabaseOn && <small style={{ color: "var(--c-texto-3)" }}>Login real ainda não configurado neste ambiente.</small>}
           </form>
 
-          {demoLiberada && (
-            <>
-              <div className="en-divisor">ou explore uma demonstração</div>
-              <div className="en-demos">
-                {demos.map((d) => (
-                  <button key={d.slug} type="button" className="en-demo" onClick={() => demo(d.slug)}>
-                    <span className="en-demo-simbolo" style={{ background: d.tema.marca, color: textoSobre(d.tema.marca) }}>
-                      {d.nome.charAt(0)}
-                    </span>
-                    <div>
-                      <strong>{d.nome}</strong>
-                      <small>{NICHO[d.slug]}</small>
-                    </div>
-                    <Icone nome="avancar" tamanho={18} />
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
         </motion.div>
       </main>
     </div>

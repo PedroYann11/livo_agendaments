@@ -198,6 +198,7 @@ export function negocioNovo(id: string, slug: string, nome: string, nicho: Nicho
     destaques: [],
     tema: TEMA_NEUTRO,
     logoUrl: null,
+    logoCompletoUrl: null,
     capaUrl: null,
     galeria: [],
     contato: { whatsapp: "", instagram: "", telefone: "", email: "" },
@@ -210,6 +211,5 @@ export function negocioNovo(id: string, slug: string, nome: string, nicho: Nicho
     sinal: { percentual: 30, servicosIds: [] },
     metaMensal: 0,
     aviso: { texto: "", ativo: false },
-    demo: false,
   };
 }

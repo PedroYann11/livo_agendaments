@@ -1,11 +1,13 @@
 "use client";
 
 // =====================================================================
-// A loja de dados da DEMONSTRAÇÃO.
+// A loja de dados LOCAL (antes do backend completo).
 //
 // Guarda o Banco de cada negócio no localStorage do navegador e avisa as
 // telas quando ele muda — inclusive entre abas: marcar um horário na
 // página pública numa aba faz a agenda do painel, na outra, atualizar.
+// O negócio nasce da semente pública (lib/sementes): marca, categorias e
+// serviços. Nenhum dado de cliente sai do código.
 //
 // Na fase de backend, esta é a peça trocada pelo Supabase. A interface
 // (`useBanco`, `mudar`) continua a mesma.
@@ -13,9 +15,12 @@
 
 import { createContext, useCallback, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import type { Banco, NegocioPublico } from "../tipos";
-import { gerarBancoDemo, VERSAO_BANCO } from "../demo/gerar";
+import { bancoDaSemente } from "../sementes";
 import { negocioNovo, MENSAGENS_PADRAO } from "../padroes";
 import { agoraNo } from "../datas";
+
+/** Sobe quando o formato muda: o navegador descarta o que guardou antes. */
+const VERSAO_BANCO = 5;
 
 const cache = new Map<string, Banco>();
 const ouvintes = new Map<string, Set<() => void>>();
@@ -69,7 +74,7 @@ function gravar(slug: string, b: Banco) {
 export function obterBanco(slug: string, publico?: NegocioPublico): Banco {
   const emCache = cache.get(slug);
   if (emCache) return emCache;
-  const b = ler(slug) ?? gerarBancoDemo(slug) ?? (publico ? bancoVazio(publico) : null);
+  const b = ler(slug) ?? bancoDaSemente(slug, VERSAO_BANCO) ?? (publico ? bancoVazio(publico) : null);
   if (!b) throw new Error(`negócio ${slug} sem dados`);
   cache.set(slug, b);
   return b;
@@ -82,14 +87,6 @@ function avisar(slug: string) {
 export function definirBanco(slug: string, b: Banco) {
   cache.set(slug, b);
   gravar(slug, b);
-  avisar(slug);
-}
-
-export function restaurarDemo(slug: string) {
-  try {
-    localStorage.removeItem(chave(slug));
-  } catch {}
-  cache.delete(slug);
   avisar(slug);
 }
 

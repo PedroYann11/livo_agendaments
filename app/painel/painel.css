@@ -74,6 +74,16 @@
   flex-shrink: 0;
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
 }
+.pn-negocio-simbolo.com-imagem {
+  background: #fff;
+  overflow: hidden;
+}
+.pn-negocio-simbolo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
+}
 .pn-negocio-nome {
   flex: 1;
   min-width: 0;

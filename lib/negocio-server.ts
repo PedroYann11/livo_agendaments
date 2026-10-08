@@ -15,7 +15,7 @@
 import { cache } from "react";
 import type { NegocioPublico, Tema } from "./tipos";
 import { supabaseAnonimo } from "./supabase";
-import { demoDe } from "./demo/negocios";
+import { sementeDe } from "./sementes";
 import { hexValido } from "./cor";
 import { TEMA_NEUTRO } from "./padroes";
 
@@ -85,12 +85,12 @@ export const resolverNegocio = cache(async (slug: string): Promise<NegocioPublic
       }
       if (!error) return null; // respondeu e não existe: não encontrado
     } catch {
-      // banco fora: só os negócios de demonstração seguem no ar
+      // banco fora: só os negócios com semente no código seguem no ar
     }
   }
 
-  const demo = demoDe(slug);
-  if (!demo) return null;
-  const { id, nome, nicho, pele, tagline, descricao, tema } = demo.negocio;
+  const semente = sementeDe(slug);
+  if (!semente) return null;
+  const { id, nome, nicho, pele, tagline, descricao, tema } = semente.negocio;
   return { id, slug, nome, nicho, pele, tagline, descricao, tema };
 });

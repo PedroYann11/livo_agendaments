@@ -89,83 +89,37 @@
   color: var(--c-texto-3);
   margin-bottom: 12px;
 }
-.li-cartoes {
+.li-nichos {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
-@media (min-width: 820px) {
-  .li-cartoes {
-    grid-template-columns: repeat(3, 1fr);
+@media (min-width: 720px) {
+  .li-nichos {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
-.li-demo {
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 28px;
-  min-height: 230px;
-  padding: 22px;
-  border-radius: 22px;
-  background: var(--d-fundo);
-  color: var(--d-texto);
-  border: 1px solid rgb(0 0 0 / 0.06);
-  transition: transform 220ms var(--ease-out), box-shadow 220ms ease;
+@media (min-width: 1020px) {
+  .li-nichos {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
-.li-demo:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--sombra-3);
+.li-nicho {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: var(--c-superficie);
+  border: 1px solid var(--c-linha);
 }
-.li-demo small {
-  font-size: 12px;
+.li-nicho strong {
+  font-size: 15px;
   font-weight: 650;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.7;
-}
-.li-demo strong {
-  font-size: 34px;
-  line-height: 1.02;
-  font-weight: 650;
-  letter-spacing: -0.03em;
-}
-.li-demo.pele-beleza strong {
-  font-family: var(--f-beleza), serif;
-  font-weight: 400;
-  font-size: 38px;
   letter-spacing: -0.01em;
 }
-.li-demo.pele-barbearia strong {
-  font-family: var(--f-barbearia), sans-serif;
-  font-weight: 800;
-  text-transform: uppercase;
-  font-size: 40px;
-  letter-spacing: 0;
-}
-.li-demo.pele-delicada strong {
-  font-family: var(--f-delicada), serif;
-  font-weight: 450;
-  font-variation-settings: "SOFT" 100;
-}
-.li-demo-pe {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 14px;
-  font-weight: 600;
-}
-.li-demo-botao {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: var(--d-marca);
-  color: var(--d-sobre);
-}
-.li-demo.pele-barbearia .li-demo-botao {
-  border-radius: 4px;
+.li-nicho span {
+  font-size: 13px;
+  color: var(--c-texto-2);
+  line-height: 1.45;
 }
 .li-recursos {
   display: grid;

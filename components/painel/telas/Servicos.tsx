@@ -6,6 +6,10 @@
 // Lição do livo (UX-arquitetura, 1.2): ordem é DENTRO da categoria, criar
 // não exige foto, e editar abre ao lado — não empurra a lista. Pausar ≠
 // apagar: pausado some do site e continua no painel.
+//
+// Categorias são a porta de entrada do cliente (ele escolhe a categoria
+// antes do serviço), por isso ficam à vista: criar, editar, pausar e
+// ordenar sem procurar.
 // =====================================================================
 
 import { useState } from "react";
@@ -18,7 +22,7 @@ import { Folha } from "@/components/ui/Folha";
 import { useAvisos, useConfirmar } from "@/components/ui/Avisos";
 import type { Banco, Categoria, Pacote, Servico } from "@/lib/tipos";
 import { arquivarServico, removerCategoria, reordenar, salvarCategoria, salvarPacote, salvarServico, servicoNovo } from "@/lib/dados/acoes";
-import { brl, duracao, normalizar } from "@/lib/formato";
+import { brl, duracao, normalizar, plural } from "@/lib/formato";
 import { centavosParaReais, formatarValorCampo } from "@/lib/masks";
 import { novoId } from "@/lib/id";
 import { corDaPessoa } from "@/lib/paleta";
@@ -31,7 +35,8 @@ export function Servicos() {
   const [busca, setBusca] = useState("");
   const [editar, setEditar] = useState<Servico | null>(null);
   const [pacote, setPacote] = useState<Pacote | null>(null);
-  const [categorias, setCategorias] = useState(false);
+  const [categoria, setCategoria] = useState<Categoria | null>(null);
+  const [ordenar, setOrdenar] = useState(false);
 
   const ativos = b.servicos.filter((s) => s.ativo);
   const cats = b.categorias.slice().sort((a, c) => a.ordem - c.ordem);
@@ -49,8 +54,8 @@ export function Servicos() {
         acoes={
           aba === "servicos" ? (
             <>
-              <Botao variante="secundario" icone="lista" onClick={() => setCategorias(true)}>
-                Categorias
+              <Botao variante="secundario" icone="mais" onClick={() => setCategoria(categoriaNova(b))}>
+                Nova categoria
               </Botao>
               <Botao variante="principal" icone="mais" onClick={() => setEditar(servicoNovo(b, cats[0]?.id ?? null))}>
                 Novo serviço
@@ -84,9 +89,14 @@ export function Servicos() {
 
       {aba === "servicos" ? (
         <>
-          {ativos.length > 8 && (
+          {(ativos.length > 8 || cats.length > 1) && (
             <div className="pn-filtros">
-              <Busca valor={busca} onMudar={setBusca} placeholder="Buscar serviço" />
+              {ativos.length > 8 && <Busca valor={busca} onMudar={setBusca} placeholder="Buscar serviço" />}
+              {cats.length > 1 && (
+                <Botao variante="fantasma" icone="menuVertical" onClick={() => setOrdenar(true)}>
+                  Ordem das categorias
+                </Botao>
+              )}
             </div>
           )}
           {!ativos.length && (
@@ -101,13 +111,22 @@ export function Servicos() {
               return (
                 <div key={g.cat?.id ?? "_"} className="pn-cartao">
                   <div className="pn-cartao-cabeca" style={{ paddingBottom: 10 }}>
-                    <h2>
+                    <h2 style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       {g.cat?.nome ?? "Sem categoria"} <Selo>{lista.length}</Selo>
+                      {g.cat?.pausada && <Selo tom="atencao">Pausada</Selo>}
                     </h2>
-                    <Botao variante="fantasma" tamanho="p" icone="mais" onClick={() => setEditar(servicoNovo(b, g.cat?.id ?? null))}>
-                      Adicionar
-                    </Botao>
+                    <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                      {g.cat && <BotaoIcone icone="editar" rotulo={`Editar ${g.cat.nome}`} onClick={() => setCategoria(g.cat)} />}
+                      <Botao variante="fantasma" tamanho="p" icone="mais" onClick={() => setEditar(servicoNovo(b, g.cat?.id ?? null))}>
+                        Serviço
+                      </Botao>
+                    </div>
                   </div>
+                  {!g.cat && lista.length > 0 && (
+                    <p className="pn-cartao-sub" style={{ padding: "0 18px 10px" }}>
+                      Na sua página, os que estão agendáveis pelo link aparecem em “Outros”.
+                    </p>
+                  )}
                   {lista.length === 0 ? (
                     <p className="pn-cartao-sub" style={{ padding: "0 18px 16px" }}>
                       Nenhum serviço nesta categoria.
@@ -136,7 +155,8 @@ export function Servicos() {
 
       <EditorServico servico={editar} onFechar={() => setEditar(null)} />
       <EditorPacote pacote={pacote} onFechar={() => setPacote(null)} />
-      <EditorCategorias aberta={categorias} onFechar={() => setCategorias(false)} />
+      <EditorCategoria categoria={categoria} onFechar={() => setCategoria(null)} />
+      <OrdemCategorias aberta={ordenar} onFechar={() => setOrdenar(false)} />
     </div>
   );
 }
@@ -178,6 +198,7 @@ function EditorServico({ servico, onFechar }: { servico: Servico | null; onFecha
   const confirmar = useConfirmar();
   const [s, setS] = useState<Servico | null>(servico);
   const [quem, setQuem] = useState<string[]>([]);
+  const [novaCategoria, setNovaCategoria] = useState<string | null>(null);
   const [ultimo, setUltimo] = useState<Servico | null>(null);
   if (servico !== ultimo) {
     setUltimo(servico);
@@ -240,14 +261,41 @@ function EditorServico({ servico, onFechar }: { servico: Servico | null; onFecha
             <Texto rows={2} value={s.descricao} onChange={(e) => setS({ ...s, descricao: e.target.value })} />
           </Campo>
           <Campo rotulo="Categoria">
-            <select className="ui-entrada" value={s.categoriaId ?? ""} onChange={(e) => setS({ ...s, categoriaId: e.target.value || null })}>
-              <option value="">Sem categoria</option>
-              {b.categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome}
-                </option>
-              ))}
-            </select>
+            {novaCategoria === null ? (
+              <select
+                className="ui-entrada"
+                value={s.categoriaId ?? ""}
+                onChange={(e) => (e.target.value === NOVA ? setNovaCategoria("") : setS({ ...s, categoriaId: e.target.value || null }))}
+              >
+                <option value="">Sem categoria</option>
+                {b.categorias
+                  .slice()
+                  .sort((a, c) => a.ordem - c.ordem)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
+                    </option>
+                  ))}
+                <option value={NOVA}>+ Nova categoria…</option>
+              </select>
+            ) : (
+              <div style={{ display: "flex", gap: 8 }}>
+                <Entrada autoFocus value={novaCategoria} onChange={(e) => setNovaCategoria(e.target.value)} placeholder="Nome da categoria" />
+                <Botao
+                  variante="secundario"
+                  disabled={!novaCategoria.trim()}
+                  onClick={() => {
+                    const c = { ...categoriaNova(b), nome: novaCategoria.trim() };
+                    mudar((x) => salvarCategoria(x, c));
+                    setS({ ...s, categoriaId: c.id });
+                    setNovaCategoria(null);
+                  }}
+                >
+                  Criar
+                </Botao>
+                <BotaoIcone icone="fechar" rotulo="Cancelar" onClick={() => setNovaCategoria(null)} />
+              </div>
+            )}
           </Campo>
           <div className="ui-grade-campos duas" style={{ gridTemplateColumns: "1fr 1fr" }}>
             <Campo rotulo="Duração">
@@ -354,45 +402,106 @@ export function Passo({ valor, passo, min, max = 600, formatar, onMudar }: { val
   );
 }
 
-function EditorCategorias({ aberta, onFechar }: { aberta: boolean; onFechar: () => void }) {
+const NOVA = "__nova";
+
+function categoriaNova(b: Banco): Categoria {
+  return { id: novoId("ct"), nome: "", descricao: "", ordem: b.categorias.length, pausada: false };
+}
+
+function EditorCategoria({ categoria, onFechar }: { categoria: Categoria | null; onFechar: () => void }) {
   const { banco, mudar } = useLoja();
+  const avisar = useAvisos();
   const confirmar = useConfirmar();
-  const [nova, setNova] = useState("");
+  const [c, setC] = useState<Categoria | null>(categoria);
+  const [ultima, setUltima] = useState<Categoria | null>(null);
+  if (categoria !== ultima) {
+    setUltima(categoria);
+    setC(categoria);
+  }
+  if (!banco) return null;
+  const nova = categoria && !banco.categorias.some((x) => x.id === categoria.id);
+  const quantos = categoria ? banco.servicos.filter((x) => x.ativo && x.categoriaId === categoria.id).length : 0;
+
+  const salvar = () => {
+    if (!c) return;
+    if (!c.nome.trim()) return avisar("Dê um nome à categoria.", "erro");
+    mudar((x) => salvarCategoria(x, { ...c, nome: c.nome.trim(), descricao: c.descricao.trim() }));
+    avisar(nova ? "Categoria criada." : c.pausada ? "Categoria pausada: some da página até você reativar." : "Categoria salva.");
+    onFechar();
+  };
+
+  return (
+    <Folha
+      aberta={!!categoria}
+      onFechar={onFechar}
+      titulo={nova ? "Nova categoria" : "Editar categoria"}
+      subtitulo="É a primeira escolha do cliente na hora de agendar."
+      rodape={
+        <>
+          {!nova && (
+            <Botao
+              variante="fantasma"
+              icone="apagar"
+              onClick={async () => {
+                if (!c) return;
+                const ok = await confirmar({
+                  titulo: `Remover “${c.nome}”?`,
+                  texto: quantos ? `Os ${quantos} serviços dela ficam sem categoria — nada é apagado.` : "Ela está vazia.",
+                  confirmar: "Remover",
+                });
+                if (!ok) return;
+                mudar((x) => removerCategoria(x, c.id));
+                avisar("Categoria removida.");
+                onFechar();
+              }}
+            >
+              Remover
+            </Botao>
+          )}
+          <Botao variante="principal" onClick={salvar}>
+            Salvar
+          </Botao>
+        </>
+      }
+    >
+      {c && (
+        <div style={{ display: "grid", gap: 16 }}>
+          <Campo rotulo="Nome">
+            <Entrada autoFocus={!!nova} value={c.nome} onChange={(e) => setC({ ...c, nome: e.target.value })} placeholder="Ex.: Procedimentos Femininos" />
+          </Campo>
+          <Campo rotulo="Descrição" opcional ajuda="Uma linha no cartão da categoria. Ex.: Duas áreas com valor promocional.">
+            <Entrada value={c.descricao} onChange={(e) => setC({ ...c, descricao: e.target.value })} />
+          </Campo>
+          <div className="pn-opcao">
+            <div>
+              <strong>Pausada</strong>
+              <small>Some da página com todos os serviços dela, sem apagar nada.</small>
+            </div>
+            <Interruptor ligado={c.pausada} onMudar={(v) => setC({ ...c, pausada: v })} rotulo="Pausada" />
+          </div>
+        </div>
+      )}
+    </Folha>
+  );
+}
+
+function OrdemCategorias({ aberta, onFechar }: { aberta: boolean; onFechar: () => void }) {
+  const { banco, mudar } = useLoja();
   if (!banco) return null;
   const cats = banco.categorias.slice().sort((a, c) => a.ordem - c.ordem);
   return (
-    <Folha aberta={aberta} onFechar={onFechar} titulo="Categorias" subtitulo="Arraste para mudar a ordem na sua página.">
-      <div style={{ display: "grid", gap: 14 }}>
-        <Reorder.Group as="div" axis="y" values={cats.map((c) => c.id)} onReorder={(ids: string[]) => mudar((x) => ({ ...x, categorias: reordenar(x.categorias, ids) }))} style={{ display: "grid", gap: 6 }}>
-          {cats.map((c) => (
-            <Reorder.Item as="div" key={c.id} value={c.id} style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--c-superficie)", cursor: "grab" }}>
-              <Icone nome="menuVertical" tamanho={18} />
-              <Entrada defaultValue={c.nome} onBlur={(e) => e.target.value.trim() && mudar((x) => salvarCategoria(x, { ...c, nome: e.target.value.trim() }))} />
-              <BotaoIcone
-                icone="apagar"
-                rotulo="Remover categoria"
-                onClick={async () => {
-                  const ok = await confirmar({ titulo: `Remover “${c.nome}”?`, texto: "Os serviços dela ficam sem categoria — nada é apagado.", confirmar: "Remover" });
-                  if (ok) mudar((x) => removerCategoria(x, c.id));
-                }}
-              />
-            </Reorder.Item>
-          ))}
-        </Reorder.Group>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Entrada value={nova} onChange={(e) => setNova(e.target.value)} placeholder="Nova categoria" />
-          <Botao
-            variante="principal"
-            disabled={!nova.trim()}
-            onClick={() => {
-              mudar((x) => salvarCategoria(x, { id: novoId("ct"), nome: nova.trim(), ordem: x.categorias.length }));
-              setNova("");
-            }}
-          >
-            Adicionar
-          </Botao>
-        </div>
-      </div>
+    <Folha aberta={aberta} onFechar={onFechar} titulo="Ordem das categorias" subtitulo="Arraste. É a ordem em que o cliente vê na hora de agendar.">
+      <Reorder.Group as="div" axis="y" values={cats.map((c) => c.id)} onReorder={(ids: string[]) => mudar((x) => ({ ...x, categorias: reordenar(x.categorias, ids) }))} className="pn-lista">
+        {cats.map((c) => (
+          <Reorder.Item as="div" key={c.id} value={c.id} className="pn-linha" style={{ background: "var(--c-superficie)", cursor: "grab" }}>
+            <Icone nome="menuVertical" tamanho={18} />
+            <span className="pn-linha-info">
+              <strong>{c.nome}</strong>
+              <small>{plural(banco.servicos.filter((x) => x.ativo && x.categoriaId === c.id).length, "serviço", "serviços")}{c.pausada ? " · pausada" : ""}</small>
+            </span>
+          </Reorder.Item>
+        ))}
+      </Reorder.Group>
     </Folha>
   );
 }

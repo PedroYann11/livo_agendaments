@@ -3,26 +3,23 @@
 // =====================================================================
 // Sessão do painel.
 //
-// Dois jeitos de entrar:
-//   real  — e-mail e senha no Supabase Auth; o negócio vem de
-//           `meus_negocios()` (RLS: só os negócios de que a pessoa é membro);
-//   demo  — "Explorar demonstração", sem conta, com os dados de exemplo.
+// Só se entra com conta: e-mail e senha no Supabase Auth; o negócio vem de
+// `meus_negocios()` (RLS: só os negócios de que a pessoa é membro).
 //
-// Nesta fase (frontend completo, backend básico) os DADOS do painel ainda
-// vêm da loja local nos dois casos; o que o backend já resolve de verdade é
-// quem é a pessoa e de qual negócio ela é. Ver docs/PLANEJAMENTO.md.
+// Nesta fase os DADOS do painel ainda vêm da loja local (lib/dados); o que
+// o backend já resolve de verdade é quem é a pessoa e de qual negócio ela
+// é. Ver docs/ESTADO.md.
 // =====================================================================
 
 import type { Papel } from "./tipos";
 import { getSupabase, supabaseOn } from "./supabase";
 
 export type Sessao = {
-  tipo: "demo" | "real";
   slug: string;
   nome: string;
   email: string;
   papel: Papel;
-  /** para trocar de negócio sem sair (dono de mais de uma unidade, ou a demo) */
+  /** para trocar de negócio sem sair (dono de mais de uma unidade) */
   negocios: { slug: string; nome: string; papel: Papel }[];
 };
 
@@ -31,7 +28,8 @@ const CHAVE = "livo-agenda:sessao";
 export function lerSessao(): Sessao | null {
   try {
     const s = JSON.parse(localStorage.getItem(CHAVE) ?? "null");
-    return s && s.slug ? (s as Sessao) : null;
+    // sessões da antiga demonstração (sem conta) não valem mais
+    return s && s.slug && s.tipo !== "demo" ? (s as Sessao) : null;
   } catch {
     return null;
   }
@@ -56,23 +54,10 @@ export async function sair() {
   window.dispatchEvent(new Event("livo-sessao"));
 }
 
-export function entrarDemo(slug: string, negocios: { slug: string; nome: string }[], papel: Papel = "owner") {
-  const atual = negocios.find((n) => n.slug === slug)!;
-  salvarSessao({
-    tipo: "demo",
-    slug,
-    nome: papel === "owner" ? "Dono(a)" : papel === "reception" ? "Recepção" : "Profissional",
-    email: "demonstracao@livo.tec.br",
-    papel,
-    negocios: negocios.map((n) => ({ ...n, papel })),
-  });
-  return atual;
-}
-
 export type ResultadoLogin = { ok: true; sessao: Sessao } | { ok: false; motivo: string };
 
 export async function entrarComSenha(email: string, senha: string): Promise<ResultadoLogin> {
-  if (!supabaseOn) return { ok: false, motivo: "O login ainda não está configurado neste ambiente. Use a demonstração." };
+  if (!supabaseOn) return { ok: false, motivo: "O login ainda não está configurado neste ambiente." };
   const sb = getSupabase();
   const { data, error } = await sb.auth.signInWithPassword({ email: email.trim(), password: senha });
   if (error || !data.user) {
@@ -85,7 +70,6 @@ export async function entrarComSenha(email: string, senha: string): Promise<Resu
   }
   const negocios = (lista as { slug: string; nome: string; papel: Papel }[]).map((n) => ({ slug: n.slug, nome: n.nome, papel: n.papel }));
   const sessao: Sessao = {
-    tipo: "real",
     slug: negocios[0].slug,
     nome: data.user.user_metadata?.nome ?? email.split("@")[0],
     email: data.user.email ?? email,
