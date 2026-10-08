@@ -1,0 +1,44 @@
+# CLAUDE.md — Livo Agenda
+
+> Lido no início de toda sessão. Contém o que **não muda**. O plano e as fases
+> estão em `docs/PLANEJAMENTO.md`.
+
+## 1. O que é
+
+SaaS multi-tenant de **agendamento de serviços**. Mesma arquitetura da Livo
+(restaurantes, repositório `PedroYann11/livo`), outro produto: vitrine de
+serviços no lugar do cardápio, horário no lugar do carrinho, agendamento no
+lugar do pedido.
+
+**O repositório `livo` nunca é alterado a partir daqui.** Código de lá entra por
+cópia, com a linha `// Origem: livo@<commit> · <caminho>` no topo e registro em
+`docs/ORIGEM.md`.
+
+## 2. Invariantes
+
+- **A fronteira de segurança é a RLS** por `is_member(tenant_id)` / `has_role`.
+  Filtro no frontend não é segurança.
+- `anon` nunca faz SELECT direto em tabela de negócio: só RPCs
+  `SECURITY DEFINER` filtradas por `p_tenant`, com colunas em whitelist.
+- O tenant vem do **Host** (middleware → `resolverTenant()`), nunca do front.
+  Host desconhecido falha fechado: "Negócio não encontrado".
+- `tenant_id NOT NULL` **sem default** em toda tabela de negócio; FKs compostas
+  `(id, tenant_id)`.
+- **Disponibilidade e preço são decididos no banco.** A função que mostra os
+  horários é a mesma que valida a gravação. A constraint `EXCLUDE` impede dois
+  agendamentos sobrepostos para o mesmo profissional.
+- Datas em `timestamptz`; contas no fuso do negócio.
+- Remoção é suave (`active = false`).
+- Segredos só no Supabase Vault. Mensagens de WhatsApp em texto puro.
+- O painel é da Livo (cores fixas, contraste testado); a vitrine é do negócio.
+
+## 3. Como trabalhar
+
+- Português claro, sem jargão; diagnóstico antes da solução.
+- **SQL primeiro**: toda mudança de banco é migration versionada em
+  `supabase/migrations/`, entregue para aprovação antes de aplicar, testada no
+  Postgres descartável e depois em staging.
+- Rodar o advisor de segurança após qualquer DDL.
+- Testar de verdade (build + banco) e entregar roteiro de teste.
+- Nunca afirmar que algo funciona, está seguro ou deployado sem verificar.
+- Commits pequenos, um por etapa, mensagem descritiva.
