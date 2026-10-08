@@ -1,0 +1,1154 @@
+/* =====================================================================
+   Página pública do negócio (.vt) — um motor, quatro peles.
+
+   A pele muda tipografia, raio e a arte do topo. As cores vêm sempre do
+   tema do negócio (--v-*), definidas pelo servidor e atualizadas ao vivo.
+   Mobile primeiro: tudo é desenhado para 375px e cresce a partir daí.
+   ===================================================================== */
+
+.vt {
+  --c-fundo: var(--v-fundo);
+  --c-superficie: var(--v-superficie);
+  --c-texto: var(--v-texto);
+  --c-texto-2: var(--v-texto-suave);
+  --c-texto-3: color-mix(in srgb, var(--v-texto-suave) 72%, var(--v-fundo));
+  --c-linha: var(--v-linha);
+  --c-sutil: var(--v-sutil);
+  --c-marca: var(--v-marca);
+  --c-sobre-marca: var(--v-sobre-marca);
+  --c-marca-tinta: var(--v-marca-tinta);
+  --c-marca-sutil: var(--v-marca-sutil);
+
+  --f-titulo: var(--f-sans);
+  --titulo-peso: 650;
+  --titulo-espaco: -0.025em;
+  --titulo-caixa: none;
+  --titulo-altura: 1.02;
+  --raio-cartao: 18px;
+  --borda-cartao: 1px solid var(--c-linha);
+
+  min-height: 100dvh;
+  background: var(--c-fundo);
+  color: var(--c-texto);
+  overflow-x: clip;
+}
+
+.vt.pele-beleza {
+  --f-titulo: var(--f-beleza);
+  --titulo-peso: 400;
+  --titulo-espaco: -0.015em;
+  --titulo-altura: 0.98;
+  --raio-cartao: 22px;
+}
+.vt.pele-barbearia {
+  --f-titulo: var(--f-barbearia);
+  --titulo-peso: 800;
+  --titulo-espaco: 0.005em;
+  --titulo-caixa: uppercase;
+  --titulo-altura: 0.92;
+  --raio-cartao: 8px;
+}
+.vt.pele-delicada {
+  --f-titulo: var(--f-delicada);
+  --titulo-peso: 450;
+  --titulo-espaco: -0.03em;
+  --titulo-altura: 1;
+  --raio-cartao: 26px;
+}
+
+.vt-titulo {
+  font-family: var(--f-titulo), var(--f-sans), serif;
+  font-weight: var(--titulo-peso);
+  letter-spacing: var(--titulo-espaco);
+  text-transform: var(--titulo-caixa);
+  line-height: var(--titulo-altura);
+}
+.pele-delicada .vt-titulo {
+  font-variation-settings: "SOFT" 100, "opsz" 96;
+}
+
+.vt-container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 18px;
+}
+@media (min-width: 720px) {
+  .vt-container {
+    padding: 0 32px;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Topo fixo
+   --------------------------------------------------------------------- */
+
+.vt-topo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  transition: background-color 240ms ease, box-shadow 240ms ease, backdrop-filter 240ms ease;
+}
+.vt-topo.rolou {
+  background: color-mix(in srgb, var(--c-fundo) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(14px);
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  box-shadow: 0 1px 0 var(--c-linha);
+}
+.vt-topo-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 62px;
+}
+.vt-marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.vt-marca-simbolo {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: var(--c-marca);
+  color: var(--c-sobre-marca);
+  font-family: var(--f-titulo), serif;
+  font-weight: var(--titulo-peso);
+  font-size: 19px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.vt-marca-simbolo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pele-barbearia .vt-marca-simbolo {
+  border-radius: 4px;
+}
+.vt-marca-nome {
+  font-weight: 640;
+  font-size: 15.5px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vt-topo-acoes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.vt-topo-acoes .ui-botao {
+  display: none;
+}
+@media (min-width: 720px) {
+  .vt-topo-acoes .ui-botao {
+    display: inline-flex;
+    margin-left: 6px;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Herói
+   --------------------------------------------------------------------- */
+
+.vt-heroi {
+  position: relative;
+  padding: 104px 0 44px;
+  isolation: isolate;
+  overflow: hidden;
+}
+@media (min-width: 900px) {
+  .vt-heroi {
+    padding: 148px 0 80px;
+  }
+}
+.vt-heroi-grade {
+  display: grid;
+  gap: 32px;
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .vt-heroi-grade {
+    grid-template-columns: 1.25fr 0.75fr;
+    gap: 56px;
+  }
+}
+.vt-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px 0 10px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--c-superficie) 75%, transparent);
+  border: 1px solid var(--c-linha);
+  font-size: 12.5px;
+  font-weight: 560;
+  color: var(--c-texto-2);
+  backdrop-filter: blur(8px);
+}
+.vt-estado-ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-texto-3);
+  position: relative;
+}
+.vt-estado.aberto .vt-estado-ponto {
+  background: #22a35a;
+}
+.vt-estado.aberto .vt-estado-ponto::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #22a35a;
+  opacity: 0;
+  animation: vt-pulso 2.4s var(--ease-out) infinite;
+}
+@keyframes vt-pulso {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.vt-heroi h1 {
+  margin-top: 18px;
+  font-size: clamp(44px, 12.5vw, 92px);
+  max-width: 13ch;
+  text-wrap: balance;
+}
+.pele-barbearia .vt-heroi h1 {
+  font-size: clamp(52px, 15vw, 118px);
+}
+.vt-palavra {
+  display: inline-block;
+  will-change: transform, filter, opacity;
+}
+.vt-heroi-texto {
+  margin-top: 18px;
+  font-size: 16.5px;
+  line-height: 1.55;
+  color: var(--c-texto-2);
+  max-width: 46ch;
+}
+.vt-heroi-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+}
+.vt-heroi-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 26px;
+  font-size: 13.5px;
+  color: var(--c-texto-2);
+}
+.vt-heroi-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.vt-heroi-meta strong {
+  color: var(--c-texto);
+  font-weight: 620;
+}
+
+/* Botão principal com seta que se revela (inspirado no Arrow Reveal do
+   Originkit, refeito em CSS puro: sem medir nada, sem JS). */
+.vt-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  height: 56px;
+  padding: 0 8px 0 24px;
+  border-radius: var(--r-pill);
+  background: var(--c-marca);
+  color: var(--c-sobre-marca);
+  font-weight: 620;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: 0 10px 28px -10px color-mix(in srgb, var(--c-marca) 75%, transparent);
+  transition: transform 160ms var(--ease-out);
+}
+.pele-barbearia .vt-cta {
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 14.5px;
+}
+.vt-cta:active {
+  transform: scale(0.97);
+}
+.vt-cta-seta {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--c-marca);
+}
+.pele-barbearia .vt-cta-seta {
+  border-radius: 3px;
+}
+.vt-cta-seta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--c-sobre-marca);
+  z-index: -1;
+  transition: transform 460ms var(--ease-out);
+}
+.vt-cta-seta svg {
+  transition: transform 460ms var(--ease-out);
+}
+.vt-cta > span:first-child {
+  transition: transform 460ms var(--ease-out), color 300ms ease;
+}
+@media (hover: hover) {
+  .vt-cta:hover .vt-cta-seta::before {
+    transform: scale(9);
+  }
+  .vt-cta:hover > span:first-child {
+    color: var(--c-marca);
+    transform: translateX(6px);
+  }
+  .vt-cta:hover .vt-cta-seta svg {
+    transform: rotate(-45deg);
+  }
+}
+
+.vt-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px;
+  font-weight: 560;
+  color: var(--c-texto);
+  border-radius: var(--r-pill);
+  transition: background-color 160ms ease;
+}
+.vt-link:hover {
+  background: var(--c-sutil);
+}
+
+/* cartão lateral do herói (desktop) */
+.vt-heroi-cartao {
+  display: none;
+}
+@media (min-width: 900px) {
+  .vt-heroi-cartao {
+    display: block;
+    position: relative;
+    padding: 22px;
+    border-radius: calc(var(--raio-cartao) + 6px);
+    background: color-mix(in srgb, var(--c-superficie) 78%, transparent);
+    border: 1px solid var(--c-linha);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--sombra-2);
+  }
+}
+.vt-heroi-cartao h2 {
+  font-size: 13px;
+  font-weight: 620;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-texto-2);
+}
+.vt-proximos {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+.vt-proximo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--c-superficie);
+  border: 1px solid var(--c-linha);
+  transition: border-color 160ms ease, transform 160ms var(--ease-out);
+  text-align: left;
+  width: 100%;
+}
+.vt-proximo:hover {
+  border-color: var(--c-marca);
+}
+.vt-proximo:active {
+  transform: scale(0.98);
+}
+.vt-proximo small {
+  display: block;
+  color: var(--c-texto-2);
+  font-size: 12.5px;
+}
+.vt-proximo strong {
+  font-weight: 620;
+  font-size: 14.5px;
+}
+.vt-proximo-hora {
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  color: var(--c-marca-tinta);
+}
+
+/* ---------- arte de fundo por pele ---------- */
+
+.vt-arte {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+.vt-grao {
+  position: absolute;
+  inset: -50%;
+  opacity: 0.09;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+.pele-barbearia .vt-grao {
+  mix-blend-mode: screen;
+  opacity: 0.06;
+}
+
+/* beleza: aurora quente que respira devagar + arco */
+.vt-aurora {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.55;
+}
+.vt-aurora.a1 {
+  width: 520px;
+  height: 520px;
+  right: -180px;
+  top: -140px;
+  background: radial-gradient(circle at 40% 40%, color-mix(in srgb, var(--v-acento) 85%, transparent), transparent 65%);
+  animation: vt-derivar 22s ease-in-out infinite alternate;
+}
+.vt-aurora.a2 {
+  width: 420px;
+  height: 420px;
+  left: -160px;
+  bottom: -160px;
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--v-marca) 45%, transparent), transparent 65%);
+  animation: vt-derivar 28s ease-in-out infinite alternate-reverse;
+}
+@keyframes vt-derivar {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-60px, 40px, 0) scale(1.12);
+  }
+}
+.vt-arco {
+  position: absolute;
+  right: -40px;
+  top: 76px;
+  width: 210px;
+  color: color-mix(in srgb, var(--v-marca) 40%, transparent);
+  opacity: 0.7;
+}
+@media (min-width: 900px) {
+  .vt-arco {
+    display: none;
+  }
+}
+
+/* barbearia: poste de barbeiro em faixa vertical + nome vazado */
+.vt-poste {
+  position: absolute;
+  right: 18px;
+  top: 78px;
+  width: 14px;
+  height: 180px;
+  border-radius: 7px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--v-texto) 18%, transparent);
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--v-acento) 0 10px,
+    var(--v-texto) 10px 20px,
+    var(--v-marca) 20px 30px,
+    var(--v-texto) 30px 40px
+  );
+  background-size: 100% 56.57px;
+  animation: vt-girar-poste 2.6s linear infinite;
+  opacity: 0.9;
+}
+@keyframes vt-girar-poste {
+  to {
+    background-position: 0 56.57px;
+  }
+}
+.vt-vazado {
+  position: absolute;
+  left: -2%;
+  bottom: -6%;
+  font-family: var(--f-barbearia), sans-serif;
+  font-weight: 900;
+  font-size: clamp(120px, 34vw, 340px);
+  line-height: 0.8;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--v-marca) 30%, transparent);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+.vt-raios {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 75% 0%, color-mix(in srgb, var(--v-marca) 16%, transparent), transparent 70%);
+}
+
+/* delicada: bolhas que mudam de forma */
+.vt-bolha {
+  position: absolute;
+  filter: blur(2px);
+  opacity: 0.55;
+  animation: vt-moldar 16s ease-in-out infinite alternate;
+}
+.vt-bolha.b1 {
+  width: 260px;
+  height: 260px;
+  right: -70px;
+  top: 70px;
+  background: color-mix(in srgb, var(--v-acento) 45%, var(--v-fundo));
+}
+.vt-bolha.b2 {
+  width: 150px;
+  height: 150px;
+  right: 120px;
+  top: 250px;
+  background: color-mix(in srgb, var(--v-marca) 18%, var(--v-fundo));
+  animation-duration: 20s;
+}
+@keyframes vt-moldar {
+  0% {
+    border-radius: 58% 42% 63% 37% / 45% 55% 45% 55%;
+    transform: rotate(0deg);
+  }
+  100% {
+    border-radius: 38% 62% 41% 59% / 60% 38% 62% 40%;
+    transform: rotate(22deg) translateY(16px);
+  }
+}
+.vt-brilhos {
+  position: absolute;
+  right: 40px;
+  top: 120px;
+  color: var(--v-marca);
+  opacity: 0.5;
+}
+
+/* genérica: grade sutil */
+.vt-grade-fundo {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(var(--c-linha) 1px, transparent 1px), linear-gradient(90deg, var(--c-linha) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 70% 60% at 70% 20%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 70% 20%, #000 20%, transparent 75%);
+  opacity: 0.7;
+}
+
+/* faixa de aviso */
+.vt-aviso {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: var(--c-marca-sutil);
+  color: var(--c-marca-tinta);
+  font-size: 14px;
+  font-weight: 540;
+  max-width: 560px;
+}
+.vt-aviso svg {
+  flex-shrink: 0;
+}
+
+/* destaques */
+.vt-destaques {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 8px;
+  scrollbar-width: none;
+  margin-top: 26px;
+}
+.vt-destaques::-webkit-scrollbar {
+  display: none;
+}
+.vt-destaques span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--c-linha);
+  font-size: 13px;
+  font-weight: 540;
+  color: var(--c-texto-2);
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--c-superficie) 55%, transparent);
+}
+.vt-destaques svg {
+  color: var(--c-marca-tinta);
+}
+
+/* ---------------------------------------------------------------------
+   Seções
+   --------------------------------------------------------------------- */
+
+.vt-secao {
+  padding: 44px 0;
+}
+@media (min-width: 900px) {
+  .vt-secao {
+    padding: 72px 0;
+  }
+}
+.vt-secao-topo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.vt-sobretitulo {
+  display: block;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c-marca-tinta);
+  margin-bottom: 8px;
+}
+.vt-secao h2 {
+  font-size: clamp(32px, 8vw, 54px);
+}
+.pele-barbearia .vt-secao h2 {
+  font-size: clamp(38px, 10vw, 66px);
+}
+
+/* abas de categoria fixas */
+.vt-categorias {
+  position: sticky;
+  top: 62px;
+  z-index: 20;
+  margin: 0 -18px 18px;
+  padding: 10px 18px;
+  background: color-mix(in srgb, var(--c-fundo) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.vt-categorias::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 720px) {
+  .vt-categorias {
+    margin: 0 0 18px;
+    padding: 10px 0;
+  }
+}
+.vt-categorias button {
+  position: relative;
+  isolation: isolate;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  font-size: 13.5px;
+  font-weight: 560;
+  color: var(--c-texto-2);
+  white-space: nowrap;
+  transition: color 160ms ease;
+}
+.vt-categorias button.ativo {
+  color: var(--c-sobre-marca);
+}
+.vt-categorias-fundo {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--c-marca);
+  z-index: -1;
+}
+.vt-categorias button span {
+  position: relative;
+}
+.pele-barbearia .vt-categorias button {
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 12.5px;
+}
+
+.vt-grupo + .vt-grupo {
+  margin-top: 30px;
+}
+.vt-grupo h3 {
+  font-size: 13px;
+  font-weight: 640;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-texto-2);
+  margin-bottom: 10px;
+  scroll-margin-top: 130px;
+}
+.vt-servicos {
+  display: grid;
+  gap: 10px;
+}
+@media (min-width: 720px) {
+  .vt-servicos {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.vt-servico {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 14px 16px 18px;
+  border-radius: var(--raio-cartao);
+  background: var(--c-superficie);
+  border: var(--borda-cartao);
+  text-align: left;
+  width: 100%;
+  transition: border-color 180ms ease, box-shadow 220ms ease, transform 160ms var(--ease-out);
+}
+@media (hover: hover) {
+  .vt-servico:hover {
+    border-color: color-mix(in srgb, var(--c-marca) 50%, var(--c-linha));
+    box-shadow: var(--sombra-2);
+  }
+}
+.vt-servico:active {
+  transform: scale(0.985);
+}
+.vt-servico-info {
+  flex: 1;
+  min-width: 0;
+}
+.vt-servico-nome {
+  display: block;
+  font-weight: 620;
+  font-size: 15.5px;
+  letter-spacing: -0.01em;
+}
+.vt-servico-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13.5px;
+  color: var(--c-texto-2);
+  margin-top: 3px;
+  line-height: 1.45;
+}
+.vt-servico-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--c-texto-2);
+}
+.vt-servico-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.vt-preco {
+  font-weight: 650;
+  color: var(--c-texto);
+  font-variant-numeric: tabular-nums;
+}
+.vt-preco small {
+  font-weight: 500;
+  color: var(--c-texto-2);
+  font-size: 12px;
+}
+.vt-mais {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--c-marca-sutil);
+  color: var(--c-marca-tinta);
+  flex-shrink: 0;
+  transition: background-color 180ms ease, color 180ms ease, transform 200ms var(--ease-out);
+}
+.pele-barbearia .vt-mais {
+  border-radius: 4px;
+}
+.vt-servico:hover .vt-mais {
+  background: var(--c-marca);
+  color: var(--c-sobre-marca);
+  transform: rotate(90deg);
+}
+
+/* destaques em carrossel */
+.vt-carrossel {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  margin: 0 -18px 30px;
+  padding: 4px 18px 10px;
+  scrollbar-width: none;
+}
+.vt-carrossel::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 720px) {
+  .vt-carrossel {
+    margin: 0 0 34px;
+    padding: 4px 0 10px;
+  }
+}
+.vt-destaque {
+  scroll-snap-align: start;
+  flex: 0 0 min(76%, 300px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 190px;
+  padding: 20px;
+  border-radius: calc(var(--raio-cartao) + 4px);
+  background: var(--c-marca);
+  color: var(--c-sobre-marca);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  text-align: left;
+  transition: transform 180ms var(--ease-out);
+}
+.vt-destaque:nth-child(2n) {
+  background: color-mix(in srgb, var(--c-marca) 82%, var(--c-texto));
+}
+.vt-destaque:nth-child(3n) {
+  background: color-mix(in srgb, var(--v-acento) 80%, var(--c-marca));
+  color: color-mix(in srgb, var(--c-texto) 92%, #000);
+}
+.vt-destaque:active {
+  transform: scale(0.98);
+}
+.vt-destaque::after {
+  content: "";
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  right: -90px;
+  bottom: -110px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  opacity: 0.18;
+  z-index: -1;
+}
+.vt-destaque-selo {
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.vt-destaque strong {
+  display: block;
+  font-family: var(--f-titulo), serif;
+  font-weight: var(--titulo-peso);
+  text-transform: var(--titulo-caixa);
+  font-size: 28px;
+  line-height: 1.02;
+  letter-spacing: var(--titulo-espaco);
+  margin-top: 14px;
+}
+.vt-destaque-rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13.5px;
+  margin-top: 22px;
+  font-weight: 560;
+}
+.vt-destaque-rodape span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* equipe */
+.vt-equipe {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  margin: 0 -18px;
+  padding: 4px 18px 10px;
+  scrollbar-width: none;
+}
+.vt-equipe::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 720px) {
+  .vt-equipe {
+    margin: 0;
+    padding: 4px 0 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+.vt-pessoa {
+  scroll-snap-align: start;
+  flex: 0 0 70%;
+  max-width: 260px;
+  padding: 18px;
+  border-radius: var(--raio-cartao);
+  background: var(--c-superficie);
+  border: var(--borda-cartao);
+}
+.vt-pessoa .ui-avatar {
+  margin-bottom: 14px;
+}
+.vt-pessoa strong {
+  display: block;
+  font-weight: 640;
+  font-size: 16px;
+}
+.vt-pessoa span {
+  font-size: 13.5px;
+  color: var(--c-texto-2);
+}
+.vt-pessoa p {
+  font-size: 13.5px;
+  color: var(--c-texto-2);
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+/* avaliações */
+.vt-nota {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.vt-nota strong {
+  font-family: var(--f-titulo), serif;
+  font-size: 52px;
+  font-weight: var(--titulo-peso);
+  line-height: 1;
+}
+.vt-nota span {
+  font-size: 13.5px;
+  color: var(--c-texto-2);
+}
+.vt-avaliacoes {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  margin: 0 -18px;
+  padding: 4px 18px 10px;
+  scrollbar-width: none;
+}
+.vt-avaliacoes::-webkit-scrollbar {
+  display: none;
+}
+@media (min-width: 720px) {
+  .vt-avaliacoes {
+    margin: 0;
+    padding: 4px 0 10px;
+  }
+}
+.vt-avaliacao {
+  scroll-snap-align: start;
+  flex: 0 0 min(82%, 340px);
+  padding: 20px;
+  border-radius: var(--raio-cartao);
+  background: var(--c-superficie);
+  border: var(--borda-cartao);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.vt-avaliacao p {
+  font-size: 15px;
+  line-height: 1.55;
+}
+.pele-beleza .vt-avaliacao p {
+  font-family: var(--f-beleza), serif;
+  font-size: 19px;
+  line-height: 1.35;
+}
+.vt-avaliacao footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--c-texto-2);
+  margin-top: auto;
+}
+.vt-avaliacao footer strong {
+  color: var(--c-texto);
+  font-weight: 620;
+}
+
+/* sobre + onde estamos */
+.vt-sobre {
+  display: grid;
+  gap: 28px;
+}
+@media (min-width: 900px) {
+  .vt-sobre {
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 48px;
+  }
+}
+.vt-sobre-texto {
+  font-size: 16.5px;
+  line-height: 1.65;
+  color: var(--c-texto-2);
+}
+.vt-info {
+  padding: 20px;
+  border-radius: var(--raio-cartao);
+  background: var(--c-superficie);
+  border: var(--borda-cartao);
+  display: grid;
+  gap: 18px;
+}
+.vt-info h3 {
+  font-size: 13px;
+  font-weight: 640;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-texto-2);
+  margin-bottom: 8px;
+}
+.vt-endereco {
+  font-size: 15px;
+  line-height: 1.5;
+}
+.vt-horarios {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+}
+.vt-horarios div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  margin: 0 -10px;
+  border-radius: 8px;
+}
+.vt-horarios div.hoje {
+  background: var(--c-marca-sutil);
+  color: var(--c-marca-tinta);
+  font-weight: 620;
+}
+.vt-horarios span:last-child {
+  font-variant-numeric: tabular-nums;
+  color: var(--c-texto-2);
+}
+.vt-horarios .hoje span:last-child {
+  color: inherit;
+}
+.vt-info-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vt-rodape {
+  padding: 36px 0 120px;
+  border-top: 1px solid var(--c-linha);
+  font-size: 13px;
+  color: var(--c-texto-3);
+  text-align: center;
+}
+@media (min-width: 900px) {
+  .vt-rodape {
+    padding-bottom: 48px;
+  }
+}
+.vt-rodape a {
+  font-weight: 620;
+  color: var(--c-texto-2);
+}
+
+/* barra fixa de agendar (celular) */
+.vt-barra {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px 10px 18px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--c-superficie) 88%, transparent);
+  backdrop-filter: saturate(1.5) blur(18px);
+  -webkit-backdrop-filter: saturate(1.5) blur(18px);
+  box-shadow: 0 1px 0 var(--c-linha) inset, var(--sombra-3);
+  border: 1px solid var(--c-linha);
+}
+@media (min-width: 900px) {
+  .vt-barra {
+    display: none;
+  }
+}
+.vt-barra small {
+  display: block;
+  font-size: 12px;
+  color: var(--c-texto-2);
+}
+.vt-barra strong {
+  font-size: 14.5px;
+  font-weight: 640;
+}
+.vt-barra .ui-botao {
+  height: 48px;
+  border-radius: 14px;
+  padding: 0 20px;
+}
+.pele-barbearia .vt-barra {
+  border-radius: 10px;
+}
