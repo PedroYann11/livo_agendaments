@@ -1,5 +1,5 @@
 -- =====================================================================
--- Suíte 10 — plataforma (migration 001)
+-- Suíte 001 — plataforma (migration 001)
 --
 -- Cada teste diz o que espera e FALHA alto (raise exception) se não for
 -- verdade. Papéis trocados com SET ROLE + GUC do "JWT", como o PostgREST.
@@ -167,4 +167,4 @@ end $$;
 \echo T12 ok · formato de slug
 
 \echo
-\echo == 12 testes, 0 falhas ==
+\echo == suíte 001: 12 testes, 0 falhas ==
