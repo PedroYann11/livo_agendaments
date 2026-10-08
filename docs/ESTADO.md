@@ -34,7 +34,7 @@ próprio de cliente entra depois, pelo Host, no mesmo ponto (`lib/negocio-server
 
 | Item | Estado |
 |---|---|
-| Página | `agenda.livo.tec.br/depiled` (precisa da migration 002 aplicada) |
+| Página | `agenda.livo.tec.br/depiled` — no ar desde 08/10/2026 (migration 002 aplicada) |
 | Marca | logo e símbolo do lótus em `public/marcas/depiled/`; cor `#62513f` tirada da logo; pele "beleza" (serifa Instrument) |
 | Catálogo | `lib/sementes/depiled.ts` — 3 categorias, 34 serviços com preço e duração do app atual |
 | Clientes | **112** transcritos das capturas, guardados **fora do repositório**. Entram quando existir a tabela de clientes (fase de backend, etapa 4) |
@@ -76,13 +76,14 @@ como forma de pagamento e mensagens prontas livres (além dos modelos fixos).
 | Peça | Estado |
 |---|---|
 | Migration `001_plataforma` | **aplicada** no `livo-agenda` |
-| Migration `002_depiled` | **escrita e testada; aplicar só com aprovação** |
+| Migration `002_depiled` | **aplicada** (aprovada pelo Pedro) — DepiLED ativa; âmbar, navalha e jade `suspended` |
 | Tabelas | `tenants`, `tenant_members`, `platform_admins`, `store_settings` — RLS ligada nas 4 |
-| `negocio_publico(slug)` | anon resolve a página (só negócio `active`) |
+| `negocio_publico(slug)` | anon resolve a página (só negócio `active`) — conferido no banco real: `depiled` = 1, exemplos = 0 |
 | `meus_negocios()` | login real descobre os negócios da pessoa (só `active`) |
 | `criar_negocio(...)` | só platform admin |
 | `vincular_membro(...)` | só pelo SQL Editor |
 | Testes | `supabase/tests/rodar.sh` — cada migration testada logo depois de aplicada; **17 testes, 0 falhas** |
+| Advisor de segurança | 7 avisos, os mesmos de antes e todos esperados (funções públicas de propósito — FP-3 do livo) |
 
 ### O que ainda grava só no NAVEGADOR
 
