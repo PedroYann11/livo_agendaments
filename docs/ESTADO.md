@@ -14,6 +14,7 @@
 | D-5 | Agendamento do cliente | **Categoria → opções → calendário do mês → horários do dia → dados**. Pouco texto, uma decisão por tela |
 | D-6 | Dias de atendimento | Negócio que atende em datas soltas (a DepiLED: um sábado por mês) usa **dias avulsos**; o painel abre e fecha dias e bloqueia horários |
 | D-7 | Encaixe | O fim de cada atendimento vira horário livre: 15 min às 08:00 liberam 08:15, mesmo com passos de 10 min |
+| D-8 | Cadastro próprio | **Quem compra cria a conta e o negócio sozinho** (sem a Livo criar acesso). O negócio nasce no plano `teste`; até 3 negócios por conta. Cobrança é etapa própria |
 | — | Tema por negócio | A planejar. Hoje: 4 "peles", cores e logo editáveis no painel |
 
 ### Por que o negócio vai no caminho, e não no subdomínio
@@ -74,7 +75,10 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 | Agendamento: categoria → opções → calendário → horário → dados | `/<negocio>/agendar` (`?categoria=…`, `?servico=…`) |
 | Ver, confirmar, remarcar (calendário), cancelar, avaliar | `/<negocio>/a/<token>` |
 | Ficha de anamnese do cliente | `/<negocio>/ficha/<token>` |
-| Login (só com conta) | `/painel/entrar` |
+| Entrar | `/painel/entrar` (também abre direto pelo link de confirmação do e-mail) |
+| Criar conta: negócio (nome, tipo, endereço conferido na hora, WhatsApp) → acesso (nome, e-mail, senha) → confirmar e-mail | `/painel/criar-conta` |
+| Conta sem negócio (endereço tomado antes da confirmação, ou abrir outro) | `/painel/criar-negocio` |
+| Senha esquecida → link por e-mail → senha nova | `/painel/esqueci-senha`, `/painel/nova-senha` |
 | Painel | `/painel` (Início), `agenda`, `clientes`, `clientes/<id>`, `clientes/importar`, `mensagens`, `servicos` (com categorias), `equipe`, `financeiro`, `relatorios`, `anamnese`, `configuracoes` |
 
 ### Banco
@@ -87,7 +91,8 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 | `004_agenda_motor` | peças comuns e o motor de horários | **aplicada** |
 | `005_agenda_portas_publicas` | o que a página e o link do cliente chamam | **aplicada** |
 | `006_agenda_depiled` | catálogo e dia avulso da DepiLED | **aplicada** |
-| `007_agenda_painel` | o que o painel chama | **falta aplicar** — tem remoções (`delete`) e a Supabase pede a confirmação de quem aplica; o pedido expira sem ela |
+| `007_agenda_painel` | o que o painel chama | **falta aplicar** — tem remoções (`delete`); a ferramenta da Supabase pede confirmação e o pedido não chega ao app (expirou 4 vezes, também com o Pedro online). Aplicar pelo **SQL Editor** (abaixo) |
+| `008_cadastro` | cadastro próprio: `slug_disponivel`, `negocio_criar_meu` (depende da 007) | **para aprovação** |
 
 **O que a agenda no banco (003 a 007) traz**
 
@@ -110,11 +115,26 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
   aparência, fuso, regras e cores.
 - DepiLED: catálogo e o dia avulso de 10/10 passam do código para o banco (só dado público).
 
+**O que o cadastro próprio (008) traz**
+
+- `slug_disponivel(slug)` — o formulário confere o endereço enquanto a pessoa digita
+  (`ok`, `invalido`, `reservado`, `em_uso`). Os endereços reservados (`painel`,
+  `admin`…) são os mesmos no site (`lib/enderecos.ts`) e no banco (`slug_reservado`);
+  um teste compara as duas listas.
+- `negocio_criar_meu(dono, negocio)` — só conta logada **com e-mail confirmado**; cria o
+  negócio (plano `teste`), torna a pessoa dona, grava identidade e configuração pela
+  mesma porta do painel (`negocio_salvar`, com as mesmas checagens) e cria a primeira
+  profissional (a própria pessoa, no horário da semana do negócio). Tudo ou nada;
+  até 3 negócios por conta; dois cliques ao mesmo tempo não furam o limite.
+- O negócio que a pessoa descreve no cadastro fica guardado na conta até o e-mail ser
+  confirmado; no primeiro login ele nasce e o rascunho é apagado.
+
 **Por que 5 partes**: o pedido com a agenda inteira de uma vez não passava pela
 ferramenta da Supabase. Cada parte é uma migration; o histórico do banco e o
 repositório têm as mesmas 5.
 
-**Testes** — `./supabase/tests/rodar.sh`: 30 testes (suítes 001, 002 e a da agenda, `007_agenda.sql`) e a
+**Testes** — `./supabase/tests/rodar.sh`: 37 testes (suítes 001, 002, a da agenda, `007_agenda.sql`,
+e a do cadastro, `008_cadastro.sql`), a conferência dos endereços reservados e a
 **paridade** — agendas sorteadas, o motor do navegador e o do banco têm que dar as
 mesmas vagas, pedido por pedido (1.200 pedidos por rodada; conferido que pega
 diferença quando o motor é estragado de propósito).
@@ -141,19 +161,54 @@ BOLSO_SENHAS="dona@depiled.teste:senha123" node supabase/tests/bolso/servidor.mj
 NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=bolso npx next dev
 ```
 
-O "Supabase de bolso" responde como o Supabase (RPC e login) em cima do Postgres de
-teste, com os mesmos papéis e a mesma RLS. O usuário de teste precisa existir em
-`auth.users` e ser ligado com `vincular_membro`.
+O "Supabase de bolso" responde como o Supabase (RPC, login e cadastro) em cima do
+Postgres de teste, com os mesmos papéis e a mesma RLS. Contas criadas pelo cadastro
+já funcionam; com `BOLSO_CONFIRMAR=1` elas nascem sem e-mail confirmado, como em
+produção, e o "link do e-mail" é
+`http://localhost:54321/auth/v1/bolso-link?email=…&tipo=signup&redirect_to=http://localhost:3000/painel/entrar`
+(`tipo=recovery` e `redirect_to=…/painel/nova-senha` para a senha esquecida).
 
-## Como criar o login real do dono
+## Como alguém passa a usar
 
-1. Supabase › `livo-agenda` › **Authentication › Users › Add user** — e-mail e senha
-   (marcar "Auto Confirm User").
-2. **SQL Editor**:
-   ```sql
-   select public.vincular_membro('email@dono.com', 'depiled', 'owner');
-   ```
-3. Em `agenda.livo.tec.br/painel`, entrar com o e-mail e a senha.
+**Negócio novo:** a própria pessoa, em `agenda.livo.tec.br` › "Criar minha agenda".
+Não passa pela Livo.
+
+**DepiLED** (o negócio já existe, criado pela 002): o dono cria a conta pelo site
+(`/painel/criar-conta`) ou a Livo cria em Authentication › Users; depois, uma vez,
+no SQL Editor:
+
+```sql
+select public.vincular_membro('email@dono.com', 'depiled', 'owner');
+```
+
+### Configurar o login na Supabase (uma vez, no painel da Supabase)
+
+1. **Authentication › Sign In / Providers › Email**: "Allow new users to sign up" ligado e
+   **"Confirm email" ligado**.
+2. **Authentication › URL Configuration**: Site URL `https://agenda.livo.tec.br`; em
+   Redirect URLs, `https://agenda.livo.tec.br/painel/**`. Sem isso, o link do e-mail
+   cai na página inicial em vez do painel.
+3. **E-mail próprio (SMTP)** — obrigatório para vender: o e-mail padrão da Supabase só
+   entrega para quem é da equipe do projeto e manda poucos por hora. Criar conta no
+   Resend (ou outro), verificar o domínio `livo.tec.br` (registros SPF/DKIM no DNS) e
+   preencher em **Authentication › Emails › SMTP Settings** (remetente, por exemplo,
+   `nao-responda@livo.tec.br`). Depois, em **Rate Limits**, subir o limite de e-mails
+   por hora.
+4. **Authentication › Emails › Templates** em português:
+   - *Confirm signup* — assunto "Confirme seu e-mail · Livo Agenda"; texto: "Toque no
+     link para ativar sua conta e criar sua agenda: {{ .ConfirmationURL }}".
+   - *Reset password* — assunto "Crie uma senha nova · Livo Agenda"; texto: "Toque no
+     link para criar uma senha nova: {{ .ConfirmationURL }}. Se não foi você, ignore."
+
+### Aplicar a 007 pelo SQL Editor
+
+1. Abrir `supabase/migrations/007_agenda_painel.sql` no GitHub (branch
+   `claude/peaceful-cerf-4g1pqx`) › "Copy raw file".
+2. Supabase › SQL Editor › colar › **Run**. Se o editor perguntar sobre operação
+   destrutiva, pode confirmar: os `delete` ficam dentro das funções e só rodam quando o
+   dono remove algo no painel; aplicar a 007 não apaga nada.
+3. Avisar o Claude: ele confere as funções, roda o advisor de segurança e registra a
+   007 no histórico de migrations, para o banco e o repositório continuarem iguais.
 
 ## Publicação (Vercel)
 
@@ -183,9 +238,13 @@ arquivo versionado: vão para o banco, com RLS.
 
 ## Próximos passos
 
-1. **Aplicar a 007** (painel) com o Pedro por perto para confirmar → conferir o login e o painel em produção.
-2. **Login da DepiLED** (passos acima) e carga dos **112 clientes**, depois da limpeza combinada.
-3. **Aviso de agendamento novo** no celular do dono (push) — hoje o painel relê a cada 30 s.
-4. **Imagens no Storage** (hoje a logo enviada pelo painel vai como imagem embutida na configuração, até 2 MB).
-5. Profissional só com a própria agenda na RLS (hoje a equipe inteira vê a agenda toda).
-6. Tema por negócio (a planejar).
+1. **Aplicar a 007** pelo SQL Editor (passos acima) → conferir o painel em produção.
+2. **Aprovar e aplicar a 008** (cadastro próprio) e **configurar o login na Supabase**
+   (SMTP próprio, endereço de retorno, textos em português) → testar um cadastro de verdade.
+3. **Cobrança**: plano de teste com prazo, pagamento (Pix/cartão) e o que acontece quando vence.
+4. **Login da DepiLED** e carga dos **112 clientes**, depois da limpeza combinada.
+5. **Aviso de agendamento novo** no celular do dono (push) — hoje o painel relê a cada 30 s.
+6. **Imagens no Storage** (hoje a logo enviada pelo painel vai como imagem embutida na configuração, até 2 MB).
+7. Profissional só com a própria agenda na RLS (hoje a equipe inteira vê a agenda toda).
+8. Tema por negócio (a planejar).
+9. Proteção contra robôs no cadastro (CAPTCHA da Supabase) quando o link começar a ser divulgado.
