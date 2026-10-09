@@ -227,8 +227,9 @@ o e-mail → painel da DepiLED, já como dono. Quem já tem conta com esse e-mai
 select public.licenca_emitir('email@do.pedro', 'interno', 0, 'cortesia');
 ```
 
-O link abre o cadastro normal; o negócio criado (por exemplo, "Livo Testes",
-`/livo-testes`) é só dele. Com o mesmo e-mail, a conta pode ter o negócio de testes e a
+O link abre o cadastro normal; o negócio criado é só dele. **Criado em 09/10 pelo
+Pedro, pelo fluxo do cliente: `/teste`** (plano `interno`) — o primeiro cadastro real em
+produção, do convite ao painel. Com o mesmo e-mail, a conta pode ter o negócio de testes e a
 DepiLED juntos (Mais › Trocar de negócio).
 
 Enquanto o e-mail próprio (SMTP) não estiver configurado, o e-mail da Supabase só chega
