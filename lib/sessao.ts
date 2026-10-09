@@ -123,6 +123,8 @@ async function fazerEntrada(): Promise<ResultadoLogin> {
   const { data } = await sb.auth.getUser();
   const user = data.user;
   if (!user) return { ok: false, motivo: "Sua sessão terminou. Entre de novo." };
+  // convite para assumir um negócio pronto (009): se houver um para este e-mail, entra junto
+  const { data: assumido } = await sb.rpc("negocio_assumir");
   let negocios = await listarNegocios();
   if (!negocios) return { ok: false, motivo: "Não foi possível entrar agora. Tente de novo." };
 
@@ -134,11 +136,13 @@ async function fazerEntrada(): Promise<ResultadoLogin> {
   }
   if (!negocios.length) return { ok: false, semNegocio: true, motivo: "Falta criar o seu negócio." };
 
+  // abre no negócio que acabou de ser assumido; senão, no primeiro
+  const atual = negocios.find((n) => n.slug === assumido) ?? negocios[0];
   const sessao: Sessao = {
-    slug: negocios[0].slug,
+    slug: atual.slug,
     nome: user.user_metadata?.nome || (user.email ?? "").split("@")[0],
     email: user.email ?? "",
-    papel: negocios[0].papel,
+    papel: atual.papel,
     negocios,
   };
   salvarSessao(sessao);
@@ -176,14 +180,15 @@ export type ResultadoCadastro =
   | { ok: true; confirmar: true }
   | { ok: false; motivo: string; campo?: string };
 
-export async function criarConta(d: { nome: string; email: string; senha: string; negocio: NegocioDoCadastro }): Promise<ResultadoCadastro> {
+/** negocio: o negócio novo descrito no cadastro; sem ele, o convite é de um negócio pronto (009). */
+export async function criarConta(d: { nome: string; email: string; senha: string; negocio?: NegocioDoCadastro }): Promise<ResultadoCadastro> {
   if (!supabaseOn) return { ok: false, motivo: NAO_CONFIGURADO };
   const { data, error } = await getSupabase().auth.signUp({
     email: d.email.trim(),
     password: d.senha,
     options: {
       // guardado na conta: o negócio nasce no primeiro login, já com o e-mail confirmado
-      data: { nome: d.nome.trim(), negocio: d.negocio },
+      data: d.negocio ? { nome: d.nome.trim(), negocio: d.negocio } : { nome: d.nome.trim() },
       emailRedirectTo: `${window.location.origin}/painel/entrar`,
     },
   });
@@ -241,7 +246,8 @@ export async function cadastroDisponivel(): Promise<boolean> {
  * só nasce com ele: o e-mail fica preso ao de quem pagou.
  */
 export type Convite =
-  | { estado: "valido"; email: string; plano: string }
+  /** negocio: o convite é para assumir um negócio pronto (009), não para criar um */
+  | { estado: "valido"; email: string; plano: string; negocio?: { nome: string; slug: string } }
   | { estado: "usado" }
   | { estado: "invalido" }
   /** o banco ainda não tem o cadastro (008) */
@@ -256,7 +262,7 @@ export async function conferirConvite(codigo: string): Promise<Convite> {
   if (error) return semFuncao(error) ? { estado: "em_breve" } : { estado: "erro" };
   if (!data) return { estado: "invalido" };
   if (data.usado) return { estado: "usado" };
-  return { estado: "valido", email: String(data.email), plano: String(data.plano) };
+  return { estado: "valido", email: String(data.email), plano: String(data.plano), negocio: data.negocio ?? undefined };
 }
 
 export type SituacaoSlug = "ok" | "invalido" | "reservado" | "em_uso";
@@ -309,3 +315,17 @@ export const NOME_PAPEL: Record<Papel, string> = {
   reception: "Recepção",
   professional: "Profissional",
 };
+
+/** Quem já tem conta aceita o convite de um negócio pronto e passa a ser dono dele. */
+export async function aceitarConvite(): Promise<ResultadoLogin> {
+  if (!supabaseOn) return { ok: false, motivo: NAO_CONFIGURADO };
+  const { data: slug, error } = await getSupabase().rpc("negocio_assumir");
+  if (error) return { ok: false, motivo: error.code === "P0001" ? error.message : "Não foi possível aceitar o convite agora. Tente de novo." };
+  const r = await concluirEntrada();
+  // abre já no negócio assumido
+  const novo = r.ok ? r.sessao.negocios.find((n) => n.slug === slug) : undefined;
+  if (!r.ok || !novo) return r;
+  const sessao = { ...r.sessao, slug: novo.slug, papel: novo.papel };
+  salvarSessao(sessao);
+  return { ok: true, sessao };
+}

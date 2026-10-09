@@ -4,7 +4,9 @@
 // o link de convite que chega depois do pagamento (?convite=…), com o
 // e-mail preso ao da compra. A conta nasce no Supabase Auth (o banco recusa
 // e-mail sem compra) e o negócio, no primeiro login com o e-mail confirmado
-// (negocio_criar_meu gasta a compra — migration 008).
+// (negocio_criar_meu gasta a compra — migration 008). Convite de negócio
+// PRONTO (009): só o passo do acesso; no primeiro login a pessoa vira dona.
+// Quem já tem conta com o e-mail do convite aceita com um botão.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,7 +16,7 @@ import { Botao, Campo, Entrada, Esqueleto } from "@/components/ui/basicos";
 import { Icone } from "@/components/ui/Icone";
 import { AvisoAcesso, CadastroEmBreve, CascaAcesso, PeAcesso, WHATSAPP_LIVO } from "@/components/painel/Acesso";
 import { FormNegocio, NEGOCIO_EM_BRANCO, negocioPronto, type EstadoSlug } from "@/components/painel/FormNegocio";
-import { conferirConvite, criarConta, reenviarConfirmacao, type Convite, type NegocioDoCadastro } from "@/lib/sessao";
+import { aceitarConvite, conferirConvite, contaLogada, criarConta, reenviarConfirmacao, sair, type Convite, type NegocioDoCadastro } from "@/lib/sessao";
 import { supabaseOn } from "@/lib/supabase";
 import { linkWhatsApp } from "@/lib/whatsapp";
 
@@ -37,13 +39,20 @@ export default function CriarConta() {
   const [reenvio, setReenvio] = useState<"enviando" | "enviado" | null>(null);
   // null = conferindo o convite
   const [convite, setConvite] = useState<Convite | null>(null);
+  // já existe uma conta logada neste aparelho
+  const [logado, setLogado] = useState<string | null>(null);
 
   useEffect(() => {
     const codigo = new URLSearchParams(window.location.search).get("convite") ?? "";
     if (!codigo) return setConvite(supabaseOn ? { estado: "invalido" } : { estado: "em_breve" });
-    conferirConvite(codigo).then((c) => {
+    Promise.all([conferirConvite(codigo), contaLogada()]).then(([c, conta]) => {
+      if (c.estado === "valido") {
+        setEmail(c.email);
+        // negócio pronto: não há negócio a descrever, só o acesso
+        if (c.negocio) setPasso("acesso");
+        if (conta) setLogado(conta.email);
+      }
       setConvite(c);
-      if (c.estado === "valido") setEmail(c.email);
     });
   }, []);
 
@@ -74,7 +83,8 @@ export default function CriarConta() {
     setErro(null);
     if (faltando.dono || faltando.senha) return;
     setEnviando(true);
-    const r = await criarConta({ nome, email, senha, negocio: { ...negocio, slug: negocio.slug.replace(/-+$/g, "") } });
+    const pronto = convite?.estado === "valido" && convite.negocio;
+    const r = await criarConta({ nome, email, senha, negocio: pronto ? undefined : { ...negocio, slug: negocio.slug.replace(/-+$/g, "") } });
     setEnviando(false);
     if (!r.ok) {
       if (r.campo === "slug") {
@@ -119,6 +129,12 @@ export default function CriarConta() {
     );
   }
 
+  const pronto = convite.negocio;
+
+  if (logado) {
+    return <ComConta convite={convite} logado={logado} />;
+  }
+
   if (passo === "confirmar") {
     return (
       <CascaAcesso titulo="Confira seu e-mail" arte="cadastro">
@@ -127,8 +143,16 @@ export default function CriarConta() {
             <Icone nome="enviar" tamanho={26} />
           </div>
           <p className="en-sub" style={{ marginTop: 0 }}>
-            Enviamos um link para <strong>{email}</strong>. Abra o link para ativar a conta. Sua agenda é criada em{" "}
-            <strong>agenda.livo.tec.br/{negocio.slug}</strong> logo em seguida.
+            Enviamos um link para <strong>{email}</strong>. Abra o link para ativar a conta.{" "}
+            {pronto ? (
+              <>
+                Em seguida você entra no painel da <strong>{pronto.nome}</strong>.
+              </>
+            ) : (
+              <>
+                Sua agenda é criada em <strong>agenda.livo.tec.br/{negocio.slug}</strong> logo em seguida.
+              </>
+            )}
           </p>
           <AvisoAcesso tom="info">Não chegou em 2 minutos? Olhe a caixa de spam ou promoções.</AvisoAcesso>
           {erro && <AvisoAcesso>{erro}</AvisoAcesso>}
@@ -145,18 +169,24 @@ export default function CriarConta() {
 
   return (
     <CascaAcesso
-      titulo={passo === "negocio" ? "Crie sua agenda" : "Seu acesso ao painel"}
-      subtitulo={passo === "negocio" ? "Pagamento confirmado. Leva 2 minutos, e você ajusta tudo depois no painel." : "É com este e-mail e senha que você entra no painel."}
+      titulo={pronto ? `Seu acesso à ${pronto.nome}` : passo === "negocio" ? "Crie sua agenda" : "Seu acesso ao painel"}
+      subtitulo={
+        pronto
+          ? `A página agenda.livo.tec.br/${pronto.slug} já está montada. Crie seu acesso para assumir o painel.`
+          : passo === "negocio"
+            ? "Pagamento confirmado. Leva 2 minutos, e você ajusta tudo depois no painel."
+            : "É com este e-mail e senha que você entra no painel."
+      }
       arte="cadastro"
     >
-      <ol className="en-passos" aria-label="Etapas">
+      {!pronto && <ol className="en-passos" aria-label="Etapas">
         <li className={passo === "negocio" ? "atual" : "feito"}>
           <span>{passo === "negocio" ? "1" : <Icone nome="ok" tamanho={13} peso="bold" />}</span> Seu negócio
         </li>
         <li className={passo === "acesso" ? "atual" : ""}>
           <span>2</span> Seu acesso
         </li>
-      </ol>
+      </ol>}
 
       <AnimatePresence mode="wait" initial={false}>
         {passo === "negocio" ? (
@@ -192,11 +222,13 @@ export default function CriarConta() {
               </span>
             </Campo>
             <Botao type="submit" variante="principal" tamanho="g" carregando={enviando}>
-              Criar minha agenda
+              {pronto ? "Criar meu acesso" : "Criar minha agenda"}
             </Botao>
-            <Botao type="button" variante="fantasma" icone="voltar" onClick={() => setPasso("negocio")}>
-              Voltar
-            </Botao>
+            {!pronto && (
+              <Botao type="button" variante="fantasma" icone="voltar" onClick={() => setPasso("negocio")}>
+                Voltar
+              </Botao>
+            )}
           </motion.form>
         )}
       </AnimatePresence>
@@ -204,6 +236,55 @@ export default function CriarConta() {
       <PeAcesso>
         Já tem conta? <Link href="/painel/entrar">Entrar</Link>
       </PeAcesso>
+    </CascaAcesso>
+  );
+}
+
+/** Já há uma conta logada: com o mesmo e-mail, aceita o convite num toque; com outro, sai primeiro. */
+function ComConta({ convite, logado }: { convite: Extract<Convite, { estado: "valido" }>; logado: string }) {
+  const router = useRouter();
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const mesmo = logado.toLowerCase() === convite.email.toLowerCase();
+
+  if (!mesmo) {
+    return (
+      <CascaAcesso titulo="Convite para outra conta" subtitulo={<>Este convite é para <strong>{convite.email}</strong>, e você está com <strong>{logado}</strong>.</>} arte="cadastro">
+        <div className="en-campos">
+          <Botao variante="principal" tamanho="g" onClick={() => sair().then(() => window.location.reload())}>
+            Sair desta conta e continuar
+          </Botao>
+        </div>
+      </CascaAcesso>
+    );
+  }
+
+  const aceitar = async () => {
+    setErro(null);
+    if (!convite.negocio) return router.push("/painel/criar-negocio");
+    setEnviando(true);
+    const r = await aceitarConvite();
+    setEnviando(false);
+    if (!r.ok) return setErro(r.motivo);
+    router.replace("/painel");
+  };
+
+  return (
+    <CascaAcesso
+      titulo={convite.negocio ? `Assumir a ${convite.negocio.nome}` : "Abrir mais um negócio"}
+      subtitulo={
+        convite.negocio
+          ? `Você já tem conta. A ${convite.negocio.nome} entra no seu painel, ao lado dos seus outros negócios.`
+          : "Você já tem conta. O novo negócio entra no seu painel, ao lado dos outros."
+      }
+      arte="cadastro"
+    >
+      <div className="en-campos">
+        {erro && <AvisoAcesso>{erro}</AvisoAcesso>}
+        <Botao variante="principal" tamanho="g" carregando={enviando} onClick={aceitar}>
+          {convite.negocio ? "Aceitar o convite" : "Criar o negócio"}
+        </Botao>
+      </div>
     </CascaAcesso>
   );
 }

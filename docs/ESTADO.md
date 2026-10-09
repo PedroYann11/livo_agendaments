@@ -14,6 +14,7 @@
 | D-5 | Agendamento do cliente | **Categoria → opções → calendário do mês → horários do dia → dados**. Pouco texto, uma decisão por tela |
 | D-6 | Dias de atendimento | Negócio que atende em datas soltas (a DepiLED: um sábado por mês) usa **dias avulsos**; o painel abre e fecha dias e bloqueia horários |
 | D-7 | Encaixe | O fim de cada atendimento vira horário livre: 15 min às 08:00 liberam 08:15, mesmo com passos de 10 min |
+| D-9 | Negócio de testes da Livo | O Pedro testa funções num **negócio próprio de testes** (plano `interno`), criado pelo mesmo convite do cliente. Entra no mesmo painel dos donos e não vê nada dos clientes: a RLS da agenda só deixa entrar quem é membro do negócio — nem administrador da plataforma lê dado de cliente |
 | D-8 | Cadastro com pagamento | **Conta só depois do pagamento** (Pedro, 09/10). Quem pagou recebe um link de convite e cria o próprio login, senha e negócio — a Livo não cria acesso. Uma compra = um negócio, presa ao e-mail de quem pagou |
 | — | Tema por negócio | A planejar. Hoje: 4 "peles", cores e logo editáveis no painel |
 
@@ -92,6 +93,7 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 | `005_agenda_portas_publicas` | o que a página e o link do cliente chamam | **aplicada** |
 | `006_agenda_depiled` | catálogo e dia avulso da DepiLED | **aplicada** |
 | `007_agenda_painel` | o que o painel chama | **aplicada** (09/10, pelo Pedro no SQL Editor — a ferramenta de migrations expirava esperando uma confirmação que não chegava ao app). Funções conferidas pelo md5, idênticas ao arquivo; painel testado em produção dentro de uma transação desfeita no fim |
+| `009_convite_negocio_pronto` | convite para **assumir um negócio que a Livo montou** (como a DepiLED): `licenca_emitir_negocio`, `negocio_assumir`; o convite mostra o negócio | **para aprovação** |
 | `008_cadastro` | cadastro com pagamento: licenças, convite, hook "antes de criar conta", `slug_disponivel`, `negocio_criar_meu` (depende da 007) | **aplicada** (09/10, aprovada pelo Pedro) antes da 007 — sem ela, criar negócio ainda falha. Advisor: só os avisos esperados das portas públicas |
 
 A 008 entrou antes da 007 (que dependia do Pedro no SQL Editor); o registro da 007 no
@@ -154,7 +156,7 @@ Claude confere e registra no histórico.
 ferramenta da Supabase. Cada parte é uma migration; o histórico do banco e o
 repositório têm as mesmas 5.
 
-**Testes** — `./supabase/tests/rodar.sh`: 38 testes (suítes 001, 002, a da agenda, `007_agenda.sql`,
+**Testes** — `./supabase/tests/rodar.sh`: 44 testes (suítes 001, 002, a da agenda, `007_agenda.sql`, a 009,
 e a do cadastro, `008_cadastro.sql`), a conferência dos endereços reservados e a
 **paridade** — agendas sorteadas, o motor do navegador e o do banco têm que dar as
 mesmas vagas, pedido por pedido (1.200 pedidos por rodada; conferido que pega
@@ -208,18 +210,30 @@ Quem só quer conhecer cai em "Sua agenda começa pela contratação". Com a var
 `NEXT_PUBLIC_LIVO_WHATSAPP` na Vercel (o WhatsApp comercial da Livo), a tela mostra o
 botão "Quero contratar".
 
-**DepiLED** (o negócio já existe, criado pela 002 — caso único do piloto): o
-cadastro do site criaria um negócio novo, então aqui a Livo liga a conta uma vez.
-Em Authentication › Users › Add user (e-mail do dono, senha provisória, "Auto
-Confirm User") e, no SQL Editor:
+**Negócio que a Livo já montou** (como a DepiLED; depende da 009) — o mesmo caminho do
+cliente, só sem a etapa de montar o negócio:
 
 ```sql
-select public.vincular_membro('email@dono.com', 'depiled', 'owner');
+select public.licenca_emitir_negocio('email@do.dono', 'depiled', 'piloto', 0, 'cortesia');
 ```
 
-Depois o dono troca a senha sozinho em "Esqueci minha senha" (precisa do e-mail
-próprio configurado, abaixo). **Fazer isso antes de ligar o hook** (passo 5 abaixo):
-com ele ligado, só e-mail com compra ganha conta.
+O link abre "Seu acesso à DepiLED": nome e senha (e-mail preso ao convite) → confirmar
+o e-mail → painel da DepiLED, já como dono. Quem já tem conta com esse e-mail vê
+"Assumir a DepiLED" e aceita num toque; o negócio entra no seletor ao lado dos outros.
+
+**Negócio de testes da Livo** (D-9) — um convite comum para o e-mail do Pedro:
+
+```sql
+select public.licenca_emitir('email@do.pedro', 'interno', 0, 'cortesia');
+```
+
+O link abre o cadastro normal; o negócio criado (por exemplo, "Livo Testes",
+`/livo-testes`) é só dele. Com o mesmo e-mail, a conta pode ter o negócio de testes e a
+DepiLED juntos (Mais › Trocar de negócio).
+
+Enquanto o e-mail próprio (SMTP) não estiver configurado, o e-mail da Supabase só chega
+para quem é da equipe do projeto (o Gmail do Pedro). Até lá, os convites de teste vão
+para esse e-mail.
 
 ### Configurar o login na Supabase (uma vez, no painel da Supabase)
 
@@ -284,8 +298,8 @@ arquivo versionado: vão para o banco, com RLS.
 
 ## Próximos passos
 
-1. **Login da DepiLED**: criar o usuário do dono em Authentication › Users e ligar com
-   `vincular_membro` → entrar no painel em produção. **Antes** de ligar o hook.
+1. **Aprovar e aplicar a 009** → URL Configuration na Supabase → convite da DepiLED e do
+   negócio de testes pelo fluxo do cliente (passos em "Como alguém passa a usar").
 2. **Configurar o login na Supabase** (SMTP próprio, endereço de retorno, textos em
    português e o hook "Before User Created") → emitir um convite de teste e fazer um
    cadastro de verdade.
