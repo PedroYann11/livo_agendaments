@@ -225,7 +225,7 @@ function SecaoPagina({ n, muda }: PropsSecao) {
         <Entrada value={n.aviso.texto} onChange={(e) => muda({ aviso: { ...n.aviso, texto: e.target.value } })} placeholder="Ex.: 15% off no laser de axilas em outubro" disabled={!n.aviso.ativo} />
       </Bloco>
       <Bloco titulo="Símbolo" texto="Quadrado, de preferência. Aparece no topo da página e no painel.">
-        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center" }}>
           <span className={`pn-negocio-simbolo${n.logoUrl ? " com-imagem" : ""}`} style={{ width: 64, height: 64, borderRadius: 16, fontSize: 26 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {n.logoUrl ? <img src={n.logoUrl} alt="" /> : n.nome.charAt(0)}
@@ -249,7 +249,7 @@ function SecaoPagina({ n, muda }: PropsSecao) {
               <img src={n.logoCompletoUrl} alt="" style={{ maxWidth: 220, maxHeight: 120, objectFit: "contain" }} />
             </span>
           )}
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             <label className="ui-botao ui-botao-secundario ui-botao-m" style={{ cursor: "pointer" }}>
               <Icone nome="imagem" tamanho={18} /> Escolher imagem
               <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) muda({ logoCompletoUrl: await reduzirImagem(f, 720, false) }); }} />

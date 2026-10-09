@@ -17,6 +17,7 @@
 import {
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ButtonHTMLAttributes,
@@ -127,8 +128,28 @@ export function Segmentado<T extends string>({
   tamanho?: "p" | "m";
 }) {
   const grupo = useId();
+  const ref = useRef<HTMLDivElement>(null);
+  // não coube numa linha (celular estreito)? vira duas colunas: nenhuma opção fica escondida de lado
+  const [quebra, setQuebra] = useState(false);
+  const chave = opcoes.map((o) => `${o.rotulo}${o.contagem ?? ""}`).join("|");
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const medir = () => {
+      // mede sempre na forma de uma linha só
+      const tinha = el.classList.contains("quebra");
+      if (tinha) el.classList.remove("quebra");
+      const naoCabe = el.scrollWidth > el.clientWidth + 1;
+      if (tinha) el.classList.add("quebra");
+      setQuebra(naoCabe);
+    };
+    medir();
+    const ro = new ResizeObserver(medir);
+    if (el.parentElement) ro.observe(el.parentElement);
+    return () => ro.disconnect();
+  }, [chave]);
   return (
-    <div className={`ui-segmentado ui-segmentado-${tamanho}`} role="tablist" aria-label={rotulo}>
+    <div ref={ref} className={`ui-segmentado ui-segmentado-${tamanho}${quebra ? " quebra" : ""}`} role="tablist" aria-label={rotulo}>
       {opcoes.map((o) => {
         const ativo = o.id === valor;
         return (

@@ -303,6 +303,23 @@ a {
 .ui-segmentado::-webkit-scrollbar {
   display: none;
 }
+/* não coube numa linha: duas colunas na largura toda (a medida é do componente Segmentado) */
+.ui-segmentado.quebra {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 100%;
+  overflow: visible;
+}
+.ui-segmentado.quebra button {
+  height: auto;
+  min-height: 34px;
+  padding-block: 6px;
+  white-space: normal;
+  line-height: 1.2;
+}
+.ui-segmentado.quebra button:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
 .ui-segmentado button {
   position: relative;
   height: 34px;

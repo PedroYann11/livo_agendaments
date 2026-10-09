@@ -166,24 +166,29 @@ function LinhaServico({ b, s, arrastar, onEditar, onPausar }: { b: Banco; s: Ser
   return (
     <Reorder.Item as="div" value={s.id} dragListener={arrastar} className="pn-linha" style={{ background: "var(--c-superficie)", cursor: arrastar ? "grab" : undefined, opacity: s.pausado ? 0.6 : 1 }}>
       {arrastar && <Icone nome="menuVertical" tamanho={18} />}
-      <button type="button" className="pn-linha-info" style={{ textAlign: "left" }} onClick={onEditar}>
-        <strong style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      {/* no celular o nome e o preço aparecem inteiros; os selos descem para baixo do preço */}
+      <button type="button" className="pn-linha-info quebra" style={{ textAlign: "left" }} onClick={onEditar}>
+        <strong>
           {s.nome}
           {s.destaque && <Icone nome="estrela" tamanho={14} peso="fill" />}
         </strong>
-        <small style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {duracao(s.duracaoMin)}
-          {s.intervaloMin > 0 && ` + ${s.intervaloMin} min de limpeza`} ·{" "}
-          {s.modoPreco === "oculto" ? "preço sob consulta" : `${s.modoPreco === "a_partir_de" ? "a partir de " : ""}${brl(s.preco)}`}
-          <span style={{ display: "inline-flex", gap: 2 }}>
-            {quem.map((p) => (
-              <span key={p.id} className="ag-ponto-pro" title={p.nome} style={{ background: corDaPessoa(p.cor) }} />
-            ))}
+        <small>
+          <span>
+            {duracao(s.duracaoMin)}
+            {s.intervaloMin > 0 && ` + ${s.intervaloMin} min de limpeza`} ·{" "}
+            {s.modoPreco === "oculto" ? "preço sob consulta" : `${s.modoPreco === "a_partir_de" ? "a partir de " : ""}${brl(s.preco)}`}
+            {quem.length > 0 && (
+              <span style={{ display: "inline-flex", gap: 2, marginLeft: 8, verticalAlign: "middle" }}>
+                {quem.map((p) => (
+                  <span key={p.id} className="ag-ponto-pro" title={p.nome} style={{ background: corDaPessoa(p.cor) }} />
+                ))}
+              </span>
+            )}
           </span>
+          {!s.online && <Selo>Só no balcão</Selo>}
+          {s.pausado && <Selo tom="atencao">Pausado</Selo>}
         </small>
       </button>
-      {!s.online && <Selo>Só no balcão</Selo>}
-      {s.pausado && <Selo tom="atencao">Pausado</Selo>}
       <span onPointerDown={(e) => e.stopPropagation()}>
         <Interruptor ligado={!s.pausado} onMudar={(v) => onPausar(!v)} rotulo={s.pausado ? "Reativar" : "Pausar"} />
       </span>
