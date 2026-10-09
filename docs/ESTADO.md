@@ -92,7 +92,11 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 | `005_agenda_portas_publicas` | o que a página e o link do cliente chamam | **aplicada** |
 | `006_agenda_depiled` | catálogo e dia avulso da DepiLED | **aplicada** |
 | `007_agenda_painel` | o que o painel chama | **falta aplicar** — tem remoções (`delete`); a ferramenta da Supabase pede confirmação e o pedido não chega ao app (expirou 4 vezes, também com o Pedro online). Aplicar pelo **SQL Editor** (abaixo) |
-| `008_cadastro` | cadastro com pagamento: licenças, convite, hook "antes de criar conta", `slug_disponivel`, `negocio_criar_meu` (depende da 007) | aprovada pelo Pedro (09/10) |
+| `008_cadastro` | cadastro com pagamento: licenças, convite, hook "antes de criar conta", `slug_disponivel`, `negocio_criar_meu` (depende da 007) | **aplicada** (09/10, aprovada pelo Pedro) antes da 007 — sem ela, criar negócio ainda falha. Advisor: só os avisos esperados das portas públicas |
+
+A 008 entrou antes da 007 porque a 007 depende do Pedro no SQL Editor. Quando a 007
+entrar, o registro dela no histórico do banco ganha uma versão entre a 006 e a 008, para
+o histórico seguir a ordem do repositório.
 
 **O que a agenda no banco (003 a 007) traz**
 
