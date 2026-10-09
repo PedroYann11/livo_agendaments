@@ -13,8 +13,9 @@ function erroDoLink(): string | null {
   if (typeof window === "undefined") return null;
   const p = new URLSearchParams(window.location.hash.slice(1));
   if (!p.get("error") && !p.get("error_code")) return null;
+  // o link de confirmação também cai aqui quando um e-mail mais novo foi pedido (o reenvio anula os anteriores)
   return p.get("error_code") === "otp_expired"
-    ? "Esse link expirou ou já foi usado. Entre com seu e-mail e senha."
+    ? "Esse link não vale mais: expirou ou um e-mail mais novo foi enviado. Abra o e-mail mais recente ou entre com seu e-mail e senha."
     : "Não foi possível abrir esse link. Entre com seu e-mail e senha.";
 }
 
@@ -97,7 +98,9 @@ export default function Entrar() {
             {naoConfirmado && (
               <div style={{ marginTop: 8 }}>
                 {reenvio === "enviado" ? (
-                  <strong>Enviamos um novo link para {email}.</strong>
+                  <span>
+                    <strong>Enviamos um novo link para {email}.</strong> Use só esse e-mail: os links anteriores deixam de valer.
+                  </span>
                 ) : (
                   <button type="button" className="en-link" onClick={reenviar} disabled={reenvio === "enviando"}>
                     {reenvio === "enviando" ? "Enviando…" : "Reenviar o e-mail de confirmação"}
