@@ -48,8 +48,11 @@ export default function CriarConta() {
     Promise.all([conferirConvite(codigo), contaLogada()]).then(([c, conta]) => {
       if (c.estado === "valido") {
         setEmail(c.email);
-        // negócio pronto: não há negócio a descrever, só o acesso
-        if (c.negocio) setPasso("acesso");
+        // negócio pronto: não há negócio a descrever, só o acesso (o nome do negócio já serve de nome no painel)
+        if (c.negocio) {
+          setPasso("acesso");
+          setNome(c.negocio.nome);
+        }
         if (conta) setLogado(conta.email);
       }
       setConvite(c);
@@ -70,13 +73,17 @@ export default function CriarConta() {
       slug: slug === "vazio" ? "Escolha o endereço da sua página." : null,
     };
     setErros(faltando);
-    if (negocioPronto(negocio, slug)) setPasso("acesso");
+    if (!negocioPronto(negocio, slug)) return;
+    // começa com o nome do negócio; quem quiser, troca pelo próprio
+    if (!nome.trim()) setNome(negocio.nome.trim());
+    setPasso("acesso");
   };
 
   const criar = async (e: React.FormEvent) => {
     e.preventDefault();
     const faltando = {
-      dono: nome.trim().split(/\s+/).length < 2 ? "Escreva nome e sobrenome." : null,
+      // uma conta só do negócio é comum: o nome do negócio também serve
+      dono: nome.trim().length < 2 ? "Diga o nome que vai aparecer no painel." : null,
       senha: senha.length < SENHA_MIN ? `Use pelo menos ${SENHA_MIN} caracteres.` : null,
     };
     setErros(faltando);
@@ -200,8 +207,8 @@ export default function CriarConta() {
         ) : (
           <motion.form key="acesso" onSubmit={criar} onChange={() => setErros({})} className="en-campos" {...TROCA}>
             {erro && <AvisoAcesso>{erro}</AvisoAcesso>}
-            <Campo rotulo="Seu nome" erro={erros.dono}>
-              <Entrada value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome e sobrenome" autoComplete="name" maxLength={80} required icone="cliente" autoFocus />
+            <Campo rotulo="Nome no painel" erro={erros.dono} ajuda="O seu nome ou o do negócio. Aparece no painel e na agenda.">
+              <Entrada value={nome} onChange={(e) => setNome(e.target.value)} placeholder={`Ex.: Ana Souza ou ${pronto?.nome ?? "Studio Bela"}`} autoComplete="name" maxLength={80} required icone="cliente" autoFocus />
             </Campo>
             <Campo rotulo="E-mail" erro={erros.email} ajuda="O e-mail da compra. Para usar outro, fale com a Livo.">
               <Entrada type="email" value={email} readOnly aria-readonly autoComplete="email" required icone="enviar" />

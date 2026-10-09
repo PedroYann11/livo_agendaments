@@ -39,7 +39,7 @@ export default function CriarNegocio() {
     e.preventDefault();
     setErro(null);
     const faltando = {
-      dono: nome.trim().split(/\s+/).length < 2 ? "Escreva nome e sobrenome." : null,
+      dono: nome.trim().length < 2 ? "Diga o nome que vai aparecer no painel." : null,
       nome: negocio.nome.trim().length < 2 ? "Diga o nome do negócio." : null,
       nicho: negocio.nicho ? null : "Escolha o tipo do negócio.",
       slug: slug === "vazio" ? "Escolha o endereço da sua página." : null,
@@ -79,8 +79,8 @@ export default function CriarNegocio() {
     <CascaAcesso titulo="Crie seu negócio" subtitulo={`Você entrou como ${email}. Falta só descrever o negócio.`} arte="cadastro">
       <form onSubmit={criar} onChange={() => setErros({})} className="en-campos">
         {erro && <AvisoAcesso>{erro}</AvisoAcesso>}
-        <Campo rotulo="Seu nome" erro={erros.dono}>
-          <Entrada value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome e sobrenome" autoComplete="name" maxLength={80} required icone="cliente" />
+        <Campo rotulo="Nome no painel" erro={erros.dono} ajuda="O seu nome ou o do negócio. Aparece no painel e na agenda.">
+          <Entrada value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Ana Souza ou Studio Bela" autoComplete="name" maxLength={80} required icone="cliente" />
         </Campo>
         <FormNegocio
           valor={negocio}
