@@ -91,12 +91,16 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 | `004_agenda_motor` | peças comuns e o motor de horários | **aplicada** |
 | `005_agenda_portas_publicas` | o que a página e o link do cliente chamam | **aplicada** |
 | `006_agenda_depiled` | catálogo e dia avulso da DepiLED | **aplicada** |
-| `007_agenda_painel` | o que o painel chama | **falta aplicar** — tem remoções (`delete`); a ferramenta da Supabase pede confirmação e o pedido não chega ao app (expirou 4 vezes, também com o Pedro online). Aplicar pelo **SQL Editor** (abaixo) |
+| `007_agenda_painel` | o que o painel chama | **aplicada** (09/10, pelo Pedro no SQL Editor — a ferramenta de migrations expirava esperando uma confirmação que não chegava ao app). Funções conferidas pelo md5, idênticas ao arquivo; painel testado em produção dentro de uma transação desfeita no fim |
 | `008_cadastro` | cadastro com pagamento: licenças, convite, hook "antes de criar conta", `slug_disponivel`, `negocio_criar_meu` (depende da 007) | **aplicada** (09/10, aprovada pelo Pedro) antes da 007 — sem ela, criar negócio ainda falha. Advisor: só os avisos esperados das portas públicas |
 
-A 008 entrou antes da 007 porque a 007 depende do Pedro no SQL Editor. Quando a 007
-entrar, o registro dela no histórico do banco ganha uma versão entre a 006 e a 008, para
-o histórico seguir a ordem do repositório.
+A 008 entrou antes da 007 (que dependia do Pedro no SQL Editor); o registro da 007 no
+histórico do banco ganhou a versão `20261009140000`, entre a 006 e a 008, e o histórico
+segue a ordem do repositório: 001 a 008.
+
+**Migration com `delete` dentro** (como a 007): a ferramenta da Supabase pede uma
+confirmação que não chega ao app e expira. Caminho: o Pedro cola no SQL Editor e o
+Claude confere e registra no histórico.
 
 **O que a agenda no banco (003 a 007) traz**
 
@@ -242,7 +246,7 @@ Textos dos e-mails:
    - *Reset password* — assunto "Crie uma senha nova · Livo Agenda"; texto: "Toque no
      link para criar uma senha nova: {{ .ConfirmationURL }}. Se não foi você, ignore."
 
-### Aplicar a 007 pelo SQL Editor
+### Aplicar uma migration pelo SQL Editor (feito assim com a 007)
 
 1. Abrir `supabase/migrations/007_agenda_painel.sql` no GitHub (branch
    `claude/peaceful-cerf-4g1pqx`) › "Copy raw file".
@@ -280,14 +284,15 @@ arquivo versionado: vão para o banco, com RLS.
 
 ## Próximos passos
 
-1. **Aplicar a 007** pelo SQL Editor (passos acima) → conferir o painel em produção.
+1. **Login da DepiLED**: criar o usuário do dono em Authentication › Users e ligar com
+   `vincular_membro` → entrar no painel em produção. **Antes** de ligar o hook.
 2. **Configurar o login na Supabase** (SMTP próprio, endereço de retorno, textos em
    português e o hook "Before User Created") → emitir um convite de teste e fazer um
    cadastro de verdade.
 3. **Meio de pagamento**: escolher (Mercado Pago, Asaas, Stripe…) e ligar o aviso de
    pagamento confirmado a `licenca_emitir` + envio do convite por e-mail. Depois:
    mensalidade, vencimento e o que acontece com o negócio quando a assinatura para.
-4. **Login da DepiLED** e carga dos **112 clientes**, depois da limpeza combinada.
+4. Carga dos **112 clientes** da DepiLED, depois da limpeza combinada.
 5. **Aviso de agendamento novo** no celular do dono (push) — hoje o painel relê a cada 30 s.
 6. **Imagens no Storage** (hoje a logo enviada pelo painel vai como imagem embutida na configuração, até 2 MB).
 7. Profissional só com a própria agenda na RLS (hoje a equipe inteira vê a agenda toda).
