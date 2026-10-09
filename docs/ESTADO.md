@@ -93,7 +93,7 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 | `005_agenda_portas_publicas` | o que a página e o link do cliente chamam | **aplicada** |
 | `006_agenda_depiled` | catálogo e dia avulso da DepiLED | **aplicada** |
 | `007_agenda_painel` | o que o painel chama | **aplicada** (09/10, pelo Pedro no SQL Editor — a ferramenta de migrations expirava esperando uma confirmação que não chegava ao app). Funções conferidas pelo md5, idênticas ao arquivo; painel testado em produção dentro de uma transação desfeita no fim |
-| `009_convite_negocio_pronto` | convite para **assumir um negócio que a Livo montou** (como a DepiLED): `licenca_emitir_negocio`, `negocio_assumir`; o convite mostra o negócio | **para aprovação** |
+| `009_convite_negocio_pronto` | convite para **assumir um negócio que a Livo montou** (como a DepiLED): `licenca_emitir_negocio`, `negocio_assumir`; o convite mostra o negócio | **aplicada** (09/10, aprovada pelo Pedro). Advisor: só o aviso esperado de `negocio_assumir` (logado, confere convite e e-mail por dentro) |
 | `008_cadastro` | cadastro com pagamento: licenças, convite, hook "antes de criar conta", `slug_disponivel`, `negocio_criar_meu` (depende da 007) | **aplicada** (09/10, aprovada pelo Pedro) antes da 007 — sem ela, criar negócio ainda falha. Advisor: só os avisos esperados das portas públicas |
 
 A 008 entrou antes da 007 (que dependia do Pedro no SQL Editor); o registro da 007 no
@@ -210,7 +210,7 @@ Quem só quer conhecer cai em "Sua agenda começa pela contratação". Com a var
 `NEXT_PUBLIC_LIVO_WHATSAPP` na Vercel (o WhatsApp comercial da Livo), a tela mostra o
 botão "Quero contratar".
 
-**Negócio que a Livo já montou** (como a DepiLED; depende da 009) — o mesmo caminho do
+**Negócio que a Livo já montou** (como a DepiLED) — o mesmo caminho do
 cliente, só sem a etapa de montar o negócio:
 
 ```sql
@@ -298,8 +298,8 @@ arquivo versionado: vão para o banco, com RLS.
 
 ## Próximos passos
 
-1. **Aprovar e aplicar a 009** → URL Configuration na Supabase → convite da DepiLED e do
-   negócio de testes pelo fluxo do cliente (passos em "Como alguém passa a usar").
+1. **URL Configuration na Supabase** → convite do negócio de testes e da DepiLED pelo
+   fluxo do cliente (passos em "Como alguém passa a usar").
 2. **Configurar o login na Supabase** (SMTP próprio, endereço de retorno, textos em
    português e o hook "Before User Created") → emitir um convite de teste e fazer um
    cadastro de verdade.
