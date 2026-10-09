@@ -586,12 +586,12 @@ function PassoProfissional({
   valor: string | null | undefined;
   onEscolher: (id: string | null) => void;
 }) {
-  // o primeiro horário livre de cada um, nos próximos 14 dias
+  // o primeiro horário livre de cada um, dentro da janela de agendamento
   const primeiro = useMemo(() => {
     const r: Record<string, string> = {};
     const hoje = agora.slice(0, 10);
     for (const p of [null, ...aptos.map((x) => x.id)]) {
-      for (let i = 0; i < 14; i++) {
+      for (let i = 0; i <= b.negocio.regras.janelaMaxDias; i++) {
         const d = somarDias(hoje, i);
         const v = horariosDisponiveis(b, { servicosIds: selecionados, profissionalId: p, data: d, agora });
         if (v.length) {

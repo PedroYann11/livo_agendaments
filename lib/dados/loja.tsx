@@ -20,7 +20,7 @@ import { negocioNovo, MENSAGENS_PADRAO } from "../padroes";
 import { agoraNo } from "../datas";
 
 /** Sobe quando o formato muda: o navegador descarta o que guardou antes. */
-const VERSAO_BANCO = 5;
+const VERSAO_BANCO = 6;
 
 const cache = new Map<string, Banco>();
 const ouvintes = new Map<string, Set<() => void>>();

@@ -6,9 +6,11 @@
 // a mesma e está escrita para ser portada linha a linha:
 //
 //   1. duração = soma dos serviços; a agenda ocupa duração + intervalo;
-//   2. janela de trabalho do profissional no dia da semana;
-//   3. menos feriados/datas especiais, bloqueios e agendamentos ativos;
-//   4. fatia em passos de `intervaloSlotsMin` onde o atendimento cabe;
+//   2. janela de trabalho do dia: dia avulso (abertura) se houver, senão o
+//      horário da semana do profissional; dia fechado não tem janela;
+//   3. menos bloqueios e agendamentos ativos;
+//   4. candidatos = passos de `intervaloSlotsMin` + o fim de cada ocupação
+//      (atendimento de 15 min às 08:00 libera 08:15, sem buraco);
 //   5. corta antecedência mínima e janela máxima;
 //   6. "qualquer profissional" = união, atribuída a quem tem menos agenda.
 //
@@ -16,8 +18,9 @@
 // impede dois agendamentos sobrepostos. Aqui, `validarHorario` faz o papel.
 // =====================================================================
 
-import type { Agendamento, Banco, Profissional, Servico } from "./tipos";
+import type { Agendamento, Banco, Intervalo, Profissional, Servico } from "./tipos";
 import {
+  dataCurta,
   diaDaSemana,
   difMin,
   horaDoMin,
@@ -64,6 +67,28 @@ export function profissionaisAptos(b: Banco, servicosIds: string[]): Profissiona
 export function diaFechado(b: Banco, data: string): string | null {
   const especial = b.negocio.datasEspeciais.find((d) => d.data === data);
   return especial ? especial.rotulo || "Fechado" : null;
+}
+
+/** Dias avulsos de atendimento na data (valem para toda a equipe). */
+export function aberturasDoDia(b: Banco, data: string): Intervalo[] {
+  return b.negocio.aberturas.filter((a) => a.data === data).map(({ inicio, fim }) => ({ inicio, fim }));
+}
+
+/**
+ * A regra única de "quando esta pessoa trabalha neste dia": dia fechado não
+ * tem janela; dia avulso passa na frente da semana; senão, a semana dela.
+ */
+export function janelasDoDia(b: Banco, pro: Profissional, data: string): Intervalo[] {
+  if (diaFechado(b, data)) return [];
+  const avulsas = aberturasDoDia(b, data);
+  return avulsas.length ? avulsas : pro.horario[diaDaSemana(data)] ?? [];
+}
+
+/** O horário do NEGÓCIO na data — o que a página mostra ("aberto agora"). */
+export function horarioDoNegocio(b: Banco, data: string): Intervalo[] {
+  if (diaFechado(b, data)) return [];
+  const avulsas = aberturasDoDia(b, data);
+  return avulsas.length ? avulsas : b.negocio.horario[diaDaSemana(data)] ?? [];
 }
 
 type Faixa = [number, number];
@@ -113,19 +138,23 @@ export function horariosDisponiveis(b: Banco, pedido: Pedido): Vaga[] {
     ? profissionaisAptos(b, pedido.servicosIds).filter((p) => p.id === pedido.profissionalId)
     : profissionaisAptos(b, pedido.servicosIds);
 
-  const semana = diaDaSemana(pedido.data);
   const passo = regras.intervaloSlotsMin;
   const porHora = new Map<string, { profissionalId: string; carga: number }>();
 
   for (const pro of candidatos) {
-    const faixas = pro.horario[semana] ?? [];
+    const faixas = janelasDoDia(b, pro, pedido.data);
     if (!faixas.length) continue;
     const ocupado = ocupacao(b, pro.id, pedido.data, pedido.ignorarAgendamentoId);
     const carga = minutosOcupados(b, pro.id, pedido.data);
     for (const f of faixas) {
       const ini = minDoDia(f.inicio);
       const fim = minDoDia(f.fim);
-      for (let t = Math.ceil(ini / passo) * passo; t + atendimento <= fim; t += passo) {
+      // a grade + o fim de cada ocupação: o próximo cliente encosta no anterior
+      const inicios = new Set<number>();
+      for (let t = Math.ceil(ini / passo) * passo; t < fim; t += passo) inicios.add(t);
+      for (const [, of] of ocupado) if (of > ini && of < fim) inicios.add(of);
+      for (const t of [...inicios].sort((a, c) => a - c)) {
+        if (t + atendimento > fim) continue;
         const ocupa: Faixa = [t, t + atendimento + intervalo];
         // o intervalo de limpeza pode passar do fim do expediente
         if (ocupado.some(([oi, of]) => ocupa[0] < of && oi < ocupa[1])) continue;
@@ -167,16 +196,15 @@ export function validarHorario(
 
 /** Faixas de trabalho do dia (para desenhar a agenda do painel). */
 export function expedienteDoDia(b: Banco, data: string): { inicio: number; fim: number } {
-  const semana = diaDaSemana(data);
   let inicio = 24 * 60;
   let fim = 0;
   for (const p of b.profissionais.filter((x) => x.ativo)) {
-    for (const f of p.horario[semana] ?? []) {
+    for (const f of janelasDoDia(b, p, data)) {
       inicio = Math.min(inicio, minDoDia(f.inicio));
       fim = Math.max(fim, minDoDia(f.fim));
     }
   }
-  for (const f of b.negocio.horario[semana] ?? []) {
+  for (const f of horarioDoNegocio(b, data)) {
     inicio = Math.min(inicio, minDoDia(f.inicio));
     fim = Math.max(fim, minDoDia(f.fim));
   }
@@ -187,21 +215,20 @@ export function expedienteDoDia(b: Banco, data: string): { inicio: number; fim: 
 /** Situação "aberto agora" da vitrine. Origem: livo@d74d591 · situacaoDaLoja. */
 export function situacaoAgora(b: Banco, agora: string): { aberto: boolean; texto: string } {
   const data = agora.slice(0, 10);
-  const fechado = diaFechado(b, data);
   const min = minDoDia(agora.slice(11));
-  const faixas = fechado ? [] : b.negocio.horario[diaDaSemana(data)] ?? [];
+  const faixas = horarioDoNegocio(b, data);
   const atual = faixas.find((f) => minDoDia(f.inicio) <= min && min < minDoDia(f.fim));
   if (atual) return { aberto: true, texto: `Aberto agora · até ${atual.fim}` };
   const proxHoje = faixas.find((f) => minDoDia(f.inicio) > min);
   if (proxHoje) return { aberto: false, texto: `Fechado · abre hoje às ${proxHoje.inicio}` };
-  for (let i = 1; i <= 7; i++) {
+  // até 60 dias: quem atende um sábado por mês também tem "próxima abertura"
+  for (let i = 1; i <= 60; i++) {
     const d = somarDias(data, i);
-    if (diaFechado(b, d)) continue;
-    const f = b.negocio.horario[diaDaSemana(d)] ?? [];
-    if (f.length) {
-      const quando = i === 1 ? "amanhã" : ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"][diaDaSemana(d)];
-      return { aberto: false, texto: `Fechado · abre ${quando} às ${f[0].inicio}` };
-    }
+    const f = horarioDoNegocio(b, d);
+    if (!f.length) continue;
+    const quando =
+      i === 1 ? "amanhã" : i < 7 ? ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"][diaDaSemana(d)] : `em ${dataCurta(d)}`;
+    return { aberto: false, texto: `Fechado · abre ${quando} às ${f[0].inicio}` };
   }
   return { aberto: false, texto: "Fechado" };
 }

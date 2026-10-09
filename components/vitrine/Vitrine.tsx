@@ -8,7 +8,7 @@ import type { Banco } from "@/lib/tipos";
 import { Icone } from "@/components/ui/Icone";
 import { Avatar, Esqueleto, Estrelas } from "@/components/ui/basicos";
 import { brl, duracao, plural } from "@/lib/formato";
-import { NOMES_DIAS, dataRelativa, diaDaSemana, somarDias } from "@/lib/datas";
+import { NOMES_DIAS, dataCurta, dataRelativa, diaDaSemana, somarDias } from "@/lib/datas";
 import { horariosDisponiveis, situacaoAgora } from "@/lib/disponibilidade";
 import { linkWhatsApp, enderecoTexto } from "@/lib/whatsapp";
 import { Arte, Emergir, Revelar } from "./efeitos";
@@ -19,7 +19,8 @@ function proximasVagas(b: Banco, agora: string, quantas = 3) {
   const alvo = servicosVisiveis(b).find((s) => s.destaque) ?? servicosVisiveis(b)[0];
   if (!alvo) return { servico: null, vagas: [] as { data: string; hora: string }[] };
   const vagas: { data: string; hora: string }[] = [];
-  for (let i = 0; i < 10 && vagas.length < quantas; i++) {
+  // até o fim da janela: quem atende um sábado por mês também tem "próximo horário"
+  for (let i = 0; i <= b.negocio.regras.janelaMaxDias && vagas.length < quantas; i++) {
     const data = somarDias(agora.slice(0, 10), i);
     const v = horariosDisponiveis(b, { servicosIds: [alvo.id], profissionalId: null, data, agora });
     for (const x of v.slice(0, quantas - vagas.length)) vagas.push({ data, hora: x.hora });
@@ -66,6 +67,12 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
   const { servico: alvo, vagas } = useMemo(() => proximasVagas(b, agora), [b, agora]);
   const hoje = agora.slice(0, 10);
   const agendar = `/${slug}/agendar`;
+  // quem atende só em datas marcadas mostra as datas, não uma semana "fechada"
+  const proximosDias = n.aberturas
+    .filter((a) => a.data >= hoje && !n.datasEspeciais.some((d) => d.data === a.data))
+    .sort((a, c) => (a.data < c.data ? -1 : 1))
+    .slice(0, 4);
+  const temSemana = Object.values(n.horario).some((f) => f.length > 0);
   const mapa = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${n.nome}, ${enderecoTexto(b)}`)}`;
 
   return (
@@ -97,7 +104,7 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
         </div>
       </header>
 
-      <section className="vt-heroi">
+      <section className={`vt-heroi${n.logoCompletoUrl ? " com-logo" : ""}`}>
         <Arte pele={n.pele} nome={n.nome} />
         <div className="vt-container vt-heroi-grade">
           <div>
@@ -125,7 +132,6 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
               <Emergir texto={n.tagline || n.nome} />
             </h1>
             <Revelar atraso={0.35}>
-              <p className="vt-heroi-texto">{n.descricao}</p>
               <div className="vt-heroi-acoes">
                 <Link href={agendar} className="vt-cta">
                   <span>Agendar horário</span>
@@ -179,20 +185,6 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
             </Revelar>
           )}
         </div>
-        {n.destaques.length > 0 && (
-          <div className="vt-container">
-            <Revelar atraso={0.6}>
-              <div className="vt-destaques">
-                {n.destaques.map((d) => (
-                  <span key={d}>
-                    <Icone nome="okCirculo" tamanho={16} peso="fill" />
-                    {d}
-                  </span>
-                ))}
-              </div>
-            </Revelar>
-          </div>
-        )}
       </section>
 
       <section className="vt-secao" id="servicos" style={{ paddingTop: 12 }}>
@@ -336,6 +328,16 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
               {n.nome}
             </h2>
             <p className="vt-sobre-texto">{n.sobre || n.descricao}</p>
+            {n.destaques.length > 0 && (
+              <div className="vt-destaques">
+                {n.destaques.map((d) => (
+                  <span key={d}>
+                    <Icone nome="okCirculo" tamanho={16} peso="fill" />
+                    {d}
+                  </span>
+                ))}
+              </div>
+            )}
           </Revelar>
           <Revelar atraso={0.1} className="vt-info">
             {n.endereco.rua && (
@@ -355,20 +357,37 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
                 </p>
               </div>
             )}
-            <div>
-              <h3>Horário</h3>
-              <div className="vt-horarios">
-                {[1, 2, 3, 4, 5, 6, 0].map((d) => {
-                  const faixas = n.horario[d] ?? [];
-                  return (
-                    <div key={d} className={diaDaSemana(hoje) === d ? "hoje" : ""}>
-                      <span>{capitalizar(NOMES_DIAS[d].replace("-feira", ""))}</span>
-                      <span>{faixas.length ? faixas.map((f) => `${f.inicio}–${f.fim}`).join(" · ") : "Fechado"}</span>
+            {proximosDias.length > 0 && (
+              <div>
+                <h3>Próximos dias de atendimento</h3>
+                <div className="vt-horarios">
+                  {proximosDias.map((a) => (
+                    <div key={a.data} className={a.data === hoje ? "hoje" : ""}>
+                      <span>{capitalizar(dataCurta(a.data))}</span>
+                      <span>
+                        {a.inicio}–{a.fim}
+                      </span>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+            {temSemana && (
+              <div>
+                <h3>Horário</h3>
+                <div className="vt-horarios">
+                  {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+                    const faixas = n.horario[d] ?? [];
+                    return (
+                      <div key={d} className={diaDaSemana(hoje) === d ? "hoje" : ""}>
+                        <span>{capitalizar(NOMES_DIAS[d].replace("-feira", ""))}</span>
+                        <span>{faixas.length ? faixas.map((f) => `${f.inicio}–${f.fim}`).join(" · ") : "Fechado"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="vt-info-acoes">
               {n.endereco.rua && (
                 <a href={mapa} target="_blank" rel="noopener noreferrer" className="ui-botao ui-botao-secundario ui-botao-p">
@@ -392,7 +411,7 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
 
       <footer className="vt-rodape">
         <div className="vt-container">
-          © {new Date().getFullYear()} {n.nome} · Agendamento online por <Link href="/">Livo Agenda</Link>
+          © {new Date().getFullYear()} {n.nome} · Agendamento online por <Link href="/">Livo Agenda</Link> · <Link href="/painel">Área do negócio</Link>
         </div>
       </footer>
 

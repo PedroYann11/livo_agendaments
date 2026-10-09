@@ -7,7 +7,7 @@
 
 import type { Agendamento, Banco, Cliente, Profissional, Servico } from "./tipos";
 import { aniversarioEntre, diaDaSemana, difMin, minDoDia, ms, somarDias } from "./datas";
-import { diaFechado } from "./disponibilidade";
+import { diaFechado, janelasDoDia } from "./disponibilidade";
 
 export function realizado(a: Agendamento): number {
   return a.status === "concluido" ? a.pagamento?.valor ?? a.total : 0;
@@ -29,7 +29,7 @@ export function minutosDisponiveis(b: Banco, p: Profissional, de: string, ate: s
   let total = 0;
   for (const d of dias(de, ate)) {
     if (diaFechado(b, d)) continue;
-    for (const f of p.horario[diaDaSemana(d)] ?? []) total += minDoDia(f.fim) - minDoDia(f.inicio);
+    for (const f of janelasDoDia(b, p, d)) total += minDoDia(f.fim) - minDoDia(f.inicio);
   }
   for (const bl of b.bloqueios) {
     if (bl.profissionalId && bl.profissionalId !== p.id) continue;

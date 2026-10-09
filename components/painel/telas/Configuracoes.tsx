@@ -23,6 +23,7 @@ import type { Cupom, Negocio, Pele } from "@/lib/tipos";
 import { removerCupom, salvarCupom, salvarDepoimento, salvarNegocio } from "@/lib/dados/acoes";
 import { MODULOS, NICHOS, modulosDoNicho } from "@/lib/padroes";
 import { buscarCep, buscarFeriados, type Feriado } from "@/lib/feriados";
+import { capitalizar } from "@/components/vitrine/util";
 import { contraste, hexValido, misturar, textoSobre } from "@/lib/cor";
 import { dataBr, dataCurta } from "@/lib/datas";
 import { centavosParaReais, formatarValorCampo, mascaraCep, mascaraTelefone } from "@/lib/masks";
@@ -402,10 +403,46 @@ function SecaoFuncionamento({ n, muda }: PropsSecao) {
   const { agora } = useLoja();
   const hoje = agora().slice(0, 10);
   const lista = n.datasEspeciais.slice().sort((a, b) => (a.data < b.data ? -1 : 1));
+  const avulsos = n.aberturas.filter((a) => a.data >= hoje).sort((a, b) => (a.data < b.data ? -1 : 1));
+  const [novoAvulso, setNovoAvulso] = useState({ data: "", inicio: avulsos.at(-1)?.inicio ?? "08:00", fim: avulsos.at(-1)?.fim ?? "14:00" });
   return (
     <>
-      <Bloco titulo="Horário de funcionamento" texto="O que aparece na página (“aberto agora”). As vagas vêm do horário de cada profissional, em Equipe.">
+      <Bloco titulo="Horário de funcionamento" texto="Os dias fixos da semana. As vagas vêm do horário de cada profissional, em Equipe. Se você não atende toda semana, deixe tudo fechado e use os dias avulsos abaixo.">
         <EditorSemana valor={n.horario} onMudar={(h) => muda({ horario: h })} />
+      </Bloco>
+      <Bloco titulo="Dias avulsos de atendimento" texto="Para quem atende só em algumas datas (ex.: um sábado por mês). Abre o dia escolhido, no horário escolhido, para toda a equipe.">
+        <div className="pn-lista" style={{ margin: "0 -18px" }}>
+          {avulsos.length === 0 && <p style={{ padding: "0 18px", color: "var(--c-texto-3)", fontSize: 14 }}>Nenhum dia avulso marcado.</p>}
+          {avulsos.map((a) => (
+            <div key={a.data} className="pn-linha">
+              <Icone nome="agendaOk" />
+              <span className="pn-linha-info">
+                <strong>{capitalizar(dataCurta(a.data))}</strong>
+                <small>
+                  {a.inicio}–{a.fim}
+                </small>
+              </span>
+              <BotaoIcone icone="apagar" rotulo="Remover" onClick={() => muda({ aberturas: n.aberturas.filter((x) => x.data !== a.data) })} />
+            </div>
+          ))}
+        </div>
+        <div className="ui-grade-campos duas">
+          <Entrada type="date" min={hoje} value={novoAvulso.data} onChange={(e) => setNovoAvulso({ ...novoAvulso, data: e.target.value })} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <Entrada type="time" step={600} value={novoAvulso.inicio} onChange={(e) => setNovoAvulso({ ...novoAvulso, inicio: e.target.value })} aria-label="Das" />
+            <Entrada type="time" step={600} value={novoAvulso.fim} onChange={(e) => setNovoAvulso({ ...novoAvulso, fim: e.target.value })} aria-label="Até" />
+            <Botao
+              variante="secundario"
+              disabled={!novoAvulso.data || novoAvulso.fim <= novoAvulso.inicio}
+              onClick={() => {
+                muda({ aberturas: [...n.aberturas.filter((x) => x.data !== novoAvulso.data), { ...novoAvulso }] });
+                setNovoAvulso({ ...novoAvulso, data: "" });
+              }}
+            >
+              Abrir
+            </Botao>
+          </div>
+        </div>
       </Bloco>
       <Bloco titulo="Feriados e dias fechados" texto="Nesses dias ninguém consegue marcar.">
         <div className="pn-lista" style={{ margin: "0 -18px" }}>

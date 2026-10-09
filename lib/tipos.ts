@@ -101,6 +101,10 @@ export type Negocio = {
   contato: { whatsapp: string; instagram: string; telefone: string; email: string };
   endereco: Endereco;
   horario: Semana;
+  /** dias avulsos de atendimento: abre SÓ nessa data, nesse horário, para toda a equipe
+   *  (negócio que atende um sábado por mês). Passa na frente do horário da semana. */
+  aberturas: { data: string; inicio: string; fim: string }[];
+  /** dias fechados (feriado, férias): ninguém marca, nem em dia avulso */
   datasEspeciais: { data: string; rotulo: string }[];
   regras: RegrasAgendamento;
   modulos: Record<Modulo, boolean>;

@@ -204,6 +204,7 @@ export function negocioNovo(id: string, slug: string, nome: string, nicho: Nicho
     contato: { whatsapp: "", instagram: "", telefone: "", email: "" },
     endereco: { cep: "", rua: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "", referencia: "" },
     horario: semanaComercial(),
+    aberturas: [],
     datasEspeciais: [],
     regras: REGRAS_PADRAO,
     modulos: modulosDoNicho(nicho),

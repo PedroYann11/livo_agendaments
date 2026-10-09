@@ -22,8 +22,8 @@ import { Avatar, Botao, BotaoIcone, Campo, Entrada, Interruptor, Segmentado, Sel
 import { Folha, useTelaLarga } from "@/components/ui/Folha";
 import { useAvisos, useConfirmar } from "@/components/ui/Avisos";
 import type { Agendamento, Banco, Profissional } from "@/lib/tipos";
-import { STATUS_OCUPAM, diaFechado, expedienteDoDia } from "@/lib/disponibilidade";
-import { removerBloqueio, salvarBloqueio } from "@/lib/dados/acoes";
+import { STATUS_OCUPAM, aberturasDoDia, diaFechado, expedienteDoDia, janelasDoDia } from "@/lib/disponibilidade";
+import { removerBloqueio, salvarBloqueio, salvarNegocio } from "@/lib/dados/acoes";
 import {
   NOMES_DIAS_CURTOS,
   dataCurta,
@@ -59,7 +59,11 @@ export function Agenda() {
   const [pro, setPro] = useState<string>(meuProfissionalId ?? "todos");
   const [cancelados, setCancelados] = useState(false);
   const [bloquear, setBloquear] = useState(false);
+  const [abrirDia, setAbrirDia] = useState(false);
   const soPendentes = params.get("filtro") === "pendente";
+  const { mudar } = useLoja();
+  const avisar = useAvisos();
+  const confirmar = useConfirmar();
 
   const equipe = b.profissionais.filter((p) => p.ativo && (!meuProfissionalId || p.id === meuProfissionalId)).sort((a, c) => a.ordem - c.ordem);
   const colunas = pro === "todos" ? equipe : equipe.filter((p) => p.id === pro);
@@ -77,8 +81,33 @@ export function Agenda() {
   const ocupado = doDia.filter((a) => STATUS_OCUPAM.includes(a.status) || a.status === "faltou").reduce((s, a) => s + difMin(a.inicio, a.fim), 0);
   const disponivel = colunas.reduce((s, p) => s + minutosDisponiveis(b, p, data, data), 0);
   const fechado = diaFechado(b, data);
+  const avulso = aberturasDoDia(b, data);
+  // ninguém trabalha nesse dia da semana: só abre como dia avulso
+  const semDiaFixo = equipe.every((p) => (p.horario[diaDaSemana(data)] ?? []).length === 0);
+  const marcados = doDia.filter((a) => STATUS_OCUPAM.includes(a.status)).length;
 
   const mover = (dias: number) => setData((d) => somarDias(d, visao === "semana" ? dias * 7 : dias));
+
+  const reabrir = () => {
+    mudar((x) => salvarNegocio(x, { datasEspeciais: x.negocio.datasEspeciais.filter((d) => d.data !== data) }));
+    avisar("Dia reaberto: as vagas voltam para o site.");
+  };
+  const fecharDia = async () => {
+    const ok = await confirmar({
+      titulo: `Fechar ${dataCurta(data)}?`,
+      texto: marcados
+        ? `Ninguém mais consegue marcar neste dia. Os ${marcados} atendimentos já marcados continuam — avise os clientes.`
+        : "Ninguém consegue marcar neste dia.",
+      confirmar: "Fechar o dia",
+    });
+    if (!ok) return;
+    mudar((x) =>
+      avulso.length
+        ? salvarNegocio(x, { aberturas: x.negocio.aberturas.filter((a) => a.data !== data) })
+        : salvarNegocio(x, { datasEspeciais: [...x.negocio.datasEspeciais.filter((d) => d.data !== data), { data, rotulo: "Fechado" }] }),
+    );
+    avisar("Dia fechado. Some do site na hora.");
+  };
 
   return (
     <div className="pn-pagina">
@@ -87,13 +116,30 @@ export function Agenda() {
         texto={
           fechado
             ? `Fechado: ${fechado}`
-            : `${doDia.filter((a) => a.status !== "cancelado").length} atendimentos · ${disponivel ? Math.round((ocupado / disponivel) * 100) : 0}% ocupado`
+            : avulso.length || !semDiaFixo
+              ? `${avulso.length ? `Dia de atendimento ${avulso.map((a) => `${a.inicio}–${a.fim}`).join(", ")} · ` : ""}${doDia.filter((a) => a.status !== "cancelado").length} atendimentos · ${disponivel ? Math.round((ocupado / disponivel) * 100) : 0}% ocupado`
+              : "Sem atendimento neste dia"
         }
         acoes={
           <>
-            <Botao variante="secundario" icone="proibido" onClick={() => setBloquear(true)}>
-              Bloquear horário
-            </Botao>
+            {fechado ? (
+              <Botao variante="secundario" icone="desfazer" onClick={reabrir}>
+                Reabrir o dia
+              </Botao>
+            ) : avulso.length || !semDiaFixo ? (
+              <>
+                <Botao variante="secundario" icone="agendaX" onClick={fecharDia}>
+                  {avulso.length ? "Desmarcar dia" : "Fechar o dia"}
+                </Botao>
+                <Botao variante="secundario" icone="proibido" onClick={() => setBloquear(true)}>
+                  Bloquear horário
+                </Botao>
+              </>
+            ) : (
+              <Botao variante="secundario" icone="agendaOk" onClick={() => setAbrirDia(true)}>
+                Abrir este dia
+              </Botao>
+            )}
             <Botao variante="principal" icone="agendaMais" onClick={() => novo({ data, profissionalId: pro !== "todos" ? pro : undefined })}>
               Novo
             </Botao>
@@ -163,6 +209,7 @@ export function Agenda() {
       )}
 
       <FolhaBloqueio aberta={bloquear} onFechar={() => setBloquear(false)} data={data} equipe={equipe} />
+      <FolhaAbrirDia aberta={abrirDia} onFechar={() => setAbrirDia(false)} data={data} />
     </div>
   );
 }
@@ -218,7 +265,7 @@ function ListaDia({
   type Item = { tipo: "ag"; ag: Agendamento } | { tipo: "livre"; de: number; ate: number } | { tipo: "bloqueio"; motivo: string; de: string; ate: string };
   const itens: Item[] = [];
   if (umaPessoa && !fechado) {
-    const faixas = umaPessoa.horario[diaDaSemana(data)] ?? [];
+    const faixas = janelasDoDia(b, umaPessoa, data);
     const ocupacoes = agendamentos
       .filter((a) => a.status !== "cancelado")
       .map((a) => ({ de: minDoDia(a.inicio.slice(11)), ate: minDoDia(a.inicio.slice(11)) + difMin(a.inicio, a.fim) + a.intervaloMin }));
@@ -341,8 +388,6 @@ function GradeDia({
   const { inicio, fim } = expedienteDoDia(b, data);
   const altura = (fim - inicio) * ESCALA;
   const agoraMin = momento.slice(0, 10) === data ? minDoDia(momento.slice(11)) : null;
-  const semana = diaDaSemana(data);
-  const fechado = diaFechado(b, data);
 
   useEffect(() => {
     if (!moldura.current) return;
@@ -365,7 +410,7 @@ function GradeDia({
               <div>
                 <strong>{p.nome}</strong>
                 <small>
-                  {meus.length} atendimentos{(p.horario[semana] ?? []).length === 0 ? " · folga" : ""}
+                  {meus.length} atendimentos{janelasDoDia(b, p, data).length === 0 ? " · folga" : ""}
                 </small>
               </div>
             </div>
@@ -381,7 +426,7 @@ function GradeDia({
         </div>
 
         {colunas.map((p) => {
-          const faixas = fechado ? [] : p.horario[semana] ?? [];
+          const faixas = janelasDoDia(b, p, data);
           // áreas fora do expediente
           const fora: [number, number][] = [];
           let t = inicio;
@@ -521,6 +566,51 @@ function Semana({ b, data, hoje, filtro, onDia }: { b: Banco; data: string; hoje
         );
       })}
     </div>
+  );
+}
+
+/** Dia avulso de atendimento: o negócio abre só nesta data (toda a equipe). */
+function FolhaAbrirDia({ aberta, onFechar, data }: { aberta: boolean; onFechar: () => void; data: string }) {
+  const { banco, mudar } = useLoja();
+  const avisar = useAvisos();
+  // sugere o último horário usado: quem abre um sábado por mês repete o mesmo
+  const ultima = banco?.negocio.aberturas.slice().sort((a, c) => (a.data < c.data ? 1 : -1))[0];
+  const [de, setDe] = useState(ultima?.inicio ?? "08:00");
+  const [ate, setAte] = useState(ultima?.fim ?? "14:00");
+
+  const salvar = () => {
+    if (ate <= de) return avisar("O fim precisa ser depois do início.", "erro");
+    mudar((b) => salvarNegocio(b, { aberturas: [...b.negocio.aberturas.filter((a) => a.data !== data), { data, inicio: de, fim: ate }] }));
+    avisar("Dia aberto: as vagas já aparecem no site.");
+    onFechar();
+  };
+
+  return (
+    <Folha
+      aberta={aberta}
+      onFechar={onFechar}
+      titulo="Abrir este dia"
+      subtitulo={`${capitalizar(dataLonga(data))} — para quem não atende toda semana.`}
+      rodape={
+        <>
+          <Botao variante="fantasma" onClick={onFechar}>
+            Cancelar
+          </Botao>
+          <Botao variante="principal" onClick={salvar}>
+            Abrir dia
+          </Botao>
+        </>
+      }
+    >
+      <div className="ui-grade-campos duas" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <Campo rotulo="Das">
+          <Entrada type="time" step={600} value={de} onChange={(e) => setDe(e.target.value)} />
+        </Campo>
+        <Campo rotulo="Até">
+          <Entrada type="time" step={600} value={ate} onChange={(e) => setAte(e.target.value)} />
+        </Campo>
+      </div>
+    </Folha>
   );
 }
 
