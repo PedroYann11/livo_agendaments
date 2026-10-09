@@ -20,6 +20,7 @@ import {
   ROTULOS_CAMPO,
   adivinharCampo,
   aplicarMapeamento,
+  deContatos,
   lerListaSolta,
   lerTabela,
   lerVcard,
@@ -29,6 +30,7 @@ import {
   type LinhaImportada,
 } from "@/lib/importar";
 import { importarClientes } from "@/lib/dados/acoes";
+import { escolherContatos, limparSufixoDoNegocio, podeEscolherContatos } from "@/lib/contatos";
 import { mascaraTelefone } from "@/lib/masks";
 import { dataBr } from "@/lib/datas";
 import { numero } from "@/lib/formato";
@@ -85,10 +87,13 @@ export function Importar() {
     setEtapa("colunas");
   };
 
+  const nomeNegocio = b.negocio.nome;
   const linhas = useMemo(() => {
     const base = linhasProntas ?? (tabela.length ? aplicarMapeamento(tabela, mapa, cabecalho) : []);
-    return marcarRepetidos(base, existentes);
-  }, [linhasProntas, tabela, mapa, cabecalho, existentes]);
+    // "Maria Cliente DepiLED" (como ficou salvo no celular) entra como "Maria"
+    const limpas = base.map((l) => ({ ...l, nome: limparSufixoDoNegocio(l.nome, nomeNegocio) }));
+    return marcarRepetidos(limpas, existentes);
+  }, [linhasProntas, tabela, mapa, cabecalho, existentes, nomeNegocio]);
   const boas = linhas.filter((l) => !l.problema);
 
   const importar = () => {
@@ -119,6 +124,25 @@ export function Importar() {
       <AnimatePresence mode="wait">
         {etapa === "origem" && (
           <motion.div key="origem" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }} style={{ display: "grid", gap: 14 }}>
+            {podeEscolherContatos() && (
+              <Botao
+                variante="principal"
+                icone="contatos"
+                onClick={async () => {
+                  try {
+                    const escolhidos = await escolherContatos(b.negocio.nome, true);
+                    if (!escolhidos.length) return;
+                    setNomeArquivo("Contatos do celular");
+                    setLinhasProntas(deContatos(escolhidos));
+                    setEtapa("previa");
+                  } catch {
+                    // fechou a lista sem escolher
+                  }
+                }}
+              >
+                Escolher contatos do celular
+              </Botao>
+            )}
             <Segmentado
               rotulo="Origem"
               valor={modo}

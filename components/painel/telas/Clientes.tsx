@@ -12,6 +12,7 @@ import { Folha, useTelaLarga } from "@/components/ui/Folha";
 import { useAvisos } from "@/components/ui/Avisos";
 import type { Agendamento, Banco, Cliente } from "@/lib/tipos";
 import { acharClientePorTelefone, novoCliente, salvarCliente } from "@/lib/dados/acoes";
+import { escolherContatos, podeEscolherContatos } from "@/lib/contatos";
 import { aniversarioEntre, dataBr, dataCurta, haQuanto, inicioDoMes, fimDoMes, somarDias } from "@/lib/datas";
 import { brl, normalizar, numero } from "@/lib/formato";
 import { capitalizarNome, mascaraTelefone, telefoneValido } from "@/lib/masks";
@@ -303,6 +304,22 @@ export function FormCliente({ cliente, onFechar, onSalvo }: { cliente: Cliente |
     >
       {c && (
         <div style={{ display: "grid", gap: 16 }}>
+          {novo && podeEscolherContatos() && (
+            <Botao
+              variante="secundario"
+              icone="contatos"
+              onClick={async () => {
+                try {
+                  const [contato] = await escolherContatos(banco?.negocio.nome ?? "", false);
+                  if (contato) setC({ ...c, nome: contato.nome || c.nome, telefone: contato.telefone || c.telefone });
+                } catch {
+                  // a pessoa fechou a lista sem escolher: nada a fazer
+                }
+              }}
+            >
+              Escolher dos contatos do celular
+            </Botao>
+          )}
           <Campo rotulo="Nome completo" erro={erro.nome}>
             <Entrada value={c.nome} onChange={(e) => setC({ ...c, nome: e.target.value })} />
           </Campo>

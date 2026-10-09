@@ -172,6 +172,11 @@ export function lerListaSolta(texto: string): LinhaImportada[] {
     });
 }
 
+/** Contatos escolhidos direto da agenda do celular (Android). */
+export function deContatos(lista: { nome: string; telefone: string }[]): LinhaImportada[] {
+  return lista.map((c) => validar({ nome: c.nome, telefone: c.telefone, email: "", nascimento: null, observacoes: "", tags: [], problema: null }));
+}
+
 function validar(l: LinhaImportada): LinhaImportada {
   const nome = capitalizarNome(l.nome.replace(/\s+/g, " "));
   const telefone = apenasDigitos(l.telefone);
