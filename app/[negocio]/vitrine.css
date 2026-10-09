@@ -614,33 +614,30 @@
   flex-shrink: 0;
 }
 
-/* destaques */
+/* destaques: quebram linha — no celular todos aparecem, nenhum fica escondido de lado */
 .vt-destaques {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  overflow-x: auto;
   padding: 2px 0 8px;
-  scrollbar-width: none;
   margin-top: 26px;
-}
-.vt-destaques::-webkit-scrollbar {
-  display: none;
 }
 .vt-destaques span {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  height: 34px;
-  padding: 0 13px;
+  min-height: 34px;
+  padding: 6px 13px;
   border-radius: var(--r-pill);
   border: 1px solid var(--c-linha);
   font-size: 13px;
   font-weight: 540;
+  line-height: 1.3;
   color: var(--c-texto-2);
-  white-space: nowrap;
   background: color-mix(in srgb, var(--c-superficie) 55%, transparent);
 }
 .vt-destaques svg {
+  flex-shrink: 0;
   color: var(--c-marca-tinta);
 }
 
@@ -769,14 +766,19 @@
 }
 
 /* destaques em carrossel */
+/* encosta na borda da tela; o encaixe respeita a margem (sem isso o 1º cartão cola na borda)
+   e o esmaecido fica só na margem: no fim da rolagem nenhum cartão fica apagado */
 .vt-carrossel {
   display: flex;
   gap: 12px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
+  scroll-padding-inline: 18px;
   margin: 0 -18px 30px;
   padding: 4px 18px 10px;
   scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
 }
 .vt-carrossel::-webkit-scrollbar {
   display: none;
@@ -785,6 +787,9 @@
   .vt-carrossel {
     margin: 0 0 34px;
     padding: 4px 0 10px;
+    scroll-padding-inline: 0;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
 .vt-destaque {
@@ -972,9 +977,10 @@
   font-weight: 620;
 }
 
-/* sobre + onde estamos */
+/* sobre + onde estamos — minmax(0, …): nada de dentro alarga a coluna além da tela */
 .vt-sobre {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 28px;
 }
 @media (min-width: 900px) {
