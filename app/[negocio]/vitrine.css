@@ -685,6 +685,21 @@
   gap: 10px;
   margin-bottom: 34px;
 }
+.vt-vazio {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 32px 20px;
+  margin-bottom: 34px;
+  border-radius: var(--r-4);
+  border: 1px dashed color-mix(in srgb, var(--c-texto) 18%, transparent);
+  color: var(--c-texto-2);
+}
+.vt-vazio strong {
+  color: var(--c-texto);
+  font-weight: 600;
+}
 @media (min-width: 720px) {
   .vt-cats {
     grid-template-columns: repeat(2, 1fr);

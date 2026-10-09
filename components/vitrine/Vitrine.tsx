@@ -225,6 +225,19 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
             })}
           </div>
 
+          {/* negócio recém-criado: a página já está no ar antes do primeiro serviço */}
+          {grupos.length === 0 && (
+            <div className="vt-vazio">
+              <Icone nome="agenda" tamanho={22} />
+              <strong>Os serviços aparecem aqui em breve.</strong>
+              {n.contato.whatsapp && (
+                <a href={linkWhatsApp(n.contato.whatsapp, `Olá, ${n.nome}!`)} target="_blank" rel="noopener noreferrer" className="vt-link">
+                  Falar no WhatsApp
+                </a>
+              )}
+            </div>
+          )}
+
           {destaques.length > 1 && (
             <>
               <h3 className="vt-subtitulo">Mais procurados</h3>

@@ -9,6 +9,11 @@
 //
 // SÓ PARA TESTE LOCAL: o login aqui não confere assinatura nenhuma.
 //
+// Cadastro: /auth/v1/signup cria a conta em auth.users. Com
+// BOLSO_CONFIRMAR=1 ela nasce sem e-mail confirmado (como em produção) e o
+// "link do e-mail" é GET /auth/v1/bolso-link?email=…&tipo=signup|recovery
+// &redirect_to=… — que confirma e volta para o app com a sessão no #.
+//
 //   ./supabase/tests/rodar.sh --manter
 //   BOLSO_SENHAS="dona@depiled.teste:senha" node supabase/tests/bolso/servidor.mjs
 //   NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=bolso npx next dev
@@ -69,7 +74,9 @@ function sessao(usuario) {
     refresh_token: refresh,
     user: {
       id: usuario.id, aud: "authenticated", role: "authenticated", email: usuario.email,
-      app_metadata: { provider: "email", providers: ["email"] }, user_metadata: {},
+      app_metadata: { provider: "email", providers: ["email"] }, user_metadata: usuario.meta ?? {},
+      identities: [{ id: usuario.id, provider: "email" }],
+      email_confirmed_at: usuario.confirmado ?? null,
       created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z",
     },
   };
@@ -138,12 +145,29 @@ commit;`,
 }
 
 // ---------------------------------------------------------------------
-// Login: /auth/v1/token, /auth/v1/user, /auth/v1/logout
+// Login e cadastro: /auth/v1/token, signup, user, resend, recover, logout
 // ---------------------------------------------------------------------
 
+const CONFIRMAR = process.env.BOLSO_CONFIRMAR === "1";
+const COLUNAS = `jsonb_build_object('id', id, 'email', email, 'meta', coalesce(raw_user_meta_data, '{}'), 'confirmado', email_confirmed_at)`;
+
 async function usuarioPorEmail(email) {
-  const r = await psql(`select jsonb_build_object('id', id, 'email', email) from auth.users where lower(email) = lower(:'email')`, { email });
+  const r = await psql(`select ${COLUNAS} from auth.users where lower(email) = lower(:'email')`, { email });
   return r.out.trim() ? JSON.parse(r.out.trim()) : null;
+}
+async function usuarioPorId(id) {
+  const r = await psql(`select ${COLUNAS} from auth.users where id = :'id'::uuid`, { id });
+  return r.out.trim() ? JSON.parse(r.out.trim()) : null;
+}
+
+/** O "link do e-mail": volta para o app com a sessão no #, como o GoTrue no fluxo implícito. */
+function redirecionarComSessao(destino, usuario, tipo) {
+  const s = sessao(usuario);
+  const hash = new URLSearchParams({
+    access_token: s.access_token, refresh_token: s.refresh_token, expires_in: "3600",
+    expires_at: String(s.expires_at), token_type: "bearer", type: tipo,
+  });
+  return [303, null, { location: `${destino}#${hash}` }];
 }
 
 async function auth(caminho, url, corpo, req) {
@@ -153,18 +177,57 @@ async function auth(caminho, url, corpo, req) {
     if (!usuario || SENHAS.get(email) !== corpo.password) {
       return [400, { code: "invalid_credentials", error_code: "invalid_credentials", msg: "Invalid login credentials" }];
     }
+    if (!usuario.confirmado) return [400, { code: "email_not_confirmed", error_code: "email_not_confirmed", msg: "Email not confirmed" }];
     return [200, sessao(usuario)];
   }
   if (caminho === "/auth/v1/token" && url.searchParams.get("grant_type") === "refresh_token") {
     const usuario = refreshs.get(corpo.refresh_token);
     if (!usuario) return [400, { code: "refresh_token_not_found", msg: "Invalid Refresh Token" }];
     refreshs.delete(corpo.refresh_token);
-    return [200, sessao(usuario)];
+    return [200, sessao((await usuarioPorId(usuario.id)) ?? usuario)];
   }
+  if (caminho === "/auth/v1/signup") {
+    const email = String(corpo.email ?? "").trim().toLowerCase();
+    if (String(corpo.password ?? "").length < 6) return [422, { code: "weak_password", msg: "Password should be at least 6 characters." }];
+    if (await usuarioPorEmail(email)) {
+      // como o GoTrue com confirmação ligada: não conta que o e-mail existe
+      if (CONFIRMAR) return [200, { id: randomUUID(), email, identities: [], user_metadata: {} }];
+      return [422, { code: "user_already_exists", msg: "User already registered" }];
+    }
+    const r = await psql(
+      `insert into auth.users (id, email, email_confirmed_at, raw_user_meta_data)
+       values (gen_random_uuid(), :'email', ${CONFIRMAR ? "null" : "now()"}, :'meta'::jsonb) returning id`,
+      { email, meta: JSON.stringify(corpo.data ?? {}) },
+    );
+    if (r.codigo !== 0) return [500, { msg: r.err }];
+    SENHAS.set(email, corpo.password);
+    const usuario = await usuarioPorEmail(email);
+    return [200, CONFIRMAR ? sessao(usuario).user : sessao(usuario)];
+  }
+  if (caminho === "/auth/v1/bolso-link") {
+    const usuario = await usuarioPorEmail(url.searchParams.get("email") ?? "");
+    if (!usuario) return [404, { msg: "conta não existe" }];
+    await psql(`update auth.users set email_confirmed_at = coalesce(email_confirmed_at, now()) where id = :'id'::uuid`, { id: usuario.id });
+    return redirecionarComSessao(url.searchParams.get("redirect_to") ?? "/", await usuarioPorId(usuario.id), url.searchParams.get("tipo") ?? "signup");
+  }
+  if (caminho === "/auth/v1/resend" || caminho === "/auth/v1/recover") return [200, {}];
   if (caminho === "/auth/v1/user") {
     const p = lerJwt(req.headers.authorization);
     if (!p) return [401, { code: "bad_jwt", msg: "invalid JWT" }];
-    return [200, sessao({ id: p.sub, email: p.email }).user];
+    if (req.method === "PUT") {
+      const u = await usuarioPorId(p.sub);
+      if (corpo.password) {
+        if (SENHAS.get(u.email) === corpo.password) return [422, { code: "same_password", msg: "New password should be different from the old password." }];
+        SENHAS.set(u.email, corpo.password);
+      }
+      if (corpo.data) {
+        await psql(`update auth.users set raw_user_meta_data = coalesce(raw_user_meta_data, '{}') || :'meta'::jsonb where id = :'id'::uuid`, {
+          id: p.sub, meta: JSON.stringify(corpo.data),
+        });
+      }
+    }
+    const usuario = await usuarioPorId(p.sub);
+    return usuario ? [200, sessao(usuario).user] : [401, { code: "user_not_found", msg: "User not found" }];
   }
   if (caminho === "/auth/v1/logout") return [204, null];
   return [404, { msg: "não existe no bolso" }];
@@ -175,7 +238,7 @@ async function auth(caminho, url, corpo, req) {
 const CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-headers": "apikey, authorization, content-type, x-client-info, prefer, accept-profile, content-profile, x-supabase-api-version",
-  "access-control-allow-methods": "GET, POST, PATCH, DELETE, OPTIONS",
+  "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 };
 
 http
@@ -203,9 +266,9 @@ http
     } catch (e) {
       resposta = [500, { message: String(e) }];
     }
-    const [status, dados] = resposta;
+    const [status, dados, extras = {}] = resposta;
     if (process.env.BOLSO_LOG) console.log(req.method, url.pathname, status, status >= 400 ? JSON.stringify(dados) : "");
-    res.writeHead(status, { ...CORS, "content-type": "application/json" });
-    res.end(status === 204 ? undefined : JSON.stringify(dados));
+    res.writeHead(status, { ...CORS, "content-type": "application/json", ...extras });
+    res.end(status === 204 || dados === null ? undefined : JSON.stringify(dados));
   })
   .listen(PORTA, () => console.log(`supabase de bolso em http://localhost:${PORTA}`));

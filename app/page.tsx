@@ -43,8 +43,11 @@ export default function Inicio() {
           comandar o dia pelo celular.
         </p>
         <div className="li-acoes">
-          <Link href="/painel/entrar" className="ui-botao ui-botao-principal ui-botao-g">
-            Entrar no painel <Icone nome="avancar" tamanho={18} />
+          <Link href="/painel/criar-conta" className="ui-botao ui-botao-principal ui-botao-g">
+            Criar minha agenda <Icone nome="avancar" tamanho={18} />
+          </Link>
+          <Link href="/painel/entrar" className="ui-botao ui-botao-secundario ui-botao-g">
+            Já tenho conta
           </Link>
         </div>
       </section>

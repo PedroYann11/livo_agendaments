@@ -92,11 +92,14 @@ export const NAV: ItemNav[] = [
   { area: "configuracoes", href: "/painel/configuracoes", rotulo: "Configurações", icone: "config" },
 ];
 
+/** Telas do painel que se abrem sem sessão: entrar, criar conta, senha. */
+const ABERTAS = new Set(["/painel/entrar", "/painel/criar-conta", "/painel/criar-negocio", "/painel/esqueci-senha", "/painel/nova-senha"]);
+
 export function PainelRaiz({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const sessao = useSessao();
-  const naEntrada = pathname === "/painel/entrar";
+  const naEntrada = ABERTAS.has(pathname);
 
   useEffect(() => {
     if (sessao === null && !naEntrada) router.replace("/painel/entrar");

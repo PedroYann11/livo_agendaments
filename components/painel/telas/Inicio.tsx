@@ -9,6 +9,7 @@ import { motion } from "motion/react";
 import { useBanco, useLoja } from "@/lib/dados/loja";
 import { usePainel } from "../PainelRaiz";
 import { Cabecalho } from "../Cabecalho";
+import { PrimeirosPassos } from "../PrimeirosPassos";
 import { Icone, type NomeIcone } from "@/components/ui/Icone";
 import { Avatar, Botao, EstadoVazio, Medidor, NumeroAnimado, Selo } from "@/components/ui/basicos";
 import { STATUS, enviarWhats } from "../DetalheAgendamento";
@@ -93,6 +94,8 @@ export function Inicio() {
           </Botao>
         }
       />
+
+      {pode("servicos") && <PrimeirosPassos b={b} />}
 
       <div className="pn-grade g-21">
         <div style={{ display: "grid", gap: 14, alignContent: "start" }}>
