@@ -173,13 +173,17 @@ produção, e o "link do e-mail" é
 **Negócio novo:** a própria pessoa, em `agenda.livo.tec.br` › "Criar minha agenda".
 Não passa pela Livo.
 
-**DepiLED** (o negócio já existe, criado pela 002): o dono cria a conta pelo site
-(`/painel/criar-conta`) ou a Livo cria em Authentication › Users; depois, uma vez,
-no SQL Editor:
+**DepiLED** (o negócio já existe, criado pela 002 — caso único do piloto): o
+cadastro do site criaria um negócio novo, então aqui a Livo liga a conta uma vez.
+Em Authentication › Users › Add user (e-mail do dono, senha provisória, "Auto
+Confirm User") e, no SQL Editor:
 
 ```sql
 select public.vincular_membro('email@dono.com', 'depiled', 'owner');
 ```
+
+Depois o dono troca a senha sozinho em "Esqueci minha senha" (precisa do e-mail
+próprio configurado, abaixo).
 
 ### Configurar o login na Supabase (uma vez, no painel da Supabase)
 
