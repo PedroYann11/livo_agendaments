@@ -2230,6 +2230,36 @@ a.pn-linha:hover {
 }
 
 /* cadastro */
+.en-etapas {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+.en-etapas li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14.5px;
+  color: var(--c-texto-2);
+}
+.en-etapas span {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: var(--c-marca-sutil, #e6efec);
+  color: var(--c-marca-tinta, #1f5c4b);
+}
+.ui-entrada[readonly] {
+  background: color-mix(in srgb, var(--c-texto) 3%, var(--c-superficie));
+  color: var(--c-texto-2);
+}
 .en-ganhos {
   list-style: none;
   padding: 0;

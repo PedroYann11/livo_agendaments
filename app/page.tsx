@@ -44,7 +44,7 @@ export default function Inicio() {
         </p>
         <div className="li-acoes">
           <Link href="/painel/criar-conta" className="ui-botao ui-botao-principal ui-botao-g">
-            Criar minha agenda <Icone nome="avancar" tamanho={18} />
+            Quero minha agenda <Icone nome="avancar" tamanho={18} />
           </Link>
           <Link href="/painel/entrar" className="ui-botao ui-botao-secundario ui-botao-g">
             Já tenho conta

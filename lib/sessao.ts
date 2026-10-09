@@ -93,6 +93,8 @@ function motivoDoAuth(e: { code?: string; status?: number; message?: string } | 
       return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
   }
   if (e?.status === 429) return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
+  // recusado antes de a conta existir (hook_antes_de_criar_conta, migration 008)
+  if (e?.status === 403) return "Este e-mail não tem uma compra ativa. Use o link de convite que você recebeu depois do pagamento.";
   if (e?.message === "Invalid login credentials") return "E-mail ou senha incorretos.";
   return "Não foi possível agora. Confira a internet e tente de novo.";
 }
@@ -221,15 +223,40 @@ export async function criarMeuNegocio(dono: string, d: NegocioDoCadastro): Promi
   return { ok: true, slug: String(data) };
 }
 
+const semFuncao = (e: { code?: string } | null) => e?.code === "PGRST202" || e?.code === "42883";
+
 /**
- * O banco já tem o cadastro próprio (migration 008)? Sem ele, as telas de
- * cadastro dizem "abre em breve" em vez de criar uma conta que não teria
- * como criar o negócio. Na dúvida (internet), deixa seguir.
+ * O banco já tem o cadastro (migration 008)? Sem ele, as telas de cadastro
+ * dizem "abre em breve" em vez de criar uma conta que não teria como criar
+ * o negócio. Na dúvida (internet), deixa seguir.
  */
 export async function cadastroDisponivel(): Promise<boolean> {
   if (!supabaseOn) return false;
   const { error } = await getSupabase().rpc("slug_disponivel", { p_slug: "livo" });
-  return !(error && (error.code === "PGRST202" || error.code === "42883"));
+  return !semFuncao(error);
+}
+
+/**
+ * O link de convite que a pessoa recebe depois de pagar (?convite=…). A conta
+ * só nasce com ele: o e-mail fica preso ao de quem pagou.
+ */
+export type Convite =
+  | { estado: "valido"; email: string; plano: string }
+  | { estado: "usado" }
+  | { estado: "invalido" }
+  /** o banco ainda não tem o cadastro (008) */
+  | { estado: "em_breve" }
+  /** não deu para conferir agora (internet) */
+  | { estado: "erro" };
+
+export async function conferirConvite(codigo: string): Promise<Convite> {
+  if (!supabaseOn) return { estado: "em_breve" };
+  if (!/^[a-f0-9]{36}$/.test(codigo)) return { estado: "invalido" };
+  const { data, error } = await getSupabase().rpc("convite_publico", { p_codigo: codigo });
+  if (error) return semFuncao(error) ? { estado: "em_breve" } : { estado: "erro" };
+  if (!data) return { estado: "invalido" };
+  if (data.usado) return { estado: "usado" };
+  return { estado: "valido", email: String(data.email), plano: String(data.plano) };
 }
 
 export type SituacaoSlug = "ok" | "invalido" | "reservado" | "em_uso";

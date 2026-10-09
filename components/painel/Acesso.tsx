@@ -13,6 +13,9 @@ import { PALETA } from "@/lib/paleta";
 
 const ENTRAR = [0.23, 1, 0.32, 1] as const;
 
+/** WhatsApp comercial da Livo (variável da Vercel). Sem ele, as telas não mostram o botão de contratar. */
+export const WHATSAPP_LIVO = process.env.NEXT_PUBLIC_LIVO_WHATSAPP ?? "";
+
 export function CascaAcesso({
   titulo,
   subtitulo,

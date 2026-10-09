@@ -30,6 +30,10 @@ do $$ begin
   if not exists (select 1 from pg_roles where rolname='service_role') then
     create role service_role nologin noinherit bypassrls;
   end if;
+  -- quem chama os hooks da Supabase Auth (o "antes de criar conta", 008)
+  if not exists (select 1 from pg_roles where rolname='supabase_auth_admin') then
+    create role supabase_auth_admin nologin noinherit;
+  end if;
 end $$;
 
 grant usage on schema public, auth to anon, authenticated, service_role;

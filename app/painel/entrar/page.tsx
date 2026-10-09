@@ -122,7 +122,7 @@ export default function Entrar() {
         {!supabaseOn && <small style={{ color: "var(--c-texto-3)" }}>Login real ainda não configurado neste ambiente.</small>}
       </form>
       <PeAcesso>
-        Ainda não tem conta? <Link href="/painel/criar-conta">Criar minha agenda</Link>
+        Ainda não é cliente? <Link href="/painel/criar-conta">Como contratar</Link>
       </PeAcesso>
     </CascaAcesso>
   );

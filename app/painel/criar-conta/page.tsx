@@ -1,19 +1,22 @@
 "use client";
 
-// Cadastro próprio, em dois passos: o negócio e o acesso. Sem a Livo no
-// meio — a conta nasce no Supabase Auth e o negócio, no primeiro login com
-// o e-mail confirmado (negocio_criar_meu, migration 008).
+// Cadastro de quem PAGOU, em dois passos: o negócio e o acesso. Abre só com
+// o link de convite que chega depois do pagamento (?convite=…), com o
+// e-mail preso ao da compra. A conta nasce no Supabase Auth (o banco recusa
+// e-mail sem compra) e o negócio, no primeiro login com o e-mail confirmado
+// (negocio_criar_meu gasta a compra — migration 008).
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Botao, Campo, Entrada } from "@/components/ui/basicos";
+import { Botao, Campo, Entrada, Esqueleto } from "@/components/ui/basicos";
 import { Icone } from "@/components/ui/Icone";
-import { AvisoAcesso, CadastroEmBreve, CascaAcesso, PeAcesso } from "@/components/painel/Acesso";
+import { AvisoAcesso, CadastroEmBreve, CascaAcesso, PeAcesso, WHATSAPP_LIVO } from "@/components/painel/Acesso";
 import { FormNegocio, NEGOCIO_EM_BRANCO, negocioPronto, type EstadoSlug } from "@/components/painel/FormNegocio";
-import { cadastroDisponivel, criarConta, reenviarConfirmacao, type NegocioDoCadastro } from "@/lib/sessao";
+import { conferirConvite, criarConta, reenviarConfirmacao, type Convite, type NegocioDoCadastro } from "@/lib/sessao";
 import { supabaseOn } from "@/lib/supabase";
+import { linkWhatsApp } from "@/lib/whatsapp";
 
 type Passo = "negocio" | "acesso" | "confirmar";
 
@@ -32,10 +35,16 @@ export default function CriarConta() {
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [reenvio, setReenvio] = useState<"enviando" | "enviado" | null>(null);
-  const [aberto, setAberto] = useState(true);
+  // null = conferindo o convite
+  const [convite, setConvite] = useState<Convite | null>(null);
 
   useEffect(() => {
-    if (supabaseOn) cadastroDisponivel().then(setAberto);
+    const codigo = new URLSearchParams(window.location.search).get("convite") ?? "";
+    if (!codigo) return setConvite(supabaseOn ? { estado: "invalido" } : { estado: "em_breve" });
+    conferirConvite(codigo).then((c) => {
+      setConvite(c);
+      if (c.estado === "valido") setEmail(c.email);
+    });
   }, []);
 
   // o aviso some assim que a pessoa mexe no que estava errado
@@ -85,7 +94,30 @@ export default function CriarConta() {
     setErro(falha);
   };
 
-  if (!aberto) return <CadastroEmBreve />;
+  if (!convite) {
+    return (
+      <CascaAcesso titulo="Conferindo seu convite…" arte="cadastro">
+        <div style={{ display: "grid", gap: 12, marginTop: 24 }}>
+          <Esqueleto altura={48} raio={12} />
+          <Esqueleto altura={96} raio={12} />
+        </div>
+      </CascaAcesso>
+    );
+  }
+  if (convite.estado === "em_breve") return <CadastroEmBreve />;
+  if (convite.estado === "invalido") return <SemConvite />;
+  if (convite.estado === "usado") return <ConviteUsado />;
+  if (convite.estado === "erro") {
+    return (
+      <CascaAcesso titulo="Não deu para conferir o convite" subtitulo="Confira a internet e tente de novo." arte="cadastro">
+        <div className="en-campos">
+          <Botao variante="principal" tamanho="g" onClick={() => window.location.reload()}>
+            Tentar de novo
+          </Botao>
+        </div>
+      </CascaAcesso>
+    );
+  }
 
   if (passo === "confirmar") {
     return (
@@ -114,7 +146,7 @@ export default function CriarConta() {
   return (
     <CascaAcesso
       titulo={passo === "negocio" ? "Crie sua agenda" : "Seu acesso ao painel"}
-      subtitulo={passo === "negocio" ? "Leva 2 minutos. Você ajusta tudo depois no painel." : "É com este e-mail e senha que você entra no painel."}
+      subtitulo={passo === "negocio" ? "Pagamento confirmado. Leva 2 minutos, e você ajusta tudo depois no painel." : "É com este e-mail e senha que você entra no painel."}
       arte="cadastro"
     >
       <ol className="en-passos" aria-label="Etapas">
@@ -141,8 +173,8 @@ export default function CriarConta() {
             <Campo rotulo="Seu nome" erro={erros.dono}>
               <Entrada value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome e sobrenome" autoComplete="name" maxLength={80} required icone="cliente" autoFocus />
             </Campo>
-            <Campo rotulo="E-mail" erro={erros.email}>
-              <Entrada type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@seunegocio.com" autoComplete="email" required icone="enviar" />
+            <Campo rotulo="E-mail" erro={erros.email} ajuda="O e-mail da compra. Para usar outro, fale com a Livo.">
+              <Entrada type="email" value={email} readOnly aria-readonly autoComplete="email" required icone="enviar" />
             </Campo>
             <Campo rotulo="Senha" erro={erros.senha} ajuda={`Pelo menos ${SENHA_MIN} caracteres.`}>
               <span className="en-senha">
@@ -151,7 +183,6 @@ export default function CriarConta() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   autoComplete="new-password"
-                 
                   required
                   icone="cadeado"
                 />
@@ -173,6 +204,54 @@ export default function CriarConta() {
       <PeAcesso>
         Já tem conta? <Link href="/painel/entrar">Entrar</Link>
       </PeAcesso>
+    </CascaAcesso>
+  );
+}
+
+/** Sem convite: o cadastro começa pela contratação. */
+function SemConvite() {
+  return (
+    <CascaAcesso
+      titulo="Sua agenda começa pela contratação"
+      subtitulo="A conta é criada depois do pagamento. Assim que ele é confirmado, você recebe um link para criar seu acesso."
+      arte="cadastro"
+    >
+      <ol className="en-etapas">
+        <li>
+          <span>1</span> Contrate o plano com a Livo
+        </li>
+        <li>
+          <span>2</span> Receba o link de convite no e-mail ou no WhatsApp
+        </li>
+        <li>
+          <span>3</span> Crie seu acesso e sua agenda, em 2 minutos
+        </li>
+      </ol>
+      <div className="en-campos">
+        {WHATSAPP_LIVO && (
+          <a href={linkWhatsApp(WHATSAPP_LIVO, "Olá! Quero contratar a Livo Agenda.")} target="_blank" rel="noopener noreferrer" className="ui-botao ui-botao-principal ui-botao-g">
+            <Icone nome="whatsapp" tamanho={18} /> Quero contratar
+          </a>
+        )}
+        <Link href="/painel/entrar" className={`ui-botao ui-botao-${WHATSAPP_LIVO ? "secundario" : "principal"} ui-botao-g`}>
+          Já tenho conta: entrar
+        </Link>
+      </div>
+    </CascaAcesso>
+  );
+}
+
+function ConviteUsado() {
+  return (
+    <CascaAcesso titulo="Convite já usado" subtitulo="Este link já criou uma conta. Entre com o e-mail e a senha que você escolheu." arte="cadastro">
+      <div className="en-campos">
+        <Link href="/painel/entrar" className="ui-botao ui-botao-principal ui-botao-g">
+          Entrar no painel
+        </Link>
+        <Link href="/painel/esqueci-senha" className="ui-botao ui-botao-fantasma ui-botao-m">
+          Esqueci minha senha
+        </Link>
+      </div>
     </CascaAcesso>
   );
 }

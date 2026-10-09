@@ -14,7 +14,7 @@
 | D-5 | Agendamento do cliente | **Categoria → opções → calendário do mês → horários do dia → dados**. Pouco texto, uma decisão por tela |
 | D-6 | Dias de atendimento | Negócio que atende em datas soltas (a DepiLED: um sábado por mês) usa **dias avulsos**; o painel abre e fecha dias e bloqueia horários |
 | D-7 | Encaixe | O fim de cada atendimento vira horário livre: 15 min às 08:00 liberam 08:15, mesmo com passos de 10 min |
-| D-8 | Cadastro próprio | **Quem compra cria a conta e o negócio sozinho** (sem a Livo criar acesso). O negócio nasce no plano `teste`; até 3 negócios por conta. Cobrança é etapa própria |
+| D-8 | Cadastro com pagamento | **Conta só depois do pagamento** (Pedro, 09/10). Quem pagou recebe um link de convite e cria o próprio login, senha e negócio — a Livo não cria acesso. Uma compra = um negócio, presa ao e-mail de quem pagou |
 | — | Tema por negócio | A planejar. Hoje: 4 "peles", cores e logo editáveis no painel |
 
 ### Por que o negócio vai no caminho, e não no subdomínio
@@ -76,7 +76,7 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 | Ver, confirmar, remarcar (calendário), cancelar, avaliar | `/<negocio>/a/<token>` |
 | Ficha de anamnese do cliente | `/<negocio>/ficha/<token>` |
 | Entrar | `/painel/entrar` (também abre direto pelo link de confirmação do e-mail) |
-| Criar conta: negócio (nome, tipo, endereço conferido na hora, WhatsApp) → acesso (nome, e-mail, senha) → confirmar e-mail | `/painel/criar-conta` |
+| Criar conta **só com o convite da compra**: negócio (nome, tipo, endereço conferido na hora, WhatsApp) → acesso (nome, senha; e-mail preso ao da compra) → confirmar e-mail. Sem convite: "Sua agenda começa pela contratação" | `/painel/criar-conta?convite=…` |
 | Conta sem negócio (endereço tomado antes da confirmação, ou abrir outro) | `/painel/criar-negocio` |
 | Senha esquecida → link por e-mail → senha nova | `/painel/esqueci-senha`, `/painel/nova-senha` |
 | Painel | `/painel` (Início), `agenda`, `clientes`, `clientes/<id>`, `clientes/importar`, `mensagens`, `servicos` (com categorias), `equipe`, `financeiro`, `relatorios`, `anamnese`, `configuracoes` |
@@ -92,7 +92,7 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 | `005_agenda_portas_publicas` | o que a página e o link do cliente chamam | **aplicada** |
 | `006_agenda_depiled` | catálogo e dia avulso da DepiLED | **aplicada** |
 | `007_agenda_painel` | o que o painel chama | **falta aplicar** — tem remoções (`delete`); a ferramenta da Supabase pede confirmação e o pedido não chega ao app (expirou 4 vezes, também com o Pedro online). Aplicar pelo **SQL Editor** (abaixo) |
-| `008_cadastro` | cadastro próprio: `slug_disponivel`, `negocio_criar_meu` (depende da 007) | **para aprovação** |
+| `008_cadastro` | cadastro com pagamento: licenças, convite, hook "antes de criar conta", `slug_disponivel`, `negocio_criar_meu` (depende da 007) | aprovada pelo Pedro (09/10) |
 
 **O que a agenda no banco (003 a 007) traz**
 
@@ -115,17 +115,30 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
   aparência, fuso, regras e cores.
 - DepiLED: catálogo e o dia avulso de 10/10 passam do código para o banco (só dado público).
 
-**O que o cadastro próprio (008) traz**
+**O que o cadastro com pagamento (008) traz**
 
+- `licencas` — cada compra paga vira uma licença presa ao e-mail de quem pagou (uma
+  licença = um negócio). Só a plataforma lê (RLS); os negócios nunca veem.
+- `licenca_emitir(email, plano, valor, origem, referencia)` — registra o pagamento e
+  devolve o link de convite. Só pelo SQL Editor (ou, depois, pelo webhook do meio de
+  pagamento com a service_role). Com a referência do pagamento, chamar de novo devolve o
+  mesmo convite (o mesmo pagamento nunca vira duas licenças).
+- `convite_publico(codigo)` — a tela de cadastro lê para quem é o convite (e-mail e
+  plano; nada mais). O código tem 144 bits: não dá para adivinhar.
+- `hook_antes_de_criar_conta(evento)` — chamado pela Supabase Auth antes de **cada**
+  conta nascer ("Before User Created"): só passa e-mail com licença paga e não usada.
+  Precisa ser ligado no painel da Supabase (abaixo).
 - `slug_disponivel(slug)` — o formulário confere o endereço enquanto a pessoa digita
   (`ok`, `invalido`, `reservado`, `em_uso`). Os endereços reservados (`painel`,
   `admin`…) são os mesmos no site (`lib/enderecos.ts`) e no banco (`slug_reservado`);
   um teste compara as duas listas.
-- `negocio_criar_meu(dono, negocio)` — só conta logada **com e-mail confirmado**; cria o
-  negócio (plano `teste`), torna a pessoa dona, grava identidade e configuração pela
-  mesma porta do painel (`negocio_salvar`, com as mesmas checagens) e cria a primeira
-  profissional (a própria pessoa, no horário da semana do negócio). Tudo ou nada;
-  até 3 negócios por conta; dois cliques ao mesmo tempo não furam o limite.
+- `negocio_criar_meu(dono, negocio)` — só conta logada, **com e-mail confirmado e
+  licença paga**; cria o negócio (com o plano da licença), torna a pessoa dona, grava
+  identidade e configuração pela mesma porta do painel (`negocio_salvar`, com as mesmas
+  checagens), cria a primeira profissional (a própria pessoa, no horário da semana do
+  negócio) e **gasta a licença**. Tudo ou nada: se algo falha, a compra continua
+  valendo. Dois pedidos ao mesmo tempo não gastam a mesma compra duas vezes (testado
+  com duas conexões simultâneas).
 - O negócio que a pessoa descreve no cadastro fica guardado na conta até o e-mail ser
   confirmado; no primeiro login ele nasce e o rascunho é apagado.
 
@@ -133,7 +146,7 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 ferramenta da Supabase. Cada parte é uma migration; o histórico do banco e o
 repositório têm as mesmas 5.
 
-**Testes** — `./supabase/tests/rodar.sh`: 37 testes (suítes 001, 002, a da agenda, `007_agenda.sql`,
+**Testes** — `./supabase/tests/rodar.sh`: 38 testes (suítes 001, 002, a da agenda, `007_agenda.sql`,
 e a do cadastro, `008_cadastro.sql`), a conferência dos endereços reservados e a
 **paridade** — agendas sorteadas, o motor do navegador e o do banco têm que dar as
 mesmas vagas, pedido por pedido (1.200 pedidos por rodada; conferido que pega
@@ -170,8 +183,22 @@ produção, e o "link do e-mail" é
 
 ## Como alguém passa a usar
 
-**Negócio novo:** a própria pessoa, em `agenda.livo.tec.br` › "Criar minha agenda".
-Não passa pela Livo.
+**Negócio novo** — depois do pagamento:
+
+1. A Livo registra a compra e pega o link de convite (até o meio de pagamento
+   automático existir, pelo SQL Editor):
+   ```sql
+   select public.licenca_emitir('email@do.cliente', 'mensal', 49.90, 'pix');
+   ```
+   A resposta traz o `link` (`https://agenda.livo.tec.br/painel/criar-conta?convite=…`).
+2. Manda o link para o cliente (WhatsApp ou e-mail).
+3. O cliente cria o próprio acesso e o negócio. Com outro e-mail que não o da compra, a
+   conta não nasce. Para trocar o e-mail da compra antes do cadastro:
+   `update public.licencas set email = 'novo@email.com' where email = 'antigo@email.com' and situacao = 'paga';`
+
+Quem só quer conhecer cai em "Sua agenda começa pela contratação". Com a variável
+`NEXT_PUBLIC_LIVO_WHATSAPP` na Vercel (o WhatsApp comercial da Livo), a tela mostra o
+botão "Quero contratar".
 
 **DepiLED** (o negócio já existe, criado pela 002 — caso único do piloto): o
 cadastro do site criaria um negócio novo, então aqui a Livo liga a conta uma vez.
@@ -183,7 +210,8 @@ select public.vincular_membro('email@dono.com', 'depiled', 'owner');
 ```
 
 Depois o dono troca a senha sozinho em "Esqueci minha senha" (precisa do e-mail
-próprio configurado, abaixo).
+próprio configurado, abaixo). **Fazer isso antes de ligar o hook** (passo 5 abaixo):
+com ele ligado, só e-mail com compra ganha conta.
 
 ### Configurar o login na Supabase (uma vez, no painel da Supabase)
 
@@ -198,7 +226,13 @@ próprio configurado, abaixo).
    preencher em **Authentication › Emails › SMTP Settings** (remetente, por exemplo,
    `nao-responda@livo.tec.br`). Depois, em **Rate Limits**, subir o limite de e-mails
    por hora.
-4. **Authentication › Emails › Templates** em português:
+4. **Authentication › Emails › Templates** em português (abaixo).
+5. **Authentication › Hooks › "Before User Created"** › Postgres ›
+   `public.hook_antes_de_criar_conta`. É o que impede conta sem pagamento. Sem ele, o
+   site já não deixa cadastrar sem convite e o banco não deixa criar negócio sem compra,
+   mas alguém que chame a API da Supabase direto ainda conseguiria uma conta vazia.
+
+Textos dos e-mails:
    - *Confirm signup* — assunto "Confirme seu e-mail · Livo Agenda"; texto: "Toque no
      link para ativar sua conta e criar sua agenda: {{ .ConfirmationURL }}".
    - *Reset password* — assunto "Crie uma senha nova · Livo Agenda"; texto: "Toque no
@@ -243,9 +277,12 @@ arquivo versionado: vão para o banco, com RLS.
 ## Próximos passos
 
 1. **Aplicar a 007** pelo SQL Editor (passos acima) → conferir o painel em produção.
-2. **Aprovar e aplicar a 008** (cadastro próprio) e **configurar o login na Supabase**
-   (SMTP próprio, endereço de retorno, textos em português) → testar um cadastro de verdade.
-3. **Cobrança**: plano de teste com prazo, pagamento (Pix/cartão) e o que acontece quando vence.
+2. **Configurar o login na Supabase** (SMTP próprio, endereço de retorno, textos em
+   português e o hook "Before User Created") → emitir um convite de teste e fazer um
+   cadastro de verdade.
+3. **Meio de pagamento**: escolher (Mercado Pago, Asaas, Stripe…) e ligar o aviso de
+   pagamento confirmado a `licenca_emitir` + envio do convite por e-mail. Depois:
+   mensalidade, vencimento e o que acontece com o negócio quando a assinatura para.
 4. **Login da DepiLED** e carga dos **112 clientes**, depois da limpeza combinada.
 5. **Aviso de agendamento novo** no celular do dono (push) — hoje o painel relê a cada 30 s.
 6. **Imagens no Storage** (hoje a logo enviada pelo painel vai como imagem embutida na configuração, até 2 MB).

@@ -13,6 +13,8 @@
 // BOLSO_CONFIRMAR=1 ela nasce sem e-mail confirmado (como em produção) e o
 // "link do e-mail" é GET /auth/v1/bolso-link?email=…&tipo=signup|recovery
 // &redirect_to=… — que confirma e volta para o app com a sessão no #.
+// Se o banco tem public.hook_antes_de_criar_conta (008), o cadastro passa
+// por ele, como o "Before User Created" ligado na Supabase.
 //
 //   ./supabase/tests/rodar.sh --manter
 //   BOLSO_SENHAS="dona@depiled.teste:senha" node supabase/tests/bolso/servidor.mjs
@@ -160,6 +162,16 @@ async function usuarioPorId(id) {
   return r.out.trim() ? JSON.parse(r.out.trim()) : null;
 }
 
+/** "Before User Created": a função do banco decide, rodando como supabase_auth_admin. */
+async function hookAntesDeCriarConta(email, meta) {
+  const existe = await psql(`select to_regprocedure('public.hook_antes_de_criar_conta(jsonb)') is not null`);
+  if (existe.out.trim() !== "t") return null;
+  const evento = JSON.stringify({ metadata: { name: "before-user-created" }, user: { email, user_metadata: meta } });
+  const r = await psql(`begin; set local role supabase_auth_admin; select public.hook_antes_de_criar_conta(:'ev'::jsonb); commit;`, { ev: evento });
+  const saida = JSON.parse(r.out.trim().split("\n").find((l) => l.startsWith("{")) ?? "{}");
+  return saida.error ?? null;
+}
+
 /** O "link do e-mail": volta para o app com a sessão no #, como o GoTrue no fluxo implícito. */
 function redirecionarComSessao(destino, usuario, tipo) {
   const s = sessao(usuario);
@@ -189,6 +201,8 @@ async function auth(caminho, url, corpo, req) {
   if (caminho === "/auth/v1/signup") {
     const email = String(corpo.email ?? "").trim().toLowerCase();
     if (String(corpo.password ?? "").length < 6) return [422, { code: "weak_password", msg: "Password should be at least 6 characters." }];
+    const recusa = await hookAntesDeCriarConta(email, corpo.data ?? {});
+    if (recusa) return [recusa.http_code ?? 403, { error_code: "hook_rejected", msg: recusa.message }];
     if (await usuarioPorEmail(email)) {
       // como o GoTrue com confirmação ligada: não conta que o e-mail existe
       if (CONFIRMAR) return [200, { id: randomUUID(), email, identities: [], user_metadata: {} }];
