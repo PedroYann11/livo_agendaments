@@ -331,9 +331,11 @@ export type Cupom = {
   usos: number;
 };
 
-/** Tudo de um negócio. Até a fase de backend, vive no navegador. */
+/** Tudo de um negócio, no formato das telas. Vem do banco (Supabase) ou, sem ele, do navegador. */
 export type Banco = {
   versao: number;
+  /** página pública: há cupom valendo (os códigos não vêm — o banco confere o digitado) */
+  temCupom?: boolean;
   negocio: Negocio;
   categorias: Categoria[];
   servicos: Servico[];

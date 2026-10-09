@@ -10,7 +10,7 @@
 // =====================================================================
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { useLoja } from "@/lib/dados/loja";
 import type { CampoFicha, ModeloFicha } from "@/lib/tipos";
@@ -18,18 +18,26 @@ import { Icone } from "@/components/ui/Icone";
 import { Botao, Campo, Entrada, Esqueleto, EstadoVazio, Texto } from "@/components/ui/basicos";
 import { useAvisos } from "@/components/ui/Avisos";
 import { SeloAnimado } from "./Confirmado";
-import { salvarFicha } from "@/lib/dados/acoes";
-import { novoId } from "@/lib/id";
 import { primeiroNome } from "@/lib/formato";
 
 export function FichaPublica({ token }: { token: string }) {
-  const { banco, mudar, agora, slug } = useLoja();
+  const { banco, portas, agora, slug } = useLoja();
   const avisar = useAvisos();
   const [respostas, setRespostas] = useState<Record<string, string | string[]>>({});
   const [assinatura, setAssinatura] = useState("");
   const [consentimento, setConsentimento] = useState(false);
   const [erros, setErros] = useState<Record<string, boolean>>({});
   const [feito, setFeito] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [aberto, setAberto] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!banco) return;
+    let vivo = true;
+    portas.abrirLink(token).then((ok) => vivo && setAberto(ok));
+    return () => {
+      vivo = false;
+    };
+  }, [!!banco, portas, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ag = banco?.agendamentos.find((a) => a.token === token);
   const modelo: ModeloFicha | undefined = useMemo(() => {
@@ -38,7 +46,7 @@ export function FichaPublica({ token }: { token: string }) {
     return banco.modelosFicha.find((m) => ids.includes(m.id) && m.ativo);
   }, [banco, ag]);
 
-  if (!banco) return <div className="gs"><Esqueleto altura={300} raio={20} /></div>;
+  if (!banco || aberto === null) return <div className="gs"><Esqueleto altura={300} raio={20} /></div>;
   const n = banco.negocio;
   const cliente = ag ? banco.clientes.find((c) => c.id === ag.clienteId) : undefined;
 
@@ -65,7 +73,7 @@ export function FichaPublica({ token }: { token: string }) {
     );
   }
 
-  const enviar = () => {
+  const enviar = async () => {
     const e: Record<string, boolean> = {};
     for (const c of modelo.campos) {
       const v = respostas[c.id];
@@ -79,17 +87,20 @@ export function FichaPublica({ token }: { token: string }) {
       document.querySelector(".com-erro, [data-erro]")?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    mudar((b) =>
-      salvarFicha(b, {
-        id: novoId("fc"),
-        modeloId: modelo.id,
-        clienteId: ag.clienteId,
-        agendamentoId: ag.id,
-        respostas,
-        preenchidaEm: agora(),
-        assinatura: assinatura.trim(),
-      }),
-    );
+    setEnviando(true);
+    const r = await portas.enviarFicha(ag, {
+      modeloId: modelo.id,
+      clienteId: ag.clienteId,
+      agendamentoId: ag.id,
+      respostas,
+      preenchidaEm: agora(),
+      assinatura: assinatura.trim(),
+    });
+    setEnviando(false);
+    if (!r.ok) {
+      avisar(r.motivo, "erro");
+      return;
+    }
     setFeito(true);
     window.scrollTo({ top: 0 });
   };
@@ -123,7 +134,7 @@ export function FichaPublica({ token }: { token: string }) {
         <Campo rotulo="Assinatura (seu nome completo)" erro={erros._assinatura ? "Escreva nome e sobrenome." : null}>
           <Entrada value={assinatura} onChange={(e) => setAssinatura(e.target.value)} placeholder={cliente?.nome ?? "Nome completo"} autoComplete="name" />
         </Campo>
-        <Botao variante="principal" tamanho="g" onClick={enviar}>
+        <Botao variante="principal" tamanho="g" carregando={enviando} onClick={enviar}>
           Enviar ficha
         </Botao>
       </div>

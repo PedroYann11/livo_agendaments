@@ -590,7 +590,12 @@ begin
       from public.profissionais p where p.tenant_id = t.id and p.ativo), '[]'::jsonb),
     'depoimentos', coalesce((select jsonb_agg(r.dados order by r.dados ->> 'data' desc)
       from public.registros r
-      where r.tenant_id = t.id and r.colecao = 'depoimentos' and r.dados -> 'visivel' = 'true'::jsonb), '[]'::jsonb)
+      where r.tenant_id = t.id and r.colecao = 'depoimentos' and r.dados -> 'visivel' = 'true'::jsonb), '[]'::jsonb),
+    -- só se HÁ cupom valendo; o código digitado quem confere é cupom_publico
+    'temCupom', exists (select 1 from public.registros r
+      where r.tenant_id = t.id and r.colecao = 'cupons' and r.dados -> 'ativo' = 'true'::jsonb
+        and (coalesce(r.dados ->> 'validoAte', '') = ''
+             or r.dados ->> 'validoAte' >= (now() at time zone public.fuso_de(t.id))::date::text))
   );
 end $$;
 

@@ -378,6 +378,30 @@
   color: #fff;
 }
 
+/* "Salvando…": discreto, no canto, só enquanto um lote vai ao banco */
+.pn-salvando {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 10px);
+  right: 14px;
+  z-index: 60;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 560;
+  background: var(--c-superficie);
+  color: var(--c-texto-2);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px var(--c-linha);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+.pn-salvando.ativo {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.25s;
+}
+
 /* ---------------------------------------------------------------------
    Cabeçalho de página e blocos
    --------------------------------------------------------------------- */

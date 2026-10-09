@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
-import { resolverNegocio } from "@/lib/negocio-server";
+import { resolverNegocio, resolverPagina } from "@/lib/negocio-server";
 import { BancoProvider } from "@/lib/dados/loja";
 import { Provedores } from "@/components/ui/Avisos";
 import { VitrineRaiz } from "@/components/vitrine/VitrineRaiz";
@@ -24,10 +24,11 @@ export default async function LayoutNegocio({ children, params }: Props) {
   const { negocio } = await params;
   // link digitado com maiúscula (comum no Instagram) vai para o endereço certo
   if (negocio !== negocio.toLowerCase()) permanentRedirect(`/${negocio.toLowerCase()}`);
-  const n = await resolverNegocio(negocio);
-  if (!n) notFound();
+  const pagina = await resolverPagina(negocio);
+  if (!pagina) notFound();
+  const n = pagina.publico;
   return (
-    <BancoProvider slug={n.slug} publico={n}>
+    <BancoProvider slug={n.slug} modo="publico" publico={n} inicial={pagina.banco} local={pagina.local}>
       <Provedores>
         <VitrineRaiz tema={n.tema} pele={n.pele}>
           {children}

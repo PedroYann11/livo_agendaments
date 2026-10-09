@@ -22,10 +22,11 @@ import { useAvisos } from "@/components/ui/Avisos";
 import type { Escolha } from "./SeletorHorario";
 import { DiaHora } from "./DiaHora";
 import { Confirmado } from "./Confirmado";
-import { aplicarCupom, criarAgendamento } from "@/lib/dados/acoes";
-import { duracaoTotal, horariosDisponiveis, profissionaisAptos } from "@/lib/disponibilidade";
+import { aplicarCupom } from "@/lib/dados/acoes";
+import { duracaoTotal, profissionaisAptos } from "@/lib/disponibilidade";
+import { useVagas } from "@/lib/dados/vagas";
 import { brl, duracao, plural, primeiroNome } from "@/lib/formato";
-import { dataLonga, dataRelativa, somarDias, somarMin, juntar } from "@/lib/datas";
+import { dataLonga, dataRelativa, somarMin, juntar } from "@/lib/datas";
 import { capitalizarNome, mascaraTelefone, telefoneValido } from "@/lib/masks";
 import { capitalizar, gruposVisiveis, menorPreco, servicosVisiveis, type Grupo } from "@/components/vitrine/util";
 
@@ -59,7 +60,7 @@ export function Fluxo() {
 }
 
 function FluxoComDados({ b }: { b: Banco }) {
-  const { slug, mudar, agora } = useLoja();
+  const { slug, portas, agora } = useLoja();
   const router = useRouter();
   const params = useSearchParams();
   const avisar = useAvisos();
@@ -82,6 +83,7 @@ function FluxoComDados({ b }: { b: Banco }) {
   const [mais, setMais] = useState(false);
   const [cupom, setCupom] = useState("");
   const [cupomAberto, setCupomAberto] = useState(false);
+  const [conferindoCupom, setConferindoCupom] = useState(false);
   const [erros, setErros] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [feito, setFeito] = useState<Agendamento | null>(null);
@@ -90,6 +92,15 @@ function FluxoComDados({ b }: { b: Banco }) {
     const salvo = lerClienteSalvo();
     setCliente((c) => ({ ...c, ...salvo }));
   }, []);
+
+  // o cupom digitado é conferido no banco (a página não conhece os códigos)
+  useEffect(() => {
+    const codigo = cupom.trim();
+    if (codigo.length < 3) return;
+    setConferindoCupom(true);
+    const t = setTimeout(() => portas.cupom(codigo).finally(() => setConferindoCupom(false)), 450);
+    return () => clearTimeout(t);
+  }, [cupom, portas]);
 
   const aptos = useMemo(() => profissionaisAptos(b, selecionados), [b, selecionados]);
   const pularProfissional = !n.regras.escolherProfissional || aptos.length <= 1;
@@ -162,15 +173,16 @@ function FluxoComDados({ b }: { b: Banco }) {
     setSelecionados((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   };
 
-  const confirmar = () => {
+  const confirmar = async () => {
     const e: Record<string, string> = {};
     if (cliente.nome.trim().split(/\s+/).length < 2) e.nome = "Escreva nome e sobrenome.";
     if (!telefoneValido(cliente.telefone)) e.telefone = "Confira o número com DDD.";
     setErros(e);
-    if (Object.keys(e).length || !escolha) return;
+    if (Object.keys(e).length || !escolha || enviando) return;
     setEnviando(true);
     const momento = agora();
-    const r = criarAgendamento(b, {
+    // o banco confere a vaga e decide o preço; aqui só vai o pedido
+    const r = await portas.agendar({
       servicosIds: selecionados,
       profissionalId: profEfetivo,
       data: escolha.data,
@@ -186,21 +198,21 @@ function FluxoComDados({ b }: { b: Banco }) {
       observacao: cliente.observacao,
       cupom: cupomValido?.codigo ?? null,
     });
-    setTimeout(() => {
-      setEnviando(false);
-      if (!r.ok) {
-        avisar(r.motivo, "erro");
+    setEnviando(false);
+    if (!r.ok) {
+      avisar(r.motivo, "erro");
+      // horário tomado por outra pessoa: volta ao calendário; erro de dado, fica aqui
+      if (r.motivo.startsWith("Esse horário")) {
         setEscolha(null);
         ir("horario");
-        return;
       }
-      mudar(() => r.banco);
-      try {
-        localStorage.setItem(CHAVE_CLIENTE, JSON.stringify({ nome: cliente.nome, telefone: cliente.telefone, email: cliente.email }));
-      } catch {}
-      setFeito(r.valor);
-      window.scrollTo({ top: 0 });
-    }, 650);
+      return;
+    }
+    try {
+      localStorage.setItem(CHAVE_CLIENTE, JSON.stringify({ nome: cliente.nome, telefone: cliente.telefone, email: cliente.email }));
+    } catch {}
+    setFeito(r.valor);
+    window.scrollTo({ top: 0 });
   };
 
   if (feito) return <Confirmado ag={feito} />;
@@ -289,7 +301,6 @@ function FluxoComDados({ b }: { b: Banco }) {
 
             {passo === "profissional" && (
               <PassoProfissional
-                b={b}
                 aptos={aptos}
                 selecionados={selecionados}
                 agora={agora()}
@@ -364,9 +375,13 @@ function FluxoComDados({ b }: { b: Banco }) {
                       <Icone nome="mais" tamanho={18} /> Adicionar observação
                     </button>
                   )}
-                  {b.cupons.some((c) => c.ativo) &&
+                  {(b.temCupom || b.cupons.some((c) => c.ativo)) &&
                     (cupomAberto ? (
-                      <Campo rotulo="Cupom" erro={cupom && !cupomValido ? "Cupom não encontrado." : null} ajuda={cupomValido ? `Desconto de ${brl(desconto)} aplicado.` : undefined}>
+                      <Campo
+                        rotulo="Cupom"
+                        erro={cupom && !cupomValido && !conferindoCupom ? "Cupom não encontrado." : null}
+                        ajuda={cupomValido ? `Desconto de ${brl(desconto)} aplicado.` : conferindoCupom ? "Conferindo…" : undefined}
+                      >
                         <div className="ag-cupom">
                           <Entrada value={cupom} onChange={(e) => setCupom(e.target.value.toUpperCase())} placeholder="CÓDIGO" icone="cupom" />
                         </div>
@@ -572,37 +587,19 @@ function PassoServicos({
 }
 
 function PassoProfissional({
-  b,
   aptos,
   selecionados,
   agora,
   valor,
   onEscolher,
 }: {
-  b: Banco;
   aptos: Banco["profissionais"];
   selecionados: string[];
   agora: string;
   valor: string | null | undefined;
   onEscolher: (id: string | null) => void;
 }) {
-  // o primeiro horário livre de cada um, dentro da janela de agendamento
-  const primeiro = useMemo(() => {
-    const r: Record<string, string> = {};
-    const hoje = agora.slice(0, 10);
-    for (const p of [null, ...aptos.map((x) => x.id)]) {
-      for (let i = 0; i <= b.negocio.regras.janelaMaxDias; i++) {
-        const d = somarDias(hoje, i);
-        const v = horariosDisponiveis(b, { servicosIds: selecionados, profissionalId: p, data: d, agora });
-        if (v.length) {
-          r[p ?? "_"] = `${capitalizar(dataRelativa(d, hoje))}, ${v[0].hora}`;
-          break;
-        }
-      }
-    }
-    return r;
-  }, [b, aptos, selecionados, agora]);
-
+  const hoje = agora.slice(0, 10);
   return (
     <div>
       <h1 className="vt-titulo ag-passo-titulo">Com quem?</h1>
@@ -613,7 +610,9 @@ function PassoProfissional({
           </span>
           <span className="ag-opcao-info">
             <strong>Sem preferência</strong>
-            <small>Primeiro livre: {primeiro._ ?? "sem horários"}</small>
+            <small>
+              Primeiro livre: <PrimeiraVaga servicosIds={selecionados} profissionalId={null} hoje={hoje} />
+            </small>
           </span>
           <Icone nome="direita" tamanho={18} />
         </button>
@@ -624,7 +623,8 @@ function PassoProfissional({
               <strong>{p.nome}</strong>
               <small>
                 {p.cargo}
-                {primeiro[p.id] ? ` · ${primeiro[p.id]}` : " · sem horários"}
+                {p.cargo ? " · " : ""}
+                <PrimeiraVaga servicosIds={selecionados} profissionalId={p.id} hoje={hoje} />
               </small>
             </span>
             <Icone nome="direita" tamanho={18} />
@@ -633,4 +633,13 @@ function PassoProfissional({
       </div>
     </div>
   );
+}
+
+/** "Amanhã, 08:00" — o primeiro horário livre, dentro da janela de agendamento. */
+function PrimeiraVaga({ servicosIds, profissionalId, hoje }: { servicosIds: string[]; profissionalId: string | null; hoje: string }) {
+  const { porDia } = useVagas({ servicosIds, profissionalId });
+  if (!porDia) return <>…</>;
+  const dia = [...porDia.keys()].sort()[0];
+  if (!dia) return <>sem horários</>;
+  return <>{`${capitalizar(dataRelativa(dia, hoje))}, ${porDia.get(dia)![0].hora}`}</>;
 }

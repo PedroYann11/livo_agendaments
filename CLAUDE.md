@@ -42,9 +42,9 @@ cópia, com a linha `// Origem: livo@<commit> · <caminho>` no topo e registro e
 | Endereço público | `agenda.livo.tec.br/<negocio>` |
 | Vercel | projeto **`livo-agenda`** (time `pedro-yan`) — não confundir com `duo-acai`, que é a Livo dos restaurantes |
 | Piloto | **DepiLED** (`/depiled`). Sem negócios de demonstração |
-| Dados do painel | ainda no **navegador** (`lib/dados/loja.tsx`), a partir da semente pública (`lib/sementes/`); a troca pelo banco é a fase de backend |
+| Dados | no **banco** a partir da migration 003 (`lib/dados/loja.tsx`: modos painel/publico/local); sem Supabase ou sem a 003, modo local a partir da semente (`lib/sementes/`) |
 | Dados pessoais | **nunca** em arquivo versionado (o repositório é público): só no banco, com RLS |
-| Testes do banco | `./supabase/tests/rodar.sh` (Postgres descartável) |
+| Testes do banco | `./supabase/tests/rodar.sh` (Postgres descartável + paridade do motor navegador × banco); telas contra o banco de teste: `supabase/tests/bolso/servidor.mjs` |
 | Stack | Next.js 16 · React 19 · TypeScript · CSS puro com variáveis · Motion · Supabase |
 
 ## 4. Como trabalhar

@@ -10,10 +10,12 @@
 // quem marca vários horários seguidos.
 // =====================================================================
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Banco } from "@/lib/tipos";
-import { horariosDisponiveis, type Vaga } from "@/lib/disponibilidade";
+import type { Vaga } from "@/lib/disponibilidade";
+import { useVagas, type PedidoVagas } from "@/lib/dados/vagas";
+import { Botao, Esqueleto } from "@/components/ui/basicos";
 import { NOMES_MESES, dataLonga, diaDaSemana, fimDoMes, inicioDoMes, somarDias, somarMeses } from "@/lib/datas";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { Icone } from "@/components/ui/Icone";
@@ -32,7 +34,7 @@ export function DiaHora({
   hora,
   onData,
   onHora,
-  ignorarAgendamentoId,
+  remarcando,
 }: {
   banco: Banco;
   servicosIds: string[];
@@ -42,23 +44,70 @@ export function DiaHora({
   hora: string | null;
   onData: (d: string) => void;
   onHora: (e: Escolha) => void;
-  ignorarAgendamentoId?: string;
+  remarcando?: PedidoVagas["remarcando"];
+}) {
+  const { porDia, erro, tentarDeNovo } = useVagas({ servicosIds, profissionalId, remarcando });
+  const janela = banco.negocio.regras.janelaMaxDias;
+
+  if (erro) {
+    return (
+      <div className="ag-sem-vaga">
+        <Icone nome="info" tamanho={26} />
+        <span>Não conseguimos carregar os horários agora.</span>
+        <Botao variante="suave" onClick={tentarDeNovo}>
+          Tentar de novo
+        </Botao>
+      </div>
+    );
+  }
+  if (!porDia) {
+    return (
+      <div className="cal" aria-busy="true" style={{ display: "grid", gap: 12 }}>
+        <Esqueleto altura={28} largura="50%" />
+        <Esqueleto altura={250} raio={16} />
+      </div>
+    );
+  }
+  const primeiroLivre = [...porDia.keys()].sort()[0] ?? null;
+  if (!primeiroLivre) {
+    const zap = banco.negocio.contato.whatsapp;
+    return (
+      <div className="ag-sem-vaga">
+        <Icone nome="agendaX" tamanho={26} />
+        <span>Sem horários livres nos próximos {janela} dias.</span>
+        {zap && (
+          <a className="ui-botao ui-botao-suave ui-botao-m" href={linkWhatsApp(zap, `Olá, ${banco.negocio.nome}! Queria marcar um horário.`)} target="_blank" rel="noopener noreferrer">
+            <Icone nome="whatsapp" tamanho={18} /> Falar no WhatsApp
+          </a>
+        )}
+      </div>
+    );
+  }
+  return <Calendario vagasPorDia={porDia} primeiroLivre={primeiroLivre} janela={janela} agora={agora} data={data} hora={hora} onData={onData} onHora={onHora} />;
+}
+
+function Calendario({
+  vagasPorDia,
+  primeiroLivre,
+  janela,
+  agora,
+  data,
+  hora,
+  onData,
+  onHora,
+}: {
+  vagasPorDia: Map<string, Vaga[]>;
+  primeiroLivre: string;
+  janela: number;
+  agora: string;
+  data: string | null;
+  hora: string | null;
+  onData: (d: string) => void;
+  onHora: (e: Escolha) => void;
 }) {
   const hoje = agora.slice(0, 10);
-  const janela = banco.negocio.regras.janelaMaxDias;
   const ultimo = somarDias(hoje, janela);
-
-  const vagasPorDia = useMemo(() => {
-    const r = new Map<string, Vaga[]>();
-    for (let i = 0; i <= janela; i++) {
-      const d = somarDias(hoje, i);
-      r.set(d, horariosDisponiveis(banco, { servicosIds, profissionalId, agora, data: d, ignorarAgendamentoId }));
-    }
-    return r;
-  }, [banco, servicosIds, profissionalId, agora, hoje, janela, ignorarAgendamentoId]);
-
-  const primeiroLivre = [...vagasPorDia.entries()].find(([, v]) => v.length)?.[0] ?? null;
-  const [mes, setMes] = useState(() => inicioDoMes(data ?? primeiroLivre ?? hoje));
+  const [mes, setMes] = useState(() => inicioDoMes(data ?? primeiroLivre));
   const [direcao, setDirecao] = useState(1);
   const horarios = useRef<HTMLDivElement>(null);
 
@@ -74,21 +123,6 @@ export function DiaHora({
     // no celular os horários ficam abaixo da dobra: leva o olho até eles
     setTimeout(() => horarios.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   };
-
-  if (!primeiroLivre) {
-    const zap = banco.negocio.contato.whatsapp;
-    return (
-      <div className="ag-sem-vaga">
-        <Icone nome="agendaX" tamanho={26} />
-        <span>Sem horários livres nos próximos {janela} dias.</span>
-        {zap && (
-          <a className="ui-botao ui-botao-suave ui-botao-m" href={linkWhatsApp(zap, `Olá, ${banco.negocio.nome}! Queria marcar um horário.`)} target="_blank" rel="noopener noreferrer">
-            <Icone nome="whatsapp" tamanho={18} /> Falar no WhatsApp
-          </a>
-        )}
-      </div>
-    );
-  }
 
   const vazios = diaDaSemana(mes);
   const total = Number(fimDoMes(mes).slice(8));

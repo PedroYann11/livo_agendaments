@@ -13,10 +13,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { MotionConfig, motion } from "motion/react";
 import { BancoProvider, useLoja } from "@/lib/dados/loja";
-import { Provedores } from "@/components/ui/Avisos";
+import { Provedores, useAvisos } from "@/components/ui/Avisos";
 import { Folha } from "@/components/ui/Folha";
 import { Icone, type NomeIcone } from "@/components/ui/Icone";
-import { Avatar, BotaoIcone, Esqueleto } from "@/components/ui/basicos";
+import { Avatar, Botao, BotaoIcone, EstadoVazio, Esqueleto } from "@/components/ui/basicos";
 import { AREAS_DO_PAPEL, NOME_PAPEL, lerSessao, sair, trocarNegocio, type Sessao } from "@/lib/sessao";
 import { variaveisPainel } from "@/lib/cor";
 import type { Banco, Modulo, Papel } from "@/lib/tipos";
@@ -120,7 +120,7 @@ export function PainelRaiz({ children }: { children: ReactNode }) {
   }
   return (
     <MotionConfig reducedMotion="user">
-      <BancoProvider slug={sessao.slug} key={sessao.slug}>
+      <BancoProvider slug={sessao.slug} modo="painel" key={sessao.slug}>
         <Provedores>
           <Casca sessao={sessao}>{children}</Casca>
         </Provedores>
@@ -130,7 +130,8 @@ export function PainelRaiz({ children }: { children: ReactNode }) {
 }
 
 function Casca({ sessao, children }: { sessao: Sessao; children: ReactNode }) {
-  const { banco, agora } = useLoja();
+  const { banco, agora, remoto, salvando, recusa, erroCarga, recarregar } = useLoja();
+  const avisar = useAvisos();
   const pathname = usePathname();
   const [pre, setPre] = useState<PreNovo | null>(null);
   const [detalhe, setDetalhe] = useState<string | null>(null);
@@ -143,6 +144,10 @@ function Casca({ sessao, children }: { sessao: Sessao; children: ReactNode }) {
     return () => window.removeEventListener("scroll", f);
   }, []);
   useEffect(() => setMais(false), [pathname]);
+  // o banco recusou uma mudança (horário tomado, sessão vencida): a tela já voltou; aqui, o porquê
+  useEffect(() => {
+    if (recusa) avisar(recusa.texto, "erro");
+  }, [recusa, avisar]);
 
   const meuProfissionalId = useMemo(() => {
     if (!banco || sessao.papel !== "professional") return null;
@@ -174,6 +179,28 @@ function Casca({ sessao, children }: { sessao: Sessao; children: ReactNode }) {
     }),
     [sessao, meuProfissionalId, pode],
   );
+
+  if (!banco && erroCarga) {
+    return (
+      <div className="pn" style={{ display: "grid", placeItems: "center", padding: 24 }}>
+        <EstadoVazio
+          icone="info"
+          titulo="Não foi possível abrir o painel"
+          texto={erroCarga}
+          acao={
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+              <Botao variante="principal" onClick={recarregar}>
+                Tentar de novo
+              </Botao>
+              <Botao variante="secundario" onClick={() => sair()}>
+                Entrar de novo
+              </Botao>
+            </div>
+          }
+        />
+      </div>
+    );
+  }
 
   if (!banco) {
     return (
@@ -229,11 +256,16 @@ function Casca({ sessao, children }: { sessao: Sessao; children: ReactNode }) {
         </aside>
 
         <div className="pn-conteudo">
-          {/* até a fase de backend, o painel grava no navegador — dizer isso com todas as letras */}
-          <div className="pn-faixa-demo">
-            <Icone nome="info" tamanho={15} />
-            <span>Fase de testes: o que você muda aqui fica só neste aparelho.</span>
-          </div>
+          {/* sem banco configurado, o painel grava no navegador — dizer isso com todas as letras */}
+          {!remoto && (
+            <div className="pn-faixa-demo">
+              <Icone nome="info" tamanho={15} />
+              <span>Modo de testes: o que você muda aqui fica só neste aparelho.</span>
+            </div>
+          )}
+          <span className={`pn-salvando${salvando ? " ativo" : ""}`} role="status" aria-live="polite">
+            {salvando ? "Salvando…" : ""}
+          </span>
           <header className={`pn-topo-movel${rolou ? " rolou" : ""}`}>
             <SimboloNegocio n={n} />
             <strong>{n.nome}</strong>

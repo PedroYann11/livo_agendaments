@@ -6,6 +6,8 @@
 // agendamentos NÃO entram aqui: este arquivo vai para o navegador de
 // qualquer visitante. Eles entram pelo banco, protegidos pela RLS.
 //
+// A migration 003 levou este catálogo para o banco (gerado daqui); de lá
+// para frente, quem muda é o painel — este arquivo é só o ponto de partida.
 // Marcados "a confirmar" em docs/ESTADO.md: quem atende e
 // WhatsApp/Instagram/endereço. Os 3 serviços sem categoria o dono decide.
 // =====================================================================

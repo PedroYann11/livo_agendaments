@@ -1,29 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { useLoja } from "@/lib/dados/loja";
 import type { Banco } from "@/lib/tipos";
 import { Icone } from "@/components/ui/Icone";
 import { Avatar, Esqueleto, Estrelas } from "@/components/ui/basicos";
 import { brl, duracao, plural } from "@/lib/formato";
-import { NOMES_DIAS, dataCurta, dataRelativa, diaDaSemana, somarDias } from "@/lib/datas";
-import { horariosDisponiveis, situacaoAgora } from "@/lib/disponibilidade";
+import { NOMES_DIAS, dataCurta, dataRelativa, diaDaSemana } from "@/lib/datas";
+import { situacaoAgora } from "@/lib/disponibilidade";
+import { useVagas } from "@/lib/dados/vagas";
 import { linkWhatsApp, enderecoTexto } from "@/lib/whatsapp";
 import { Arte, Emergir, Revelar } from "./efeitos";
 import { capitalizar, gruposVisiveis, menorPreco, servicosVisiveis } from "./util";
 
 /** Os próximos horários livres do serviço mais pedido — o atalho do herói. */
-function proximasVagas(b: Banco, agora: string, quantas = 3) {
-  const alvo = servicosVisiveis(b).find((s) => s.destaque) ?? servicosVisiveis(b)[0];
-  if (!alvo) return { servico: null, vagas: [] as { data: string; hora: string }[] };
+function useProximasVagas(b: Banco, quantas = 3) {
+  const alvo = servicosVisiveis(b).find((s) => s.destaque) ?? servicosVisiveis(b)[0] ?? null;
+  const { porDia } = useVagas({ servicosIds: alvo ? [alvo.id] : [], profissionalId: null });
   const vagas: { data: string; hora: string }[] = [];
-  // até o fim da janela: quem atende um sábado por mês também tem "próximo horário"
-  for (let i = 0; i <= b.negocio.regras.janelaMaxDias && vagas.length < quantas; i++) {
-    const data = somarDias(agora.slice(0, 10), i);
-    const v = horariosDisponiveis(b, { servicosIds: [alvo.id], profissionalId: null, data, agora });
-    for (const x of v.slice(0, quantas - vagas.length)) vagas.push({ data, hora: x.hora });
+  // a janela inteira: quem atende um sábado por mês também tem "próximo horário"
+  for (const data of [...(porDia?.keys() ?? [])].sort()) {
+    for (const x of porDia!.get(data)!.slice(0, quantas - vagas.length)) vagas.push({ data, hora: x.hora });
+    if (vagas.length >= quantas) break;
   }
   return { servico: alvo, vagas };
 }
@@ -64,7 +64,7 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
   const equipe = b.profissionais.filter((p) => p.ativo).sort((a, c) => a.ordem - c.ordem);
   const depoimentos = n.modulos.avaliacoes ? b.depoimentos.filter((d) => d.visivel) : [];
   const media = depoimentos.length ? depoimentos.reduce((s, d) => s + d.nota, 0) / depoimentos.length : 0;
-  const { servico: alvo, vagas } = useMemo(() => proximasVagas(b, agora), [b, agora]);
+  const { servico: alvo, vagas } = useProximasVagas(b);
   const hoje = agora.slice(0, 10);
   const agendar = `/${slug}/agendar`;
   // quem atende só em datas marcadas mostra as datas, não uma semana "fechada"

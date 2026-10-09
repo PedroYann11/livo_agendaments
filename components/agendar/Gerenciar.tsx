@@ -10,7 +10,7 @@
 // =====================================================================
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useLoja } from "@/lib/dados/loja";
 import type { Agendamento } from "@/lib/tipos";
@@ -20,12 +20,10 @@ import { useAvisos, useConfirmar } from "@/components/ui/Avisos";
 import type { Escolha } from "./SeletorHorario";
 import { DiaHora } from "./DiaHora";
 import { SeloAnimado, dadosIcs } from "./Confirmado";
-import { cancelar, mudarStatus, remarcar, salvarDepoimento } from "@/lib/dados/acoes";
 import { brl, duracao, primeiroNome } from "@/lib/formato";
 import { dataDe, dataLonga, difMin, horaDe } from "@/lib/datas";
 import { baixarIcs, gerarIcs } from "@/lib/ics";
 import { linkWhatsApp } from "@/lib/whatsapp";
-import { novoId } from "@/lib/id";
 import { capitalizar } from "@/components/vitrine/util";
 
 const ROTULO: Record<Agendamento["status"], { texto: string; tom: "bom" | "atencao" | "critico" | "neutro" | "info" }> = {
@@ -37,7 +35,7 @@ const ROTULO: Record<Agendamento["status"], { texto: string; tom: "bom" | "atenc
 };
 
 export function Gerenciar({ token }: { token: string }) {
-  const { banco, mudar, agora, slug } = useLoja();
+  const { banco, portas, agora, slug } = useLoja();
   const avisar = useAvisos();
   const confirmar = useConfirmar();
   const [modo, setModo] = useState<"ver" | "remarcar" | "avaliar">("ver");
@@ -46,8 +44,19 @@ export function Gerenciar({ token }: { token: string }) {
   const [nota, setNota] = useState(5);
   const [texto, setTexto] = useState("");
   const [avaliado, setAvaliado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  // o link traz o horário do banco (na página pública não há agenda nenhuma carregada)
+  const [aberto, setAberto] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!banco) return;
+    let vivo = true;
+    portas.abrirLink(token).then((ok) => vivo && setAberto(ok));
+    return () => {
+      vivo = false;
+    };
+  }, [!!banco, portas, token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!banco) {
+  if (!banco || aberto === null) {
     return (
       <div className="gs" style={{ display: "grid", gap: 12 }}>
         <Esqueleto altura={28} largura={140} />
@@ -93,19 +102,21 @@ export function Gerenciar({ token }: { token: string }) {
       perigo: true,
     });
     if (!ok) return;
-    mudar((x) => cancelar(x, ag.id, "cliente", "Cancelado pelo link"));
-    avisar("Horário cancelado.");
+    const r = await portas.cancelar(ag);
+    if (r.ok) avisar("Horário cancelado.");
+    else avisar(r.motivo, "erro");
   };
 
-  const fazerRemarcacao = () => {
-    if (!escolha) return;
-    const r = remarcar(b, ag.id, { data: escolha.data, hora: escolha.hora, profissionalId: ag.profissionalId, agora: momento });
+  const fazerRemarcacao = async () => {
+    if (!escolha || enviando) return;
+    setEnviando(true);
+    const r = await portas.remarcar(ag, escolha.data, escolha.hora, momento);
+    setEnviando(false);
     if (!r.ok) {
       avisar(r.motivo, "erro");
       setEscolha(null);
       return;
     }
-    mudar(() => r.banco);
     setModo("ver");
     avisar("Pronto! Horário remarcado.");
   };
@@ -134,10 +145,10 @@ export function Gerenciar({ token }: { token: string }) {
               hora={escolha && escolha.data === data ? escolha.hora : null}
               onData={setData}
               onHora={setEscolha}
-              ignorarAgendamentoId={ag.id}
+              remarcando={{ id: ag.id, token: ag.token }}
             />
             <div className="gs-acoes">
-              <Botao variante="principal" tamanho="g" disabled={!escolha} onClick={fazerRemarcacao}>
+              <Botao variante="principal" tamanho="g" disabled={!escolha} carregando={enviando} onClick={fazerRemarcacao}>
                 {escolha ? `Remarcar para ${escolha.hora}` : "Escolha um horário"}
               </Botao>
               <Botao variante="fantasma" onClick={() => setModo("ver")}>
@@ -197,9 +208,10 @@ export function Gerenciar({ token }: { token: string }) {
                     variante="principal"
                     tamanho="g"
                     icone="okCirculo"
-                    onClick={() => {
-                      mudar((x) => mudarStatus(x, ag.id, "confirmado", momento));
-                      avisar("Presença confirmada. Até lá!");
+                    onClick={async () => {
+                      const r = await portas.confirmar(ag, momento);
+                      if (r.ok) avisar("Presença confirmada. Até lá!");
+                      else avisar(r.motivo, "erro");
                     }}
                   >
                     Confirmar presença
@@ -262,21 +274,14 @@ export function Gerenciar({ token }: { token: string }) {
                     </Campo>
                     <Botao
                       variante="principal"
-                      onClick={() => {
+                      carregando={enviando}
+                      onClick={async () => {
                         const nome = cliente ? `${primeiroNome(cliente.nome)} ${cliente.nome.split(" ").at(-1)?.charAt(0) ?? ""}.` : "Cliente";
-                        mudar((x) =>
-                          salvarDepoimento(x, {
-                            id: novoId("dp"),
-                            nome,
-                            texto: texto.trim() || "Ótimo atendimento.",
-                            nota,
-                            data: momento.slice(0, 10),
-                            servico: ag.itens[0]?.nome ?? "",
-                            // aparece na página só depois que o dono aprovar
-                            visivel: false,
-                          }),
-                        );
-                        setAvaliado(true);
+                        setEnviando(true);
+                        const r = await portas.avaliar(ag, nota, texto, nome, momento.slice(0, 10));
+                        setEnviando(false);
+                        if (r.ok) setAvaliado(true);
+                        else avisar(r.motivo, "erro");
                       }}
                     >
                       Enviar avaliação

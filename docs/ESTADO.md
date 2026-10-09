@@ -1,7 +1,6 @@
-# Estado atual — 08/10/2026
+# Estado atual — 09/10/2026
 
-> O que existe, o que ainda grava só no navegador, o que falta confirmar com
-> a DepiLED e o que vem na fase de backend.
+> O que existe, o que falta confirmar com a DepiLED e o que vem a seguir.
 > Confirme sempre na fonte (`git log`, `list_migrations`) — documento envelhece.
 
 ## Decisões tomadas com o Pedro
@@ -13,7 +12,9 @@
 | D-3 | Primeiro nicho | Clínica de depilação — mas o sistema atende todos (barbearia, unhas, salão, estética, saúde) com **funções liga/desliga** por negócio |
 | D-4 | Sem demonstração | Os 3 negócios inventados saíram (código) e foram **suspensos** no banco (migration 002). O piloto é real: **DepiLED** |
 | D-5 | Agendamento do cliente | **Categoria → opções → calendário do mês → horários do dia → dados**. Pouco texto, uma decisão por tela |
-| — | Ordem de trabalho | Frontend completo primeiro, backend depois, função por função |
+| D-6 | Dias de atendimento | Negócio que atende em datas soltas (a DepiLED: um sábado por mês) usa **dias avulsos**; o painel abre e fecha dias e bloqueia horários |
+| D-7 | Encaixe | O fim de cada atendimento vira horário livre: 15 min às 08:00 liberam 08:15, mesmo com passos de 10 min |
+| — | Tema por negócio | A planejar. Hoje: 4 "peles", cores e logo editáveis no painel |
 
 ### Por que o negócio vai no caminho, e não no subdomínio
 
@@ -34,28 +35,33 @@ próprio de cliente entra depois, pelo Host, no mesmo ponto (`lib/negocio-server
 
 | Item | Estado |
 |---|---|
-| Página | `agenda.livo.tec.br/depiled` — no ar desde 08/10/2026 (migration 002 aplicada) |
+| Página | `agenda.livo.tec.br/depiled` |
+| Painel | `agenda.livo.tec.br/painel` (`/depiled/admin` e `/admin` levam para lá) |
 | Marca | logo e símbolo do lótus em `public/marcas/depiled/`; cor `#62513f` tirada da logo; pele "beleza" (serifa Instrument) |
-| Catálogo | `lib/sementes/depiled.ts` — 3 categorias, 34 serviços com preço e duração do app atual |
-| Clientes | **112** transcritos das capturas, guardados **fora do repositório**. Entram quando existir a tabela de clientes (fase de backend, etapa 4) |
-| Agenda | 11 atendimentos de sáb. 10/10 vistos nas capturas — entram com a etapa 3/5 |
+| Catálogo | 3 categorias, 34 serviços com preço, duração e descrição curta. Com a 003, mora no banco |
+| Expediente | **um sábado por mês, 08h–14h** (Pedro, 09/10 — vai confirmar com a DepiLED). Dia avulso de 10/10 já cadastrado; os próximos, pelo painel (Agenda › "Abrir este dia") |
+| Clientes | **112** transcritos das capturas, guardados **fora do repositório**. Entram por carga própria depois da 003, com a limpeza combinada |
+| Agenda | 11 atendimentos de sáb. 10/10 vistos nas capturas — seguem no app antigo neste sábado |
 
 ### A confirmar com a DepiLED
 
-- **Expediente** — o app atual não mostra. Está provisório: seg–sex 08–18, sáb 08–13.
+- **Expediente** — um sábado por mês, 08–14: confirmar.
 - **Quem atende** — hoje há uma agenda só, chamada "DepiLED". Nome(s) da(s) profissional(is)?
 - **WhatsApp, Instagram e endereço** da página.
-- **3 serviços sem categoria** no app atual (Auréola, Meia Perna + Virilha Completa,
-  Virilha Completa Parceria): estão só no painel, fora do link. Entram em alguma categoria?
 - **Texto completo** da mensagem "Um dia antes" (a captura corta no meio).
-- **Lista de clientes:** tirar o sufixo "Cliente Depiled" dos nomes? Juntar as
-  duplicadas (mesmo nome ou mesmo telefone)? 18 estão sem telefone; um telefone
-  está incompleto.
+- **Lista de clientes:** tirar o sufixo "Cliente Depiled" dos nomes (é do jeito que o
+  MinhaAgenda salva contato)? Juntar as duplicadas (mesmo nome ou telefone)? 18 estão
+  sem telefone; um telefone está incompleto.
+
+Decidido: os 3 serviços sem categoria (Auréola, Meia Perna + Virilha Completa,
+Virilha Completa Parceria) ficam fora do link até o dono pôr numa categoria.
 
 ### Funções do app atual que ainda não temos (para avaliar)
 
 Salas, cartão fidelidade, taxas de cartão (lucro líquido), recibo, "cortesia"
 como forma de pagamento e mensagens prontas livres (além dos modelos fixos).
+Já temos: cliente a partir dos **contatos do celular** (Android; no iPhone, pelo
+arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 
 ## O que está pronto
 
@@ -71,40 +77,74 @@ como forma de pagamento e mensagens prontas livres (além dos modelos fixos).
 | Login (só com conta) | `/painel/entrar` |
 | Painel | `/painel` (Início), `agenda`, `clientes`, `clientes/<id>`, `clientes/importar`, `mensagens`, `servicos` (com categorias), `equipe`, `financeiro`, `relatorios`, `anamnese`, `configuracoes` |
 
-### Backend (básico)
+### Banco
 
-| Peça | Estado |
-|---|---|
-| Migration `001_plataforma` | **aplicada** no `livo-agenda` |
-| Migration `002_depiled` | **aplicada** (aprovada pelo Pedro) — DepiLED ativa; âmbar, navalha e jade `suspended` |
-| Tabelas | `tenants`, `tenant_members`, `platform_admins`, `store_settings` — RLS ligada nas 4 |
-| `negocio_publico(slug)` | anon resolve a página (só negócio `active`) — conferido no banco real: `depiled` = 1, exemplos = 0 |
-| `meus_negocios()` | login real descobre os negócios da pessoa (só `active`) |
-| `criar_negocio(...)` | só platform admin |
-| `vincular_membro(...)` | só pelo SQL Editor |
-| Testes | `supabase/tests/rodar.sh` — cada migration testada logo depois de aplicada; **17 testes, 0 falhas** |
-| Advisor de segurança | 7 avisos, os mesmos de antes e todos esperados (funções públicas de propósito — FP-3 do livo) |
+| Migration | O que faz | Estado |
+|---|---|---|
+| `001_plataforma` | negócios, membros, configuração; `negocio_publico`, `meus_negocios`, `criar_negocio`, `vincular_membro` | **aplicada** |
+| `002_depiled` | DepiLED no ar; âmbar, navalha e jade `suspended` | **aplicada** |
+| `003_agenda` | a agenda inteira no banco (abaixo) | **escrita e testada — aguardando aprovação para aplicar** |
 
-### O que ainda grava só no NAVEGADOR
+**O que a 003 traz**
 
-Serviços, equipe, clientes, agendamentos, financeiro, fichas e mensagens vivem
-no **navegador** (`lib/dados/loja.tsx`). O negócio começa pela semente pública
-(`lib/sementes/`); o painel mostra a faixa "Fase de testes: o que você muda aqui
-fica só neste aparelho". As telas falam com essa camada só por funções puras
-(`lib/dados/acoes.ts`) — na fase de backend, cada função vira uma chamada ao
-Supabase **sem mudar as telas**.
+- Tabelas `categorias`, `servicos`, `profissionais`, `bloqueios`, `clientes`,
+  `agendamentos` e `registros` (financeiro, pacotes, fichas, cupons, avaliações e
+  modelos de mensagem, em jsonb até cada um ganhar regra própria). RLS em todas;
+  `anon` fora de todas.
+- **Motor de horários no banco** (`vagas_do_dia`), porta de `lib/disponibilidade.ts`:
+  a mesma função mostra as vagas ao cliente e valida a gravação. A constraint
+  `sem_conflito` (EXCLUDE) impede dois horários sobrepostos para a mesma
+  profissional — inclusive com dois cliques no mesmo segundo e o intervalo de limpeza.
+- **Página pública**: `pagina_publica` (só o que o cliente pode ver), `vagas_publicas`,
+  `agendar` (vaga e **preço decididos no banco**; cliente reconhecido pelo telefone,
+  sem revelar o nome guardado; até 5 horários em aberto por telefone), e o link do
+  cliente por token: `agendamento_publico`, `_cancelar`, `_remarcar` (dentro do prazo),
+  `_confirmar`, `_avaliar`, `ficha_enviar`, `cupom_publico`.
+- **Painel**: `painel_dados` e `painel_salvar` rodam **como quem está logado** (a RLS
+  decide): recepção agenda e cadastra cliente; catálogo, equipe, dados do negócio e
+  financeiro só dono/admin. O lote é tudo ou nada. `negocio_salvar` valida nome,
+  aparência, fuso, regras e cores.
+- DepiLED: catálogo e o dia avulso de 10/10 passam do código para o banco (só dado público).
 
-**Não divulgar o link da DepiLED para clientes antes da etapa 3** (agendamentos
-no banco): até lá, um horário marcado fica só no celular de quem marcou.
+**Testes** — `./supabase/tests/rodar.sh`: 30 testes (suítes 001, 002 e 003) e a
+**paridade** — agendas sorteadas, o motor do navegador e o do banco têm que dar as
+mesmas vagas, pedido por pedido (1.200 pedidos por rodada; conferido que pega
+diferença quando o motor é estragado de propósito).
+
+### Como o app usa o banco
+
+`lib/dados/loja.tsx` tem três modos com a mesma interface para as telas:
+
+| Modo | Quando | Como |
+|---|---|---|
+| **painel** | Supabase configurado | abre com `painel_dados`; cada mudança aparece na hora e vai ao banco como lote (`painel_salvar`); se o banco recusar, a tela volta ao que ele tem e avisa. Relê a cada 30 s e ao voltar para a aba |
+| **publico** | Supabase configurado | o servidor lê `pagina_publica` uma vez por requisição (a página já sai pronta); vagas e agendamento pelo banco; o link fala pelo token |
+| **local** | sem Supabase, ou **banco sem a 003** | tudo no navegador, a partir da semente (`lib/sementes`), com a faixa "Modo de testes" no painel |
+
+O código detecta sozinho se o banco já tem a 003: antes dela, segue no modo local
+(como era); depois, passa ao banco **sem precisar publicar de novo**.
+
+### Testar as telas contra o banco, sem tocar em produção
+
+```
+./supabase/tests/rodar.sh --manter                    # Postgres de teste com as migrations
+BOLSO_SENHAS="dona@depiled.teste:senha123" node supabase/tests/bolso/servidor.mjs
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_ANON_KEY=bolso npx next dev
+```
+
+O "Supabase de bolso" responde como o Supabase (RPC e login) em cima do Postgres de
+teste, com os mesmos papéis e a mesma RLS. O usuário de teste precisa existir em
+`auth.users` e ser ligado com `vincular_membro`.
 
 ## Como criar o login real do dono
 
-1. Supabase › `livo-agenda` › **Authentication › Users › Add user** — e-mail e senha.
+1. Supabase › `livo-agenda` › **Authentication › Users › Add user** — e-mail e senha
+   (marcar "Auto Confirm User").
 2. **SQL Editor**:
    ```sql
    select public.vincular_membro('email@dono.com', 'depiled', 'owner');
    ```
-3. Em `/painel/entrar`, entrar com o e-mail e a senha.
+3. Em `agenda.livo.tec.br/painel`, entrar com o e-mail e a senha.
 
 ## Publicação (Vercel)
 
@@ -132,14 +172,11 @@ tornar o repositório privado e, se quiser, reescrever o histórico (exige
 force-push — só com autorização expressa). Dados de clientes nunca entram em
 arquivo versionado: vão para o banco, com RLS.
 
-## Próximo: backend completo, função por função
+## Próximos passos
 
-Ordem sugerida (cada uma: SQL para aprovação → teste local → aplicar → trocar a
-ação correspondente em `lib/dados/acoes.ts`):
-
-1. **Serviços e categorias** — `service_categories`, `services` + `catalogo_publico(slug)`; a semente da DepiLED vira linhas no banco.
-2. **Equipe e horários** — `professionals`, `working_hours`, `time_off`.
-3. **Motor de horários no banco** — `horarios_disponiveis()` (porta de `lib/disponibilidade.ts`) e `agendamento_criar()` com `EXCLUDE` anti-conflito.
-4. **Clientes** — tabela com RLS e carga dos 112 clientes da DepiLED (limpeza combinada antes).
-5. **Agenda do painel** em tempo real (Realtime) + push de novo agendamento.
-6. Financeiro, pacotes, fichas (bucket privado), mensagens.
+1. **Aplicar a 003** (com aprovação) → advisor de segurança → conferir em produção.
+2. **Login da DepiLED** (passos acima) e carga dos **112 clientes**, depois da limpeza combinada.
+3. **Aviso de agendamento novo** no celular do dono (push) — hoje o painel relê a cada 30 s.
+4. **Imagens no Storage** (hoje a logo enviada pelo painel vai como imagem embutida na configuração, até 2 MB).
+5. Profissional só com a própria agenda na RLS (hoje a equipe inteira vê a agenda toda).
+6. Tema por negócio (a planejar).
