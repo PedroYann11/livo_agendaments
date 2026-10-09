@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # =====================================================================
-# Sobe um PostgreSQL descartável, aplica as migrations e roda a suíte.
+# Sobe um PostgreSQL descartável, aplica as migrations, roda as suítes e
+# confere que o motor de horários do banco e o do navegador dão o mesmo.
 # Origem: livo@d74d591 · supabase/tests/rodar.sh (reduzido)
 #
 #   ./supabase/tests/rodar.sh           roda tudo
@@ -32,6 +33,11 @@ for f in "$RAIZ"/supabase/migrations/*.sql; do
     if [ -e "$t" ]; then $PSQL -f "$t"; fi
   done
 done
+
+# o motor do banco e o do navegador precisam dar as mesmas vagas
+if command -v node >/dev/null; then
+  ( cd "$RAIZ/supabase/tests/paridade" && PORTA=$PORTA node --import ./registrar.mjs --experimental-strip-types --no-warnings paridade.mts 150 )
+fi
 
 if [ "${1:-}" != "--manter" ]; then
   su postgres -s /bin/bash -c "$PGBIN/pg_ctl -D $PGDATA stop -m fast" >/dev/null
