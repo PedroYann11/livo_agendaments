@@ -1,10 +1,10 @@
 // =====================================================================
 // Negócios com ponto de partida no código.
 //
-// Com a migration 003, catálogo, equipe e regras moram no BANCO, e a
+// Com as migrations 003–007, catálogo, equipe e regras moram no BANCO, e a
 // página nasce de lá (`pagina_publica`). A semente fica para três casos:
 // desenvolvimento sem Supabase (modo local), banco fora do ar (a página
-// segue de pé; agendar avisa que não deu) e banco ainda sem a 003.
+// segue de pé; agendar avisa que não deu) e banco ainda sem elas.
 // A existência do negócio continua sendo decidida pelo banco.
 // =====================================================================
 

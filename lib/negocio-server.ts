@@ -81,7 +81,7 @@ export type Pagina = {
   publico: NegocioPublico;
   /** o que a página mostra (catálogo, equipe, regras) — null no modo local, sem banco */
   banco: Banco | null;
-  /** o banco ainda não tem a agenda (migration 003): a página segue no modo local */
+  /** o banco ainda não tem a agenda (migrations 003–007): a página segue no modo local */
   local?: boolean;
 };
 

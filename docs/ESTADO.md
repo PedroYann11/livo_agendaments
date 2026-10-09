@@ -38,9 +38,9 @@ próprio de cliente entra depois, pelo Host, no mesmo ponto (`lib/negocio-server
 | Página | `agenda.livo.tec.br/depiled` |
 | Painel | `agenda.livo.tec.br/painel` (`/depiled/admin` e `/admin` levam para lá) |
 | Marca | logo e símbolo do lótus em `public/marcas/depiled/`; cor `#62513f` tirada da logo; pele "beleza" (serifa Instrument) |
-| Catálogo | 3 categorias, 34 serviços com preço, duração e descrição curta. Com a 003, mora no banco |
+| Catálogo | 3 categorias, 34 serviços com preço, duração e descrição curta. Com a agenda no banco (006), mora lá |
 | Expediente | **um sábado por mês, 08h–14h** (Pedro, 09/10 — vai confirmar com a DepiLED). Dia avulso de 10/10 já cadastrado; os próximos, pelo painel (Agenda › "Abrir este dia") |
-| Clientes | **112** transcritos das capturas, guardados **fora do repositório**. Entram por carga própria depois da 003, com a limpeza combinada |
+| Clientes | **112** transcritos das capturas, guardados **fora do repositório**. Entram por carga própria depois da 007, com a limpeza combinada |
 | Agenda | 11 atendimentos de sáb. 10/10 vistos nas capturas — seguem no app antigo neste sábado |
 
 ### A confirmar com a DepiLED
@@ -83,9 +83,13 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 |---|---|---|
 | `001_plataforma` | negócios, membros, configuração; `negocio_publico`, `meus_negocios`, `criar_negocio`, `vincular_membro` | **aplicada** |
 | `002_depiled` | DepiLED no ar; âmbar, navalha e jade `suspended` | **aplicada** |
-| `003_agenda` | a agenda inteira no banco (abaixo) | **escrita e testada — aguardando aprovação para aplicar** |
+| `003_agenda_tabelas` | tabelas, gatilhos e RLS da agenda | **aplicada** (09/10, aprovada pelo Pedro) |
+| `004_agenda_motor` | peças comuns e o motor de horários | **aplicada** |
+| `005_agenda_portas_publicas` | o que a página e o link do cliente chamam | **aplicada** |
+| `006_agenda_depiled` | catálogo e dia avulso da DepiLED | **aplicada** |
+| `007_agenda_painel` | o que o painel chama | **falta aplicar** — tem remoções (`delete`) e a Supabase pede a confirmação de quem aplica; o pedido expira sem ela |
 
-**O que a 003 traz**
+**O que a agenda no banco (003 a 007) traz**
 
 - Tabelas `categorias`, `servicos`, `profissionais`, `bloqueios`, `clientes`,
   `agendamentos` e `registros` (financeiro, pacotes, fichas, cupons, avaliações e
@@ -106,7 +110,11 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
   aparência, fuso, regras e cores.
 - DepiLED: catálogo e o dia avulso de 10/10 passam do código para o banco (só dado público).
 
-**Testes** — `./supabase/tests/rodar.sh`: 30 testes (suítes 001, 002 e 003) e a
+**Por que 5 partes**: o pedido com a agenda inteira de uma vez não passava pela
+ferramenta da Supabase. Cada parte é uma migration; o histórico do banco e o
+repositório têm as mesmas 5.
+
+**Testes** — `./supabase/tests/rodar.sh`: 30 testes (suítes 001, 002 e a da agenda, `007_agenda.sql`) e a
 **paridade** — agendas sorteadas, o motor do navegador e o do banco têm que dar as
 mesmas vagas, pedido por pedido (1.200 pedidos por rodada; conferido que pega
 diferença quando o motor é estragado de propósito).
@@ -119,10 +127,11 @@ diferença quando o motor é estragado de propósito).
 |---|---|---|
 | **painel** | Supabase configurado | abre com `painel_dados`; cada mudança aparece na hora e vai ao banco como lote (`painel_salvar`); se o banco recusar, a tela volta ao que ele tem e avisa. Relê a cada 30 s e ao voltar para a aba |
 | **publico** | Supabase configurado | o servidor lê `pagina_publica` uma vez por requisição (a página já sai pronta); vagas e agendamento pelo banco; o link fala pelo token |
-| **local** | sem Supabase, ou **banco sem a 003** | tudo no navegador, a partir da semente (`lib/sementes`), com a faixa "Modo de testes" no painel |
+| **local** | sem Supabase, ou **banco sem a agenda (003–007)** | tudo no navegador, a partir da semente (`lib/sementes`), com a faixa "Modo de testes" no painel |
 
-O código detecta sozinho se o banco já tem a 003: antes dela, segue no modo local
-(como era); depois, passa ao banco **sem precisar publicar de novo**.
+O código detecta sozinho o que o banco já tem: sem as portas da página, a página
+segue no modo local; sem as do painel (007), o painel segue no modo local. Quando
+elas chegam, passa ao banco **sem precisar publicar de novo**.
 
 ### Testar as telas contra o banco, sem tocar em produção
 
@@ -174,7 +183,7 @@ arquivo versionado: vão para o banco, com RLS.
 
 ## Próximos passos
 
-1. **Aplicar a 003** (com aprovação) → advisor de segurança → conferir em produção.
+1. **Aplicar a 007** (painel) com o Pedro por perto para confirmar → conferir o login e o painel em produção.
 2. **Login da DepiLED** (passos acima) e carga dos **112 clientes**, depois da limpeza combinada.
 3. **Aviso de agendamento novo** no celular do dono (push) — hoje o painel relê a cada 30 s.
 4. **Imagens no Storage** (hoje a logo enviada pelo painel vai como imagem embutida na configuração, até 2 MB).

@@ -1,5 +1,7 @@
 -- =====================================================================
--- Suíte 003 — a agenda no banco (migration 003)
+-- Suíte da agenda no banco (migrations 003 a 007)
+--
+-- Roda depois da 007, a última parte: o conjunto inteiro já está aplicado.
 --
 -- Dois negócios de TESTE (só existem no Postgres descartável): A, aberto
 -- todo dia 08–18 em passos de 30 min, e B. Pessoas: dona e recepção de A,
@@ -434,4 +436,4 @@ end $$;
 \echo T30 ok · vagas públicas só do que é visível; feriado fecha; cupom no preço
 
 \echo
-\echo == suíte 003: 13 testes, 0 falhas ==
+\echo == suíte da agenda (003–007): 13 testes, 0 falhas ==

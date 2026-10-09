@@ -56,7 +56,7 @@ export class ErroBanco extends Error {
 }
 
 /**
- * O banco ainda não tem as funções da agenda (migration 003 não aplicada):
+ * O banco ainda não tem as funções da agenda (migrations 003–007 não aplicadas):
  * o app segue no modo local, como antes, e passa ao banco sozinho quando
  * elas chegarem — a ordem "publicar código" × "aplicar migration" não importa.
  */
