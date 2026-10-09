@@ -18,35 +18,8 @@ import { supabaseAnonimo, supabaseOn } from "./supabase";
 import { bancoDaSemente } from "./sementes";
 import { bancoSemAgenda, carregarPagina } from "./dados/remoto";
 import { hexValido } from "./cor";
+import { slugValido } from "./enderecos";
 import { TEMA_NEUTRO } from "./padroes";
-
-/** Caminhos que nunca podem ser nome de negócio. */
-export const RESERVADOS = new Set([
-  "painel",
-  "api",
-  "entrar",
-  "sair",
-  "admin",
-  "app",
-  "agenda",
-  "livo",
-  "www",
-  "demo",
-  "ajuda",
-  "precos",
-  "termos",
-  "privacidade",
-  "_next",
-  "favicon.ico",
-  "robots.txt",
-  "sitemap.xml",
-  "manifest.webmanifest",
-  "sw.js",
-]);
-
-export function slugValido(slug: string): boolean {
-  return /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/.test(slug) && !RESERVADOS.has(slug);
-}
 
 function temaSeguro(t: unknown): Tema {
   const v = (t && typeof t === "object" ? t : {}) as Record<string, unknown>;

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # =====================================================================
 # Sobe um PostgreSQL descartável, aplica as migrations, roda as suítes e
-# confere que o motor de horários do banco e o do navegador dão o mesmo.
+# confere que o motor de horários e os endereços reservados do banco e do
+# navegador são os mesmos.
 # Origem: livo@d74d591 · supabase/tests/rodar.sh (reduzido)
 #
 #   ./supabase/tests/rodar.sh           roda tudo
@@ -37,6 +38,7 @@ done
 # o motor do banco e o do navegador precisam dar as mesmas vagas
 if command -v node >/dev/null; then
   ( cd "$RAIZ/supabase/tests/paridade" && PORTA=$PORTA node --import ./registrar.mjs --experimental-strip-types --no-warnings paridade.mts 150 )
+  ( cd "$RAIZ/supabase/tests/paridade" && PORTA=$PORTA node --import ./registrar.mjs --experimental-strip-types --no-warnings reservados.mts )
 fi
 
 if [ "${1:-}" != "--manter" ]; then
