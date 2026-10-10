@@ -51,16 +51,19 @@ export function Revelar({ children, atraso = 0, className }: { children: ReactNo
   );
 }
 
-export function Arte({ pele, nome }: { pele: Pele; nome: string }) {
+/** desenho = false ("Enfeite do topo: nenhum" no painel): fica só o fundo, sem a figura do canto */
+export function Arte({ pele, nome, desenho = true }: { pele: Pele; nome: string; desenho?: boolean }) {
   if (pele === "beleza") {
     return (
       <div className="vt-arte" aria-hidden="true">
         <span className="vt-aurora a1" />
         <span className="vt-aurora a2" />
-        <svg className="vt-arco" viewBox="0 0 200 280" fill="none">
-          <path d="M10 280V100a90 90 0 0 1 180 0v180" stroke="currentColor" strokeWidth="1" />
-          <path d="M34 280V104a66 66 0 0 1 132 0v176" stroke="currentColor" strokeWidth="1" />
-        </svg>
+        {desenho && (
+          <svg className="vt-arco" viewBox="0 0 200 280" fill="none">
+            <path d="M10 280V100a90 90 0 0 1 180 0v180" stroke="currentColor" strokeWidth="1" />
+            <path d="M34 280V104a66 66 0 0 1 132 0v176" stroke="currentColor" strokeWidth="1" />
+          </svg>
+        )}
         <span className="vt-grao" />
       </div>
     );
@@ -69,8 +72,8 @@ export function Arte({ pele, nome }: { pele: Pele; nome: string }) {
     return (
       <div className="vt-arte" aria-hidden="true">
         <span className="vt-raios" />
-        <span className="vt-vazado">{nome.split(" ")[0]}</span>
-        <span className="vt-poste" />
+        {desenho && <span className="vt-vazado">{nome.split(" ")[0]}</span>}
+        {desenho && <span className="vt-poste" />}
         <span className="vt-grao" />
       </div>
     );
@@ -80,17 +83,19 @@ export function Arte({ pele, nome }: { pele: Pele; nome: string }) {
       <div className="vt-arte" aria-hidden="true">
         <span className="vt-bolha b1" />
         <span className="vt-bolha b2" />
-        <svg className="vt-brilhos" width="60" height="60" viewBox="0 0 60 60" fill="currentColor">
-          <path d="M30 6c1.6 9.6 4.4 12.4 14 14-9.6 1.6-12.4 4.4-14 14-1.6-9.6-4.4-12.4-14-14 9.6-1.6 12.4-4.4 14-14Z" />
-          <path d="M48 36c.8 4.8 2.2 6.2 7 7-4.8.8-6.2 2.2-7 7-.8-4.8-2.2-6.2-7-7 4.8-.8 6.2-2.2 7-7Z" opacity=".6" />
-        </svg>
+        {desenho && (
+          <svg className="vt-brilhos" width="60" height="60" viewBox="0 0 60 60" fill="currentColor">
+            <path d="M30 6c1.6 9.6 4.4 12.4 14 14-9.6 1.6-12.4 4.4-14 14-1.6-9.6-4.4-12.4-14-14 9.6-1.6 12.4-4.4 14-14Z" />
+            <path d="M48 36c.8 4.8 2.2 6.2 7 7-4.8.8-6.2 2.2-7 7-.8-4.8-2.2-6.2-7-7 4.8-.8 6.2-2.2 7-7Z" opacity=".6" />
+          </svg>
+        )}
         <span className="vt-grao" />
       </div>
     );
   }
   return (
     <div className="vt-arte" aria-hidden="true">
-      <span className="vt-grade-fundo" />
+      {desenho && <span className="vt-grade-fundo" />}
     </div>
   );
 }

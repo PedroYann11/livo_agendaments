@@ -148,6 +148,7 @@ const negocio: Negocio = {
   sinal: { percentual: 30, servicosIds: [] },
   metaMensal: 0,
   aviso: { texto: "", ativo: false },
+  enfeiteTopo: "desenho",
 };
 
 export const depiled: Semente = {

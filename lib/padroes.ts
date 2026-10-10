@@ -212,5 +212,6 @@ export function negocioNovo(id: string, slug: string, nome: string, nicho: Nicho
     sinal: { percentual: 30, servicosIds: [] },
     metaMensal: 0,
     aviso: { texto: "", ativo: false },
+    enfeiteTopo: "desenho",
   };
 }

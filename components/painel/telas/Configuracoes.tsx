@@ -58,6 +58,14 @@ const PELES: { id: Pele; nome: string; fonte: string; descricao: string }[] = [
   { id: "generica", nome: "Neutra", fonte: "var(--f-sans)", descricao: "Limpa e sóbria. Saúde, consultórios, serviços." },
 ];
 
+/** o enfeite de cada estilo, com o nome que a pessoa reconhece */
+const ENFEITES: Record<Pele, string> = {
+  beleza: "Arco",
+  barbearia: "Poste e nome",
+  delicada: "Brilhos",
+  generica: "Grade",
+};
+
 export function Configuracoes() {
   const b = useBanco();
   const { mudar } = useLoja();
@@ -67,9 +75,12 @@ export function Configuracoes() {
   const secao = (params.get("s") as Secao) ?? "pagina";
   const [rascunho, setRascunho] = useState<Negocio>(b.negocio);
   const [base, setBase] = useState(b.negocio);
-  if (base !== b.negocio && JSON.stringify(rascunho) === JSON.stringify(base)) {
+  // o negócio mudou (salvou, ou chegou do banco): vira a nova referência. O
+  // rascunho só é trocado se não havia edição pendente — senão, voltar uma
+  // opção ao valor de antes do salvar era desfeito sozinho.
+  if (base !== b.negocio) {
     setBase(b.negocio);
-    setRascunho(b.negocio);
+    if (JSON.stringify(rascunho) === JSON.stringify(base)) setRascunho(b.negocio);
   }
   const sujo = JSON.stringify(rascunho) !== JSON.stringify(b.negocio);
   const ir = (s: Secao) => router.replace(`/painel/configuracoes?s=${s}`, { scroll: false });
@@ -318,6 +329,17 @@ function SecaoAparencia({ n, muda }: PropsSecao) {
             ))}
           </div>
           <small style={{ color: "var(--c-texto-2)" }}>{PELES.find((p) => p.id === n.pele)?.descricao}</small>
+        </Bloco>
+        <Bloco titulo="Enfeite do topo" texto="O desenho no canto do topo da página, ao lado do seu logo (aparece no celular). Sem ele, fica só o fundo.">
+          <Segmentado
+            rotulo="Enfeite do topo"
+            valor={n.enfeiteTopo}
+            onMudar={(v) => muda({ enfeiteTopo: v })}
+            opcoes={[
+              { id: "desenho", rotulo: ENFEITES[n.pele] },
+              { id: "nenhum", rotulo: "Sem enfeite" },
+            ]}
+          />
         </Bloco>
         <Bloco titulo="Cor da marca" texto="Botões, destaques e a cor do seu painel.">
           <div className="pn-cores">

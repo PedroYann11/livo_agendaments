@@ -105,7 +105,7 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
       </header>
 
       <section className={`vt-heroi${n.logoCompletoUrl ? " com-logo" : ""}`}>
-        <Arte pele={n.pele} nome={n.nome} />
+        <Arte pele={n.pele} nome={n.nome} desenho={n.enfeiteTopo !== "nenhum"} />
         <div className="vt-container vt-heroi-grade">
           <div>
             {n.logoCompletoUrl && (

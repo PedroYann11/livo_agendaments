@@ -112,7 +112,11 @@ export type Negocio = {
   sinal: { percentual: number; servicosIds: string[] };
   metaMensal: number;
   aviso: { texto: string; ativo: boolean };
+  /** o enfeite do canto do topo (celular): o desenho do estilo da página ou nenhum */
+  enfeiteTopo: EnfeiteTopo;
 };
+
+export type EnfeiteTopo = "desenho" | "nenhum";
 
 export type Categoria = {
   id: string;
