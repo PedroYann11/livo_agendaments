@@ -12,6 +12,7 @@ import type {
   Negocio,
   Nicho,
   Pele,
+  Promocoes,
   RegrasAgendamento,
   Semana,
   Tema,
@@ -113,7 +114,20 @@ export const REGRAS_PADRAO: RegrasAgendamento = {
   fuso: "America/Fortaleza",
   escolherProfissional: true,
   multiplosServicos: true,
+  pedirNascimento: "opcional",
 };
+
+/** Promoções de um negócio novo: todas desligadas, já com nome e % sugeridos. */
+export function promocoesPadrao(nicho: Nicho): Promocoes {
+  // depilação fala em "áreas"; o resto, em "serviços"
+  const itens = nicho === "depilacao" ? "áreas" : "serviços";
+  return {
+    acumular: true,
+    variosItens: { ativo: false, nome: `2 ${itens} ou mais`, minimo: 2, percentual: 10 },
+    primeiraVez: { ativo: false, nome: "Primeira vez", percentual: 10 },
+    aniversario: { ativo: false, nome: "Aniversariante", percentual: 10, janela: "mes" },
+  };
+}
 
 export function semanaComercial(
   inicio = "08:00",
@@ -213,5 +227,6 @@ export function negocioNovo(id: string, slug: string, nome: string, nicho: Nicho
     metaMensal: 0,
     aviso: { texto: "", ativo: false },
     enfeiteTopo: "desenho",
+    promocoes: promocoesPadrao(nicho),
   };
 }

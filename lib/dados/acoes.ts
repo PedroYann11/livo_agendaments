@@ -32,6 +32,7 @@ import { juntar, somarDias, somarMin } from "../datas";
 import { duracaoTotal, servicosDoPedido, validarHorario } from "../disponibilidade";
 import { novoId, novoToken } from "../id";
 import { apenasDigitos, capitalizarNome } from "../masks";
+import { calcularPreco } from "../precos";
 import type { LinhaImportada } from "../importar";
 
 export type Resultado<T> = { ok: true; banco: Banco; valor: T } | { ok: false; motivo: string };
@@ -55,6 +56,28 @@ function trocar<T extends { id: string }>(lista: T[], id: string, fn: (x: T) => 
 export function acharClientePorTelefone(b: Banco, telefone: string): Cliente | undefined {
   const t = apenasDigitos(telefone);
   return b.clientes.find((c) => apenasDigitos(c.telefone) === t);
+}
+
+/**
+ * Primeira vez (espelho de public.cliente_e_novo): nenhum cadastro com este
+ * telefone foi atendido — horário cancelado não conta — nem veio da lista antiga.
+ * Sem telefone, vale o próprio cadastro.
+ */
+export function clienteENovo(b: Banco, telefone: string, clienteId?: string): boolean {
+  const t = apenasDigitos(telefone);
+  const mesmos = b.clientes.filter((c) => (t ? apenasDigitos(c.telefone) === t : c.id === clienteId));
+  return !mesmos.some(
+    (c) => c.origem === "importado" || b.agendamentos.some((a) => a.clienteId === c.id && a.status !== "cancelado"),
+  );
+}
+
+/** "aaaa-mm-dd" que existe e já passou; o resto vira null (como data_ou_nulo no banco). */
+export function nascimentoValido(texto: string | null | undefined, hoje: string): string | null {
+  if (!texto || !/^\d{4}-\d{2}-\d{2}$/.test(texto)) return null;
+  const [a, m, d] = texto.split("-").map(Number);
+  const dt = new Date(Date.UTC(a, m - 1, d));
+  if (dt.getUTCFullYear() !== a || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+  return texto >= "1900-01-01" && texto <= hoje ? texto : null;
 }
 
 export function salvarCliente(b: Banco, c: Cliente): Banco {
@@ -113,6 +136,8 @@ export type DadosAgendamento = {
   cupom?: string | null;
   /** o painel pode encaixar fora da antecedência mínima */
   encaixe?: boolean;
+  /** o painel pode marcar sem as promoções automáticas (o cupom continua valendo) */
+  semPromocoes?: boolean;
 };
 
 export function aplicarCupom(b: Banco, codigo: string | null | undefined, total: number): { cupom: Cupom | null; desconto: number } {
@@ -137,29 +162,49 @@ export function criarAgendamento(b: Banco, d: DadosAgendamento): Resultado<Agend
   });
   if (!v.ok) return v;
 
+  const n = b.negocio;
+  const nascimento = nascimentoValido(d.cliente.nascimento, d.agora.slice(0, 10));
+  if (d.canal === "online" && !nascimento && n.regras.pedirNascimento === "obrigatorio") {
+    return { ok: false, motivo: "Informe sua data de nascimento." };
+  }
+
   let banco = b;
   let cliente = d.cliente.id
     ? b.clientes.find((c) => c.id === d.cliente.id)
     : acharClientePorTelefone(b, d.cliente.telefone);
+  // primeira vez? (antes de cadastrar: o cadastro novo não muda a resposta)
+  const novo = clienteENovo(b, cliente?.telefone ?? d.cliente.telefone, cliente?.id);
   if (!cliente) {
     cliente = novoCliente(
       {
         nome: d.cliente.nome,
         telefone: d.cliente.telefone,
         email: d.cliente.email ?? "",
-        nascimento: d.cliente.nascimento ?? null,
+        nascimento,
         origem: d.canal === "online" ? "online" : "painel",
       },
       d.agora,
     );
     banco = { ...banco, clientes: [...banco.clientes, cliente] };
+  } else if (!cliente.nascimento && nascimento) {
+    // o cadastro sem data ganha a digitada; com data, ela não muda por aqui
+    cliente = { ...cliente, nascimento };
+    banco = { ...banco, clientes: upsert(banco.clientes, cliente) };
   }
 
   const { atendimento, intervalo } = duracaoTotal(servicos);
   const inicio = juntar(d.data, d.hora);
-  const total = servicos.reduce((s, x) => s + x.preco, 0);
-  const { cupom, desconto } = aplicarCupom(b, d.cupom, total);
-  const n = b.negocio;
+  const { cupom } = aplicarCupom(b, d.cupom, 0);
+  // a mesma regra do banco (public.preco_calcular)
+  const preco = calcularPreco({
+    promocoes: d.semPromocoes ? null : n.promocoes,
+    precos: servicos.map((s) => s.preco),
+    novo,
+    nascimento: cliente.nascimento,
+    dia: d.data,
+    cupom,
+  });
+  const cupomUsado = preco.descontos.some((x) => x.tipo === "cupom");
   const exigeSinal = n.modulos.sinal && servicos.some((s) => n.sinal.servicosIds.includes(s.id));
 
   // pacote do cliente que cobre o serviço principal
@@ -179,8 +224,9 @@ export function criarAgendamento(b: Banco, d: DadosAgendamento): Resultado<Agend
     status: d.canal === "online" && n.regras.confirmacao === "manual" ? "pendente" : "confirmado",
     canal: d.canal,
     itens: servicos.map((s) => ({ servicoId: s.id, nome: s.nome, preco: s.preco, duracaoMin: s.duracaoMin })),
-    total: total - desconto,
-    desconto,
+    total: preco.total,
+    desconto: preco.desconto,
+    descontos: preco.descontos,
     observacao: d.observacao ?? "",
     criadoEm: d.agora,
     confirmadoEm: null,
@@ -188,14 +234,14 @@ export function criarAgendamento(b: Banco, d: DadosAgendamento): Resultado<Agend
     canceladoPor: null,
     motivoCancelamento: "",
     pagamento: null,
-    sinal: exigeSinal ? { valor: Math.round(((total - desconto) * n.sinal.percentual) / 100), pago: false } : null,
+    sinal: exigeSinal ? { valor: Math.round((preco.total * n.sinal.percentual) / 100), pago: false } : null,
     pacoteClienteId: pk?.id ?? null,
-    cupom: cupom?.codigo ?? null,
+    cupom: cupomUsado ? cupom!.codigo : null,
   };
   if (ag.status === "confirmado") ag.confirmadoEm = d.agora;
 
   banco = { ...banco, agendamentos: [...banco.agendamentos, ag] };
-  if (cupom) banco = { ...banco, cupons: trocar(banco.cupons, cupom.id, (c) => ({ ...c, usos: c.usos + 1 })) };
+  if (cupomUsado) banco = { ...banco, cupons: trocar(banco.cupons, cupom!.id, (c) => ({ ...c, usos: c.usos + 1 })) };
   return { ok: true, banco, valor: ag };
 }
 

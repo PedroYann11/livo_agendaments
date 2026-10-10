@@ -303,16 +303,22 @@ function Conteudo({ b, ag, onFechar }: { b: Banco; ag: Agendamento; onFechar: ()
                     </span>
                   </div>
                 ))}
-                {ag.desconto > 0 && (
-                  <div className="pn-linha" style={{ padding: "10px 14px" }}>
+                {/* cada desconto com o seu nome; agendamento antigo (antes da 010) só tem o total */}
+                {(ag.descontos?.length
+                  ? ag.descontos.map((d) => ({ chave: d.tipo, nome: d.percentual !== null ? `${d.nome} · ${d.percentual}%` : d.nome, valor: d.valor }))
+                  : ag.desconto > 0
+                    ? [{ chave: "desconto", nome: `Desconto${ag.cupom ? ` (${ag.cupom})` : ""}`, valor: ag.desconto }]
+                    : []
+                ).map((d) => (
+                  <div key={d.chave} className="pn-linha" style={{ padding: "10px 14px" }}>
                     <span className="pn-linha-info">
-                      <strong>Desconto{ag.cupom ? ` (${ag.cupom})` : ""}</strong>
+                      <strong>{d.nome}</strong>
                     </span>
                     <span className="pn-linha-lado">
-                      <b>−{brl(ag.desconto)}</b>
+                      <b>−{brl(d.valor)}</b>
                     </span>
                   </div>
-                )}
+                ))}
               </div>
             </div>
             <div style={{ display: "grid", gap: 8, fontSize: 14 }}>

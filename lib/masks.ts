@@ -51,3 +51,21 @@ export function centavosParaReais(bruto: string): number {
 export function formatarValorCampo(valor: number): string {
   return (Number.isFinite(valor) ? valor : 0).toFixed(2).replace(".", ",");
 }
+
+/** Data conforme digita: "15081990" → "15/08/1990". Mais rápido que o calendário para nascimento. */
+export function mascaraData(valor: string): string {
+  const d = valor.replace(/\D/g, "").slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+}
+
+/** "15/08/1990" → "1990-08-15"; incompleta ou que não existe (31/02) → null. */
+export function dataBrParaIso(valor: string): string | null {
+  const m = valor.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const [, d, mes, a] = m;
+  const dt = new Date(Date.UTC(+a, +mes - 1, +d));
+  if (dt.getUTCFullYear() !== +a || dt.getUTCMonth() !== +mes - 1 || dt.getUTCDate() !== +d) return null;
+  return `${a}-${mes}-${d}`;
+}

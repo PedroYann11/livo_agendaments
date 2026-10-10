@@ -11,6 +11,7 @@ import { useLoja } from "@/lib/dados/loja";
 import type { Agendamento, Banco } from "@/lib/tipos";
 import { Icone } from "@/components/ui/Icone";
 import { Botao, BotaoCopiar } from "@/components/ui/basicos";
+import { LinhasDesconto } from "./Descontos";
 import { brl, duracao, primeiroNome } from "@/lib/formato";
 import { dataLonga, dataDe, horaDe } from "@/lib/datas";
 import { baixarIcs, gerarIcs, linkGoogleAgenda } from "@/lib/ics";
@@ -133,6 +134,7 @@ export function Confirmado({ ag }: { ag: Agendamento }) {
               </small>
             </div>
           </div>
+          <LinhasDesconto descontos={ag.descontos ?? []} />
           {pro && (
             <div className="ag-resumo-linha">
               <Icone nome="cliente" />

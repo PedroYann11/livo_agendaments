@@ -15,19 +15,21 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useLoja } from "@/lib/dados/loja";
-import type { Agendamento, Banco, Servico } from "@/lib/tipos";
+import type { Agendamento, Banco, Promocoes, Servico } from "@/lib/tipos";
 import { Icone } from "@/components/ui/Icone";
 import { Avatar, Botao, BotaoIcone, Campo, Entrada, Esqueleto, Texto } from "@/components/ui/basicos";
 import { useAvisos } from "@/components/ui/Avisos";
 import type { Escolha } from "./SeletorHorario";
 import { DiaHora } from "./DiaHora";
 import { Confirmado } from "./Confirmado";
-import { aplicarCupom } from "@/lib/dados/acoes";
+import { LinhasDesconto } from "./Descontos";
+import { aplicarCupom, nascimentoValido } from "@/lib/dados/acoes";
+import { calcularPreco } from "@/lib/precos";
 import { duracaoTotal, profissionaisAptos } from "@/lib/disponibilidade";
 import { useVagas } from "@/lib/dados/vagas";
 import { brl, duracao, plural, primeiroNome } from "@/lib/formato";
 import { dataLonga, dataRelativa, somarMin, juntar } from "@/lib/datas";
-import { capitalizarNome, mascaraTelefone, telefoneValido } from "@/lib/masks";
+import { capitalizarNome, dataBrParaIso, mascaraData, mascaraTelefone, telefoneValido } from "@/lib/masks";
 import { capitalizar, gruposVisiveis, menorPreco, servicosVisiveis, type Grupo } from "@/components/vitrine/util";
 
 type Passo = "categoria" | "servicos" | "profissional" | "horario" | "dados";
@@ -35,13 +37,28 @@ type Passo = "categoria" | "servicos" | "profissional" | "horario" | "dados";
 const CHAVE_CLIENTE = "livo-agenda:cliente";
 const SAIDA = [0.23, 1, 0.32, 1] as const;
 
-function lerClienteSalvo(): { nome: string; telefone: string; email: string } {
+function lerClienteSalvo(): { nome: string; telefone: string; email: string; nascimento: string } {
   try {
     const j = JSON.parse(localStorage.getItem(CHAVE_CLIENTE) ?? "{}");
-    return { nome: j.nome ?? "", telefone: j.telefone ?? "", email: j.email ?? "" };
+    return { nome: j.nome ?? "", telefone: j.telefone ?? "", email: j.email ?? "", nascimento: j.nascimento ?? "" };
   } catch {
-    return { nome: "", telefone: "", email: "" };
+    return { nome: "", telefone: "", email: "", nascimento: "" };
   }
+}
+
+const JANELAS = { dia: "no dia do aniversário", semana: "na semana do aniversário", mes: "no mês do aniversário" } as const;
+
+/**
+ * O que depende do cadastro (primeira vez, aniversário) a página não sabe —
+ * e não pergunta: o telefone não revela quem é cliente. Fica como promessa;
+ * o banco aplica na confirmação.
+ */
+function promessas(pr: Promocoes): string[] {
+  const mais = pr.acumular ? "Mais " : "";
+  const linhas: string[] = [];
+  if (pr.primeiraVez.ativo) linhas.push(`Primeira vez? ${mais}${pr.primeiraVez.percentual}% de desconto`);
+  if (pr.aniversario.ativo) linhas.push(`Aniversariante? ${pr.aniversario.percentual}% ${JANELAS[pr.aniversario.janela]}`);
+  return linhas;
 }
 
 export function Fluxo() {
@@ -124,9 +141,20 @@ function FluxoComDados({ b }: { b: Banco }) {
 
   const escolhidos = selecionados.map((id) => b.servicos.find((s) => s.id === id)).filter((s): s is Servico => !!s);
   const { atendimento } = duracaoTotal(escolhidos);
-  const subtotal = escolhidos.reduce((s, x) => s + x.preco, 0);
-  const { cupom: cupomValido, desconto } = aplicarCupom(b, cupom, subtotal);
-  const total = subtotal - desconto;
+  const hoje = agora().slice(0, 10);
+  const { cupom: cupomValido } = aplicarCupom(b, cupom, 0);
+  // a mesma regra do banco, com o que a página sabe: os serviços e o cupom
+  const preco = calcularPreco({
+    promocoes: n.promocoes,
+    precos: escolhidos.map((s) => s.preco),
+    novo: false,
+    nascimento: null,
+    dia: escolha?.data ?? hoje,
+    cupom: cupomValido,
+  });
+  const { subtotal, desconto, total } = preco;
+  const doCupom = preco.descontos.find((d) => d.tipo === "cupom");
+  const vaiPedirNascimento = n.regras.pedirNascimento !== "nao";
   const temPrecoOculto = escolhidos.some((s) => s.modoPreco === "oculto");
   const aPartirDe = escolhidos.some((s) => s.modoPreco === "a_partir_de");
   const grupoAtual = grupos.find((g) => g.id === categoria) ?? null;
@@ -177,6 +205,9 @@ function FluxoComDados({ b }: { b: Banco }) {
     const e: Record<string, string> = {};
     if (cliente.nome.trim().split(/\s+/).length < 2) e.nome = "Escreva nome e sobrenome.";
     if (!telefoneValido(cliente.telefone)) e.telefone = "Confira o número com DDD.";
+    const nascimento = vaiPedirNascimento ? nascimentoValido(dataBrParaIso(mascaraData(cliente.nascimento)), hoje) : null;
+    if (vaiPedirNascimento && cliente.nascimento.trim() && !nascimento) e.nascimento = "Confira a data: dia/mês/ano.";
+    else if (!nascimento && n.regras.pedirNascimento === "obrigatorio") e.nascimento = "Informe sua data de nascimento.";
     setErros(e);
     if (Object.keys(e).length || !escolha || enviando) return;
     setEnviando(true);
@@ -193,7 +224,7 @@ function FluxoComDados({ b }: { b: Banco }) {
         nome: cliente.nome,
         telefone: cliente.telefone,
         email: cliente.email,
-        nascimento: cliente.nascimento || null,
+        nascimento,
       },
       observacao: cliente.observacao,
       cupom: cupomValido?.codigo ?? null,
@@ -209,7 +240,10 @@ function FluxoComDados({ b }: { b: Banco }) {
       return;
     }
     try {
-      localStorage.setItem(CHAVE_CLIENTE, JSON.stringify({ nome: cliente.nome, telefone: cliente.telefone, email: cliente.email }));
+      localStorage.setItem(
+        CHAVE_CLIENTE,
+        JSON.stringify({ nome: cliente.nome, telefone: cliente.telefone, email: cliente.email, nascimento: nascimento ? mascaraData(cliente.nascimento) : "" }),
+      );
     } catch {}
     setFeito(r.valor);
     window.scrollTo({ top: 0 });
@@ -293,6 +327,8 @@ function FluxoComDados({ b }: { b: Banco }) {
                 grupo={grupoAtual}
                 selecionados={selecionados}
                 multiplo={n.regras.multiplosServicos}
+                promocoes={n.promocoes}
+                totalEscolhidos={selecionados.length}
                 outrasCategorias={!umaCategoria}
                 onAlternar={alternarServico}
                 onOutraCategoria={() => ir("categoria")}
@@ -359,13 +395,31 @@ function FluxoComDados({ b }: { b: Banco }) {
                       icone="whatsapp"
                     />
                   </Campo>
+                  {vaiPedirNascimento && (
+                    <Campo
+                      rotulo="Data de nascimento"
+                      opcional={n.regras.pedirNascimento === "opcional"}
+                      erro={erros.nascimento}
+                      ajuda={n.promocoes.aniversario.ativo ? `Ganhe ${n.promocoes.aniversario.percentual}% ${JANELAS[n.promocoes.aniversario.janela]}.` : undefined}
+                    >
+                      <Entrada
+                        inputMode="numeric"
+                        autoComplete="bday"
+                        placeholder="dd/mm/aaaa"
+                        value={mascaraData(cliente.nascimento)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          // preenchimento automático do navegador vem como aaaa-mm-dd
+                          const iso = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                          setCliente({ ...cliente, nascimento: iso ? `${iso[3]}/${iso[2]}/${iso[1]}` : v });
+                          if (erros.nascimento) setErros(({ nascimento: _, ...resto }) => resto);
+                        }}
+                        icone="bolo"
+                      />
+                    </Campo>
+                  )}
                   {mais ? (
                     <>
-                      {n.modulos.aniversarios && (
-                        <Campo rotulo="Data de nascimento" opcional>
-                          <Entrada type="date" value={cliente.nascimento} onChange={(e) => setCliente({ ...cliente, nascimento: e.target.value })} />
-                        </Campo>
-                      )}
                       <Campo rotulo="Observação" opcional>
                         <Texto rows={2} value={cliente.observacao} onChange={(e) => setCliente({ ...cliente, observacao: e.target.value })} />
                       </Campo>
@@ -380,7 +434,15 @@ function FluxoComDados({ b }: { b: Banco }) {
                       <Campo
                         rotulo="Cupom"
                         erro={cupom && !cupomValido && !conferindoCupom ? "Cupom não encontrado." : null}
-                        ajuda={cupomValido ? `Desconto de ${brl(desconto)} aplicado.` : conferindoCupom ? "Conferindo…" : undefined}
+                        ajuda={
+                          cupomValido
+                            ? doCupom
+                              ? `Desconto de ${brl(doCupom.valor)} aplicado.`
+                              : "Seu desconto atual já é maior."
+                            : conferindoCupom
+                              ? "Conferindo…"
+                              : undefined
+                        }
                       >
                         <div className="ag-cupom">
                           <Entrada value={cupom} onChange={(e) => setCupom(e.target.value.toUpperCase())} placeholder="CÓDIGO" icone="cupom" />
@@ -420,17 +482,32 @@ function FluxoComDados({ b }: { b: Banco }) {
                     </div>
                   )}
                   {!temPrecoOculto && (
-                    <div className="ag-resumo-total">
-                      <span>{aPartirDe ? "A partir de" : "Total"}</span>
-                      <b>
-                        {desconto > 0 && (
-                          <s style={{ fontSize: 14, color: "var(--c-texto-3)", marginRight: 8, fontWeight: 500 }}>{brl(subtotal)}</s>
-                        )}
-                        {brl(total)}
-                      </b>
-                    </div>
+                    <>
+                      <LinhasDesconto descontos={preco.descontos} subtotal={subtotal} />
+                      <div className="ag-resumo-total">
+                        <span>{aPartirDe ? "A partir de" : "Total"}</span>
+                        <b>
+                          {desconto > 0 && (
+                            <s style={{ fontSize: 14, color: "var(--c-texto-3)", marginRight: 8, fontWeight: 500 }}>{brl(subtotal)}</s>
+                          )}
+                          {brl(total)}
+                        </b>
+                      </div>
+                    </>
                   )}
                 </div>
+                {!temPrecoOculto && promessas(n.promocoes).length > 0 && (
+                  <div className="ag-promo">
+                    <Icone nome="cupom" tamanho={18} />
+                    <span>
+                      {promessas(n.promocoes).map((l) => (
+                        <span key={l} style={{ display: "block" }}>
+                          {l}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                )}
                 <p className="ag-politica">
                   Você recebe um link para remarcar ou cancelar até {n.regras.cancelamentoAteHoras}h antes.
                   {n.regras.confirmacao === "manual" && " O negócio confirma em seguida."}
@@ -453,7 +530,12 @@ function FluxoComDados({ b }: { b: Banco }) {
                       {escolhidos.length === 1 ? escolhidos[0].nome : plural(escolhidos.length, "serviço", "serviços")} · {duracao(atendimento)}
                       {escolha ? ` · ${capitalizar(dataRelativa(escolha.data, agora().slice(0, 10)))}, ${escolha.hora}` : ""}
                     </small>
-                    <strong>{temPrecoOculto ? "Sob consulta" : `${aPartirDe ? "a partir de " : ""}${brl(total)}`}</strong>
+                    <strong>
+                      {!temPrecoOculto && desconto > 0 && (
+                        <s style={{ fontSize: 13, color: "var(--c-texto-3)", marginRight: 6, fontWeight: 500 }}>{brl(subtotal)}</s>
+                      )}
+                      {temPrecoOculto ? "Sob consulta" : `${aPartirDe ? "a partir de " : ""}${brl(total)}`}
+                    </strong>
                   </>
                 ) : (
                   <>
@@ -520,6 +602,8 @@ function PassoServicos({
   grupo,
   selecionados,
   multiplo,
+  promocoes,
+  totalEscolhidos,
   outrasCategorias,
   onAlternar,
   onOutraCategoria,
@@ -527,14 +611,32 @@ function PassoServicos({
   grupo: Grupo;
   selecionados: string[];
   multiplo: boolean;
+  promocoes: Promocoes;
+  /** escolhidos em todas as categorias */
+  totalEscolhidos: number;
   outrasCategorias: boolean;
   onAlternar: (id: string) => void;
   onOutraCategoria: () => void;
 }) {
+  const v = promocoes.variosItens;
+  const falta = v.minimo - totalEscolhidos;
   return (
     <div>
       <h1 className="vt-titulo ag-passo-titulo">{grupo.nome}</h1>
       {multiplo && <p className="ag-passo-texto">Pode escolher mais de um.</p>}
+      {/* o convite para somar: "Falta 1 para ganhar 15%" */}
+      {multiplo && v.ativo && (
+        <div className="ag-promo" style={{ marginTop: 0, marginBottom: 14 }} aria-live="polite">
+          <Icone nome={falta <= 0 ? "okCirculo" : "cupom"} tamanho={18} />
+          <span>
+            {falta <= 0
+              ? `${v.percentual}% de desconto aplicado`
+              : totalEscolhidos === 0
+                ? `${v.percentual}% de desconto a partir de ${v.minimo}`
+                : `Mais ${falta} e ganha ${v.percentual}% de desconto`}
+          </span>
+        </div>
+      )}
       <div className="ag-lista">
         {grupo.servicos.map((s, i) => {
           const ativo = selecionados.includes(s.id);

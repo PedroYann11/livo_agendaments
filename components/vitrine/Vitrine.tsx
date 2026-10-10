@@ -12,6 +12,7 @@ import { NOMES_DIAS, dataCurta, dataRelativa, diaDaSemana } from "@/lib/datas";
 import { situacaoAgora } from "@/lib/disponibilidade";
 import { useVagas } from "@/lib/dados/vagas";
 import { linkWhatsApp, enderecoTexto } from "@/lib/whatsapp";
+import { resumoPromocao } from "@/lib/precos";
 import { Arte, Emergir, Revelar } from "./efeitos";
 import { capitalizar, gruposVisiveis, menorPreco, servicosVisiveis } from "./util";
 
@@ -74,6 +75,9 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
     .slice(0, 4);
   const temSemana = Object.values(n.horario).some((f) => f.length > 0);
   const mapa = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${n.nome}, ${enderecoTexto(b)}`)}`;
+  const promos = (["variosItens", "primeiraVez", "aniversario"] as const)
+    .filter((t) => n.promocoes?.[t]?.ativo)
+    .map((t) => resumoPromocao(t, n.promocoes));
 
   return (
     <>
@@ -143,6 +147,16 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
                   Ver serviços
                 </a>
               </div>
+              {promos.length > 0 && (
+                <div className="vt-promos">
+                  {promos.map((p) => (
+                    <span key={p}>
+                      <Icone nome="cupom" tamanho={15} />
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              )}
               {n.aviso.ativo && n.aviso.texto && (
                 <div className="vt-aviso">
                   <Icone nome="megafone" tamanho={18} />

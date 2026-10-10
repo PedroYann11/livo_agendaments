@@ -19,6 +19,7 @@ import { Botao, Campo, Esqueleto, EstadoVazio, Selo, Texto } from "@/components/
 import { useAvisos, useConfirmar } from "@/components/ui/Avisos";
 import type { Escolha } from "./SeletorHorario";
 import { DiaHora } from "./DiaHora";
+import { LinhasDesconto } from "./Descontos";
 import { SeloAnimado, dadosIcs } from "./Confirmado";
 import { brl, duracao, primeiroNome } from "@/lib/formato";
 import { dataDe, dataLonga, difMin, horaDe } from "@/lib/datas";
@@ -189,6 +190,7 @@ export function Gerenciar({ token }: { token: string }) {
                     </small>
                   </div>
                 </div>
+                <LinhasDesconto descontos={ag.descontos ?? []} />
                 {pro && (
                   <div className="ag-resumo-linha">
                     <Icone nome="cliente" />

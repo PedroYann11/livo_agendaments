@@ -380,6 +380,57 @@
   font-size: 20px;
   font-variant-numeric: tabular-nums;
 }
+/* descontos: um por linha, acima do total */
+.ag-descontos {
+  display: grid;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--c-linha);
+  font-size: 14px;
+  color: var(--c-texto-2);
+}
+.ag-descontos > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ag-descontos span:last-child {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ag-desconto {
+  color: var(--c-marca-tinta);
+  font-weight: 560;
+}
+.ag-desconto em {
+  font-style: normal;
+  font-weight: 450;
+  opacity: 0.8;
+}
+/* promoções: o convite para somar mais um serviço e o que pode entrar na confirmação */
+.ag-promo {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: var(--c-marca-sutil);
+  color: var(--c-marca-tinta);
+  font-size: 14px;
+  font-weight: 540;
+  line-height: 1.4;
+}
+.ag-promo svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.ag-promo small {
+  display: block;
+  font-weight: 450;
+  opacity: 0.85;
+  font-size: 13px;
+}
 .ag-politica {
   font-size: 12.5px;
   color: var(--c-texto-3);

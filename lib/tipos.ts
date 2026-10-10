@@ -79,6 +79,32 @@ export type RegrasAgendamento = {
   fuso: string;
   escolherProfissional: boolean;
   multiplosServicos: boolean;
+  /** a data de nascimento no agendamento pelo link */
+  pedirNascimento: "nao" | "opcional" | "obrigatorio";
+};
+
+/**
+ * Descontos que entram sozinhos no agendamento (Configurações › Promoções).
+ * A regra é uma só, no banco e no navegador: lib/precos.ts.
+ */
+export type Promocoes = {
+  /** todos valem juntos (um sobre o outro) ou só o maior */
+  acumular: boolean;
+  /** N ou mais serviços no mesmo horário (um combo conta 1) */
+  variosItens: { ativo: boolean; nome: string; minimo: number; percentual: number };
+  /** quem nunca foi atendido nem veio da lista antiga */
+  primeiraVez: { ativo: boolean; nome: string; percentual: number };
+  /** no dia, na semana (3 dias antes ou depois) ou no mês do aniversário */
+  aniversario: { ativo: boolean; nome: string; percentual: number; janela: "dia" | "semana" | "mes" };
+};
+
+/** Um desconto que entrou na conta, congelado no agendamento. */
+export type DescontoAplicado = {
+  tipo: "variosItens" | "primeiraVez" | "aniversario" | "cupom";
+  nome: string;
+  percentual: number | null;
+  valor: number;
+  codigo?: string;
 };
 
 export type Negocio = {
@@ -114,6 +140,7 @@ export type Negocio = {
   aviso: { texto: string; ativo: boolean };
   /** o enfeite do canto do topo (celular): o desenho do estilo da página ou nenhum */
   enfeiteTopo: EnfeiteTopo;
+  promocoes: Promocoes;
 };
 
 export type EnfeiteTopo = "desenho" | "nenhum";
@@ -218,6 +245,8 @@ export type Agendamento = {
   itens: ItemAgendamento[];
   total: number;
   desconto: number;
+  /** cada desconto que entrou na conta (promoções e cupom) */
+  descontos: DescontoAplicado[];
   observacao: string;
   criadoEm: string;
   confirmadoEm: string | null;

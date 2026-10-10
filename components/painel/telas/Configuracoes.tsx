@@ -19,7 +19,7 @@ import { Passo } from "./Servicos";
 import { Icone, type NomeIcone } from "@/components/ui/Icone";
 import { Botao, BotaoCopiar, BotaoIcone, Campo, Entrada, Estrelas, Interruptor, Segmentado, Selo, Texto } from "@/components/ui/basicos";
 import { useAvisos, useConfirmar } from "@/components/ui/Avisos";
-import type { Cupom, Negocio, Pele } from "@/lib/tipos";
+import type { Cupom, Negocio, Pele, Promocoes } from "@/lib/tipos";
 import { removerCupom, salvarCupom, salvarDepoimento, salvarNegocio } from "@/lib/dados/acoes";
 import { MODULOS, NICHOS, modulosDoNicho } from "@/lib/padroes";
 import { buscarCep, buscarFeriados, type Feriado } from "@/lib/feriados";
@@ -41,7 +41,7 @@ const SECOES: { id: Secao; rotulo: string; icone: NomeIcone }[] = [
   { id: "contato", rotulo: "Contato e endereço", icone: "local" },
   { id: "pagamentos", rotulo: "Pix, sinal e meta", icone: "pix" },
   { id: "modulos", rotulo: "Funções", icone: "grade" },
-  { id: "promocoes", rotulo: "Cupons", icone: "cupom" },
+  { id: "promocoes", rotulo: "Promoções", icone: "cupom" },
   { id: "avaliacoes", rotulo: "Avaliações", icone: "estrela" },
   { id: "conta", rotulo: "Conta", icone: "cliente" },
 ];
@@ -108,7 +108,12 @@ export function Configuracoes() {
               {secao === "contato" && <SecaoContato n={rascunho} muda={muda} />}
               {secao === "pagamentos" && <SecaoPagamentos n={rascunho} muda={muda} />}
               {secao === "modulos" && <SecaoModulos n={rascunho} muda={muda} />}
-              {secao === "promocoes" && <SecaoCupons />}
+              {secao === "promocoes" && (
+                <>
+                  <SecaoPromocoes n={rascunho} muda={muda} />
+                  <SecaoCupons />
+                </>
+              )}
               {secao === "avaliacoes" && <SecaoAvaliacoes />}
               {secao === "conta" && <SecaoConta />}
             </motion.div>
@@ -330,7 +335,7 @@ function SecaoAparencia({ n, muda }: PropsSecao) {
           </div>
           <small style={{ color: "var(--c-texto-2)" }}>{PELES.find((p) => p.id === n.pele)?.descricao}</small>
         </Bloco>
-        <Bloco titulo="Enfeite do topo" texto="O desenho no canto do topo da página, ao lado do seu logo (aparece no celular). Sem ele, fica só o fundo.">
+        <Bloco titulo="Enfeite do topo">
           <Segmentado
             rotulo="Enfeite do topo"
             valor={n.enfeiteTopo}
@@ -765,13 +770,174 @@ function SecaoModulos({ n, muda }: PropsSecao) {
   );
 }
 
+/** % inteiro de 1 a 90 (o banco recusa o resto) */
+const pct = (v: string) => Math.min(90, Math.max(1, Number(v.replace(/\D/g, "")) || 1));
+
+function SecaoPromocoes({ n, muda }: PropsSecao) {
+  const pr = n.promocoes;
+  const mudaPr = (p: Partial<Promocoes>) => muda({ promocoes: { ...pr, ...p } });
+  return (
+    <>
+      <Bloco titulo="Descontos automáticos">
+        <div className="cf-promos">
+          <CartaoPromo
+            titulo="Vários serviços"
+            ajuda="Combo conta como 1."
+            ligado={pr.variosItens.ativo}
+            onLigar={(ativo) => mudaPr({ variosItens: { ...pr.variosItens, ativo } })}
+            percentual={pr.variosItens.percentual}
+            onPercentual={(percentual) => mudaPr({ variosItens: { ...pr.variosItens, percentual } })}
+            nome={pr.variosItens.nome}
+            onNome={(nome) => mudaPr({ variosItens: { ...pr.variosItens, nome } })}
+          >
+            <Grupo rotulo="A partir de">
+              <Segmentado
+                rotulo="A partir de quantos serviços"
+                tamanho="p"
+                valor={String(pr.variosItens.minimo)}
+                onMudar={(v) => mudaPr({ variosItens: { ...pr.variosItens, minimo: Number(v) } })}
+                opcoes={["2", "3", "4"].map((x) => ({ id: x, rotulo: x }))}
+              />
+            </Grupo>
+          </CartaoPromo>
+          <CartaoPromo
+            titulo="Primeira vez"
+            ajuda="Quem nunca foi atendido."
+            ligado={pr.primeiraVez.ativo}
+            onLigar={(ativo) => mudaPr({ primeiraVez: { ...pr.primeiraVez, ativo } })}
+            percentual={pr.primeiraVez.percentual}
+            onPercentual={(percentual) => mudaPr({ primeiraVez: { ...pr.primeiraVez, percentual } })}
+            nome={pr.primeiraVez.nome}
+            onNome={(nome) => mudaPr({ primeiraVez: { ...pr.primeiraVez, nome } })}
+          />
+          <CartaoPromo
+            titulo="Aniversário"
+            ajuda={n.regras.pedirNascimento === "nao" ? "Peça a data de nascimento abaixo." : undefined}
+            ligado={pr.aniversario.ativo}
+            onLigar={(ativo) => mudaPr({ aniversario: { ...pr.aniversario, ativo } })}
+            percentual={pr.aniversario.percentual}
+            onPercentual={(percentual) => mudaPr({ aniversario: { ...pr.aniversario, percentual } })}
+            nome={pr.aniversario.nome}
+            onNome={(nome) => mudaPr({ aniversario: { ...pr.aniversario, nome } })}
+          >
+            <Grupo rotulo="Vale">
+              <Segmentado
+                rotulo="Quando vale"
+                tamanho="p"
+                valor={pr.aniversario.janela}
+                onMudar={(janela) => mudaPr({ aniversario: { ...pr.aniversario, janela } })}
+                opcoes={[
+                  { id: "dia", rotulo: "No dia" },
+                  { id: "semana", rotulo: "Na semana" },
+                  { id: "mes", rotulo: "No mês" },
+                ]}
+              />
+            </Grupo>
+          </CartaoPromo>
+        </div>
+        <Grupo rotulo="Mais de um desconto no mesmo horário">
+          <Segmentado
+            rotulo="Mais de um desconto"
+            valor={pr.acumular ? "somam" : "maior"}
+            onMudar={(v) => mudaPr({ acumular: v === "somam" })}
+            opcoes={[
+              { id: "somam", rotulo: "Valem todos" },
+              { id: "maior", rotulo: "Só o maior" },
+            ]}
+          />
+        </Grupo>
+      </Bloco>
+      <Bloco titulo="Data de nascimento no agendamento">
+        <Segmentado
+          rotulo="Data de nascimento"
+          valor={n.regras.pedirNascimento}
+          onMudar={(pedirNascimento) => muda({ regras: { ...n.regras, pedirNascimento } })}
+          opcoes={[
+            { id: "nao", rotulo: "Não pedir" },
+            { id: "opcional", rotulo: "Opcional" },
+            { id: "obrigatorio", rotulo: "Obrigatória" },
+          ]}
+        />
+      </Bloco>
+    </>
+  );
+}
+
+/** Rótulo + grupo de botões: como o Campo, mas sem <label> (tocar no rótulo não aperta o 1º botão). */
+function Grupo({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+  return (
+    <div className="ui-campo">
+      <span className="ui-campo-rotulo">{rotulo}</span>
+      {children}
+    </div>
+  );
+}
+
+function CartaoPromo({
+  titulo,
+  ajuda,
+  ligado,
+  onLigar,
+  percentual,
+  onPercentual,
+  nome,
+  onNome,
+  children,
+}: {
+  titulo: string;
+  ajuda?: string;
+  ligado: boolean;
+  onLigar: (v: boolean) => void;
+  percentual: number;
+  onPercentual: (v: number) => void;
+  nome: string;
+  onNome: (v: string) => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="cf-promo" data-ligado={ligado}>
+      <div className="cf-promo-topo">
+        <span>
+          <strong>{titulo}</strong>
+          {ajuda && <small>{ajuda}</small>}
+        </span>
+        <Interruptor ligado={ligado} onMudar={onLigar} rotulo={titulo} />
+      </div>
+      <AnimatePresence initial={false}>
+        {ligado && (
+          <motion.div
+            className="cf-promo-campos"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+          >
+            <div className="ui-grade-campos duas">
+              <Campo rotulo="Desconto">
+                <span className="cf-pct">
+                  <Entrada inputMode="numeric" value={String(percentual)} onChange={(e) => onPercentual(pct(e.target.value))} aria-label={`Desconto de ${titulo}`} />
+                  <b>%</b>
+                </span>
+              </Campo>
+              <Campo rotulo="Nome para o cliente" erro={nome.trim().length < 2 ? "Dê um nome." : null}>
+                <Entrada value={nome} maxLength={60} onChange={(e) => onNome(e.target.value)} />
+              </Campo>
+            </div>
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 function SecaoCupons() {
   const b = useBanco();
   const { mudar } = useLoja();
   const avisar = useAvisos();
   const [novo, setNovo] = useState<Cupom>({ id: novoId("cp"), codigo: "", tipo: "percentual", valor: 10, ativo: true, validoAte: null, usos: 0 });
   return (
-    <Bloco titulo="Cupons de desconto" texto="O cliente digita o código ao agendar pelo link.">
+    <Bloco titulo="Cupons">
       <div className="pn-lista" style={{ margin: "0 -18px" }}>
         {b.cupons.map((c) => (
           <div key={c.id} className="pn-linha">

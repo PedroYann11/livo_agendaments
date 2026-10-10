@@ -98,6 +98,13 @@ export function negocioDe(j: NegocioDoBanco): Negocio {
     pix: { ...base.pix, ...j.pix },
     sinal: { ...base.sinal, ...j.sinal },
     aviso: { ...base.aviso, ...j.aviso },
+    promocoes: {
+      ...base.promocoes,
+      ...j.promocoes,
+      variosItens: { ...base.promocoes.variosItens, ...j.promocoes?.variosItens },
+      primeiraVez: { ...base.promocoes.primeiraVez, ...j.promocoes?.primeiraVez },
+      aniversario: { ...base.promocoes.aniversario, ...j.promocoes?.aniversario },
+    },
     horario: j.horario ?? base.horario,
     aberturas: j.aberturas ?? [],
     datasEspeciais: j.datasEspeciais ?? [],
@@ -146,9 +153,15 @@ type PainelDoBanco = { negocio: NegocioDoBanco; registros: { colecao: ColecaoReg
   Tabela
 >;
 
+/** Agendamento do banco no formato do app (antes da 010, sem a lista de descontos). */
+export function agendamentoDe(a: Agendamento): Agendamento {
+  return Array.isArray(a.descontos) ? a : { ...a, descontos: [] };
+}
+
 export function bancoDoPainel(j: PainelDoBanco): Banco {
   const b: Banco = { ...bancoVazio(negocioDe(j.negocio)) };
   for (const t of TABELAS) (b[t] as unknown[]) = j[t];
+  b.agendamentos = b.agendamentos.map(agendamentoDe);
   const porColecao = new Map<ColecaoRegistro, unknown[]>();
   for (const r of j.registros) {
     if (!porColecao.has(r.colecao)) porColecao.set(r.colecao, []);
@@ -269,10 +282,11 @@ export type PedidoPublico = {
 };
 
 export async function agendarNoBanco(slug: string, pedido: PedidoPublico) {
-  return chamar<{ agendamento: Agendamento; cliente: { id: string; nome: string } }>("agendar", {
+  const r = await chamar<{ agendamento: Agendamento; cliente: { id: string; nome: string } }>("agendar", {
     p_slug: slug,
     p_pedido: pedido,
   });
+  return { ...r, agendamento: agendamentoDe(r.agendamento) };
 }
 
 export type Link = {
@@ -284,14 +298,17 @@ export type Link = {
 };
 
 export async function abrirLink(slug: string, token: string): Promise<Link | null> {
-  return chamar<Link | null>("agendamento_publico", { p_slug: slug, p_token: token });
+  const r = await chamar<Link | null>("agendamento_publico", { p_slug: slug, p_token: token });
+  return r && { ...r, agendamento: agendamentoDe(r.agendamento) };
 }
 
 export const acoesDoLink = {
-  cancelar: (slug: string, token: string) => chamar<Agendamento>("agendamento_cancelar", { p_slug: slug, p_token: token }),
-  confirmar: (slug: string, token: string) => chamar<Agendamento>("agendamento_confirmar", { p_slug: slug, p_token: token }),
+  cancelar: (slug: string, token: string) =>
+    chamar<Agendamento>("agendamento_cancelar", { p_slug: slug, p_token: token }).then(agendamentoDe),
+  confirmar: (slug: string, token: string) =>
+    chamar<Agendamento>("agendamento_confirmar", { p_slug: slug, p_token: token }).then(agendamentoDe),
   remarcar: (slug: string, token: string, data: string, hora: string) =>
-    chamar<Agendamento>("agendamento_remarcar", { p_slug: slug, p_token: token, p_data: data, p_hora: hora }),
+    chamar<Agendamento>("agendamento_remarcar", { p_slug: slug, p_token: token, p_data: data, p_hora: hora }).then(agendamentoDe),
   avaliar: (slug: string, token: string, nota: number, texto: string) =>
     chamar<null>("agendamento_avaliar", { p_slug: slug, p_token: token, p_nota: nota, p_texto: texto }),
   ficha: (slug: string, token: string, respostas: Record<string, string | string[]>, assinatura: string) =>

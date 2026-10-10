@@ -13,7 +13,7 @@
 // =====================================================================
 
 import type { Categoria, Negocio, Profissional, Semana, Servico } from "../tipos";
-import { MENSAGENS_PADRAO, REGRAS_PADRAO, modulosDoNicho } from "../padroes";
+import { MENSAGENS_PADRAO, REGRAS_PADRAO, modulosDoNicho, promocoesPadrao } from "../padroes";
 import type { Semente } from "./tipos";
 
 const FEM = "dp_cat_feminino";
@@ -142,13 +142,26 @@ const negocio: Negocio = {
   horario: semDiaFixo,
   aberturas: diasDeAtendimento,
   datasEspeciais: [],
-  regras: { ...REGRAS_PADRAO, intervaloSlotsMin: 10, janelaMaxDias: 60, escolherProfissional: false, multiplosServicos: true },
+  regras: {
+    ...REGRAS_PADRAO,
+    intervaloSlotsMin: 10,
+    janelaMaxDias: 60,
+    escolherProfissional: false,
+    multiplosServicos: true,
+    pedirNascimento: "obrigatorio",
+  },
   modulos: { ...modulosDoNicho("depilacao"), comissoes: false },
   pix: { chave: "", nome: "", cidade: "" },
   sinal: { percentual: 30, servicosIds: [] },
   metaMensal: 0,
   aviso: { texto: "", ativo: false },
   enfeiteTopo: "desenho",
+  // o pedido da DepiLED: 2 áreas (combo conta 1) → 15%; primeira vez → 10%; valem juntos
+  promocoes: {
+    ...promocoesPadrao("depilacao"),
+    variosItens: { ativo: true, nome: "2 áreas ou mais", minimo: 2, percentual: 15 },
+    primeiraVez: { ativo: true, nome: "Primeira vez", percentual: 10 },
+  },
 };
 
 export const depiled: Semente = {

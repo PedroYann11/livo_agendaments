@@ -15,7 +15,8 @@ import { Icone } from "@/components/ui/Icone";
 import { Avatar, Botao, BotaoIcone, Busca, Campo, Entrada, Interruptor, Texto } from "@/components/ui/basicos";
 import { useAvisos } from "@/components/ui/Avisos";
 import { SeletorHorario, type Escolha } from "@/components/agendar/SeletorHorario";
-import { criarAgendamento, registrarMensagem } from "@/lib/dados/acoes";
+import { clienteENovo, criarAgendamento, registrarMensagem } from "@/lib/dados/acoes";
+import { calcularPreco } from "@/lib/precos";
 import { profissionaisAptos } from "@/lib/disponibilidade";
 import { brl, duracao, normalizar, primeiroNome } from "@/lib/formato";
 import { apenasDigitos, mascaraTelefone, telefoneValido } from "@/lib/masks";
@@ -52,6 +53,7 @@ function Formulario({ b, pre, onFechar, onCriado }: { b: Banco; pre: PreNovo; on
   const [data, setData] = useState<string | null>(pre.data ?? null);
   const [escolha, setEscolha] = useState<Escolha | null>(null);
   const [observacao, setObservacao] = useState("");
+  const [semPromocoes, setSemPromocoes] = useState(false);
   const [buscaServico, setBuscaServico] = useState("");
 
   const ativos = b.servicos.filter((s) => s.ativo).sort((a, c) => a.ordem - c.ordem);
@@ -80,8 +82,18 @@ function Formulario({ b, pre, onFechar, onCriado }: { b: Banco; pre: PreNovo; on
   }, [b.clientes, busca]);
 
   const escolhidos = servicos.map((id) => b.servicos.find((s) => s.id === id)!).filter(Boolean);
-  const total = escolhidos.reduce((s, x) => s + x.preco, 0);
+  const subtotal = escolhidos.reduce((s, x) => s + x.preco, 0);
   const tempo = escolhidos.reduce((s, x) => s + x.duracaoMin, 0);
+  // a mesma regra do link; aqui o cadastro é conhecido (primeira vez, aniversário)
+  const dadosPreco = {
+    precos: escolhidos.map((s) => s.preco),
+    novo: clienteENovo(b, cliente?.telefone ?? novoCliente?.telefone ?? "", cliente?.id),
+    nascimento: cliente?.nascimento ?? null,
+    dia: escolha?.data ?? agora().slice(0, 10),
+    cupom: null,
+  };
+  const comPromocoes = calcularPreco({ ...dadosPreco, promocoes: b.negocio.promocoes });
+  const preco = semPromocoes ? calcularPreco({ ...dadosPreco, promocoes: null }) : comPromocoes;
   const clientePronto = cliente || (novoCliente && novoCliente.nome.trim().length > 2 && telefoneValido(novoCliente.telefone));
 
   const salvar = (enviarWhats: boolean) => {
@@ -97,6 +109,7 @@ function Formulario({ b, pre, onFechar, onCriado }: { b: Banco; pre: PreNovo; on
       cliente: cliente ? { id: cliente.id, nome: cliente.nome, telefone: cliente.telefone } : { nome: novoCliente!.nome, telefone: novoCliente!.telefone },
       observacao,
       encaixe: true,
+      semPromocoes,
     });
     if (!r.ok) {
       avisar(r.motivo, "erro");
@@ -184,7 +197,7 @@ function Formulario({ b, pre, onFechar, onCriado }: { b: Banco; pre: PreNovo; on
 
       <section style={{ display: "grid", gap: 8 }}>
         <span className="ui-campo-rotulo">
-          Serviços {escolhidos.length > 0 && <em style={{ fontStyle: "normal", color: "var(--c-texto-3)", fontWeight: 450 }}>· {duracao(tempo)} · {brl(total)}</em>}
+          Serviços {escolhidos.length > 0 && <em style={{ fontStyle: "normal", color: "var(--c-texto-3)", fontWeight: 450 }}>· {duracao(tempo)} · {brl(subtotal)}</em>}
         </span>
         {ativos.length > 10 && <Busca valor={buscaServico} onMudar={setBuscaServico} placeholder="Filtrar serviços" />}
         <div className="na-servicos">
@@ -275,6 +288,30 @@ function Formulario({ b, pre, onFechar, onCriado }: { b: Banco; pre: PreNovo; on
       <Campo rotulo="Observação" opcional>
         <Texto rows={2} value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Ex.: prefere a sala 2" />
       </Campo>
+
+      {comPromocoes.descontos.length > 0 && (
+        <section className="na-valor">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <span className="ui-campo-rotulo">Valor</span>
+            <Interruptor ligado={!semPromocoes} onMudar={(v) => setSemPromocoes(!v)} rotulo="Promoções" mostrarRotulo />
+          </div>
+          {preco.descontos.map((d) => (
+            <div key={d.tipo} className="na-valor-linha">
+              <span>
+                {d.nome}
+                {d.percentual !== null && ` · ${d.percentual}%`}
+              </span>
+              <span>−{brl(d.valor)}</span>
+            </div>
+          ))}
+          <div className="na-valor-linha na-valor-total">
+            <span>Total</span>
+            <b>
+              {preco.desconto > 0 && <s>{brl(preco.subtotal)}</s>} {brl(preco.total)}
+            </b>
+          </div>
+        </section>
+      )}
 
       <div style={{ display: "grid", gap: 8, position: "sticky", bottom: -24, background: "var(--c-superficie)", padding: "12px 0 4px" }}>
         <Botao variante="principal" tamanho="g" disabled={!escolha || !clientePronto || !servicos.length} onClick={() => salvar(true)} icone="whatsapp">

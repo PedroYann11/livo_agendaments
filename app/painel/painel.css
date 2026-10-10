@@ -1582,6 +1582,33 @@ a.pn-linha:hover {
   font-size: 12.5px;
   color: var(--c-texto-2);
 }
+/* novo agendamento: o valor com as promoções que entraram */
+.na-valor {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--c-linha);
+  font-size: 14px;
+}
+.na-valor-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--c-marca-tinta);
+  font-variant-numeric: tabular-nums;
+}
+.na-valor-total {
+  padding-top: 6px;
+  border-top: 1px dashed var(--c-linha);
+  color: var(--c-texto);
+  font-weight: 640;
+}
+.na-valor-total s {
+  color: var(--c-texto-3);
+  font-weight: 450;
+  margin-right: 4px;
+}
 .na-escolhido {
   display: flex;
   align-items: center;
@@ -2007,6 +2034,55 @@ a.pn-linha:hover {
   .cf-menu button[aria-current="true"] svg {
     color: #fff;
   }
+}
+/* promoções: um cartão por desconto, campos só quando ligado */
+.cf-promos {
+  display: grid;
+  gap: 10px;
+}
+.cf-promo {
+  border: 1px solid var(--c-linha);
+  border-radius: 14px;
+  padding: 12px 14px;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.cf-promo[data-ligado="true"] {
+  border-color: color-mix(in srgb, var(--c-marca) 40%, var(--c-linha));
+  background: color-mix(in srgb, var(--c-marca) 4%, var(--c-superficie));
+}
+.cf-promo-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cf-promo-topo strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 620;
+}
+.cf-promo-topo small {
+  display: block;
+  font-size: 13px;
+  color: var(--c-texto-2);
+}
+.cf-promo-campos {
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+}
+.cf-promo-campos > :first-child {
+  margin-top: 12px;
+}
+.cf-pct {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cf-pct .ui-entrada {
+  width: 84px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .cf-salvar {
   position: sticky;
