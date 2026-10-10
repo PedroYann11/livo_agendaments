@@ -39,6 +39,7 @@ done
 if command -v node >/dev/null; then
   ( cd "$RAIZ/supabase/tests/paridade" && PORTA=$PORTA node --import ./registrar.mjs --experimental-strip-types --no-warnings paridade.mts 150 )
   ( cd "$RAIZ/supabase/tests/paridade" && PORTA=$PORTA node --import ./registrar.mjs --experimental-strip-types --no-warnings reservados.mts )
+  ( cd "$RAIZ/supabase/tests/paridade" && PORTA=$PORTA node --import ./registrar.mjs --experimental-strip-types --no-warnings precos.mts 600 )
 fi
 
 if [ "${1:-}" != "--manter" ]; then
