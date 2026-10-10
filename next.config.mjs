@@ -32,7 +32,8 @@ const scriptSrc = [
   process.env.NODE_ENV === "development" ? "'unsafe-eval'" : null,
 ].filter(Boolean);
 
-const csp = [
+/** frame-ancestors muda por rota (abaixo); o resto da CSP é igual em todas. */
+const cspCom = (frameAncestors) => [
   "default-src 'self'",
   `script-src ${scriptSrc.join(" ")}`,
   "style-src 'self' 'unsafe-inline'",
@@ -44,22 +45,37 @@ const csp = [
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
-  "frame-ancestors 'none'",
+  `frame-ancestors ${frameAncestors}`,
   "upgrade-insecure-requests",
 ].join("; ");
 
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: csp },
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
-  { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
 ];
 
+// Moldura (iframe): a página do negócio pode aparecer DENTRO do próprio site
+// — é a prévia em Configurações › Aparência —, nunca em site de fora
+// (clickjacking). O painel não aparece em moldura nenhuma. A última regra
+// que casa com a rota vence.
+const emMolduraSoDoSite = [
+  { key: "Content-Security-Policy", value: cspCom("'self'") },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+];
+const nuncaEmMoldura = [
+  { key: "Content-Security-Policy", value: cspCom("'none'") },
+  { key: "X-Frame-Options", value: "DENY" },
+];
+
 const nextConfig = {
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: [...securityHeaders, ...emMolduraSoDoSite] },
+      { source: "/painel", headers: nuncaEmMoldura },
+      { source: "/painel/:path*", headers: nuncaEmMoldura },
+    ];
   },
 };
 
