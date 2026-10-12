@@ -33,7 +33,7 @@ export function Mensagens() {
   const n = b.negocio;
   return (
     <div className="pn-pagina">
-      <Cabecalho titulo="Mensagens" texto="Lembretes e recados prontos — um toque e abre o WhatsApp." />
+      <Cabecalho titulo="Mensagens" />
       <div style={{ marginBottom: 14 }}>
         <Segmentado
           rotulo="Seção"
@@ -113,7 +113,7 @@ function Linha({
   );
 }
 
-function Grupo({ icone, titulo, texto, children, vazio }: { icone: Parameters<typeof Icone>[0]["nome"]; titulo: string; texto: string; children: React.ReactNode; vazio: boolean }) {
+function Grupo({ icone, titulo, texto, children, vazio }: { icone: Parameters<typeof Icone>[0]["nome"]; titulo: string; texto?: string; children: React.ReactNode; vazio: boolean }) {
   return (
     <div className="pn-cartao">
       <div className="pn-cartao-cabeca">
@@ -121,9 +121,11 @@ function Grupo({ icone, titulo, texto, children, vazio }: { icone: Parameters<ty
           <Icone nome={icone} tamanho={18} /> {titulo}
         </h2>
       </div>
-      <p className="pn-cartao-sub" style={{ padding: "0 18px" }}>
-        {texto}
-      </p>
+      {texto && (
+        <p className="pn-cartao-sub" style={{ padding: "0 18px" }}>
+          {texto}
+        </p>
+      )}
       <div className="pn-lista" style={{ marginTop: 8 }}>
         {vazio ? <p style={{ padding: "8px 18px 16px", fontSize: 14, color: "var(--c-texto-3)" }}>Nada pendente aqui.</p> : children}
       </div>
@@ -157,11 +159,10 @@ function ParaEnviar({ b }: { b: Banco }) {
           <strong style={{ display: "block" }}>
             {faltam ? `${faltam} lembretes de amanhã para enviar` : "Lembretes de amanhã: tudo enviado"}
           </strong>
-          <span style={{ color: "var(--c-texto-2)" }}>Lembrete na véspera reduz as faltas pela metade. O envio automático chega com o WhatsApp oficial.</span>
         </div>
       </div>
       <div className="pn-grade g2">
-        <Grupo icone="sino" titulo={`Lembretes · ${dataCurta(amanha)}`} texto="Quem tem horário amanhã." vazio={!lembretes.length}>
+        <Grupo icone="sino" titulo={`Lembretes · ${dataCurta(amanha)}`} vazio={!lembretes.length}>
           {lembretes.map((a) => (
             <Linha
               key={a.id}
@@ -174,7 +175,7 @@ function ParaEnviar({ b }: { b: Banco }) {
           ))}
         </Grupo>
         <div style={{ display: "grid", gap: 14, alignContent: "start" }}>
-          <Grupo icone="ampulheta" titulo="Pedir confirmação" texto="Horários a confirmar nos próximos 2 dias." vazio={!confirmar.length}>
+          <Grupo icone="ampulheta" titulo="Pedir confirmação" texto="Hoje e depois de amanhã." vazio={!confirmar.length}>
             {confirmar.map((a) => (
               <Linha
                 key={a.id}
@@ -212,7 +213,7 @@ function Aniversarios({ b }: { b: Banco }) {
   return (
     <div className="pn-cartao">
       {lista.length === 0 ? (
-        <EstadoVazio icone="bolo" titulo="Nenhum aniversário nos próximos 30 dias" texto="Peça a data de nascimento no cadastro — o agendamento online já pergunta." />
+        <EstadoVazio icone="bolo" titulo="Nenhum aniversário nos próximos 30 dias" />
       ) : (
         <div className="pn-lista">
           {lista.map((c) => {
@@ -224,7 +225,7 @@ function Aniversarios({ b }: { b: Banco }) {
                 cliente={c}
                 texto={ehHoje ? "Hoje!" : dataLonga(dia < hoje ? `${Number(hoje.slice(0, 4)) + 1}-${c.nascimento!.slice(5)}` : dia)}
                 enviada={b.registrosMensagem.some((r) => r.tipo === "aniversario" && r.clienteId === c.id && r.enviadaEm.slice(0, 4) === hoje.slice(0, 4))}
-                rotulo={ehHoje ? "Parabenizar" : "Agendar parabéns"}
+                rotulo={ehHoje ? "Parabenizar" : "Enviar parabéns"}
                 onEnviar={() => enviar(b, "aniversario", c, null)}
               />
             );
@@ -243,7 +244,7 @@ function Retorno({ b }: { b: Banco }) {
   return (
     <div className="pn-cartao">
       <p className="pn-cartao-sub" style={{ padding: "14px 18px 0" }}>
-        Clientes que passaram do prazo de retorno do último serviço (configurado em cada serviço) e não têm nada marcado.
+        Passaram do prazo de retorno e não marcaram.
       </p>
       {lista.length === 0 ? (
         <EstadoVazio icone="retorno" titulo="Todo mundo em dia" />
@@ -341,12 +342,12 @@ function Modelos({ b }: { b: Banco }) {
               </Botao>
             </div>
           </div>
-          <small style={{ color: "var(--c-texto-3)" }}>Sem emoji: alguns celulares mostram “?” no lugar. Texto simples chega igual para todo mundo.</small>
+          <small style={{ color: "var(--c-texto-3)" }}>Sem emoji: alguns celulares mostram “?”.</small>
         </div>
       </div>
       <div>
         <div className="ms-celular">
-          <small style={{ textAlign: "center", color: "#667781", fontSize: 12, marginBottom: 4 }}>Prévia · como o cliente recebe</small>
+          <small style={{ textAlign: "center", color: "#667781", fontSize: 12, marginBottom: 4 }}>Prévia</small>
           <AnimatePresence mode="popLayout">
             <motion.div key={tipo} className="ms-bolha" initial={{ opacity: 0, y: 12, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ type: "spring", stiffness: 420, damping: 30 }}>
               {exemplo}

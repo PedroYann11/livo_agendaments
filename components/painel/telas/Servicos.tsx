@@ -101,7 +101,7 @@ export function Servicos() {
           )}
           {!ativos.length && (
             <div className="pn-cartao">
-              <EstadoVazio icone="servicos" titulo="Cadastre seu primeiro serviço" texto="Nome, duração e preço. Foto é opcional." acao={<Botao variante="principal" icone="mais" onClick={() => setEditar(servicoNovo(b, null))}>Novo serviço</Botao>} />
+              <EstadoVazio icone="servicos" titulo="Cadastre seu primeiro serviço" texto="Nome, duração e preço." acao={<Botao variante="principal" icone="mais" onClick={() => setEditar(servicoNovo(b, null))}>Novo serviço</Botao>} />
             </div>
           )}
           <div style={{ display: "grid", gap: 16 }}>
@@ -140,7 +140,7 @@ export function Servicos() {
                       className="pn-lista"
                     >
                       {lista.map((s) => (
-                        <LinhaServico key={s.id} b={b} s={s} arrastar={!q} onEditar={() => setEditar(s)} onPausar={(v) => { mudar((x) => salvarServico(x, { ...s, pausado: v })); avisar(v ? `${s.nome} pausado: some do site até você reativar.` : `${s.nome} de volta ao site.`); }} />
+                        <LinhaServico key={s.id} b={b} s={s} arrastar={!q} onEditar={() => setEditar(s)} onPausar={(v) => { mudar((x) => salvarServico(x, { ...s, pausado: v })); avisar(v ? `${s.nome} pausado.` : `${s.nome} de volta ao site.`); }} />
                       ))}
                     </Reorder.Group>
                   )}
@@ -262,7 +262,7 @@ function EditorServico({ servico, onFechar }: { servico: Servico | null; onFecha
           <Campo rotulo="Nome">
             <Entrada value={s.nome} onChange={(e) => setS({ ...s, nome: e.target.value })} placeholder="Ex.: Corte masculino" />
           </Campo>
-          <Campo rotulo="Descrição" opcional ajuda="Aparece na sua página. Duas linhas bastam.">
+          <Campo rotulo="Descrição" opcional ajuda="Duas linhas bastam.">
             <Texto rows={2} value={s.descricao} onChange={(e) => setS({ ...s, descricao: e.target.value })} />
           </Campo>
           <Campo rotulo="Categoria">
@@ -431,7 +431,7 @@ function EditorCategoria({ categoria, onFechar }: { categoria: Categoria | null;
     if (!c) return;
     if (!c.nome.trim()) return avisar("Dê um nome à categoria.", "erro");
     mudar((x) => salvarCategoria(x, { ...c, nome: c.nome.trim(), descricao: c.descricao.trim() }));
-    avisar(nova ? "Categoria criada." : c.pausada ? "Categoria pausada: some da página até você reativar." : "Categoria salva.");
+    avisar(nova ? "Categoria criada." : c.pausada ? "Categoria pausada." : "Categoria salva.");
     onFechar();
   };
 
@@ -440,7 +440,6 @@ function EditorCategoria({ categoria, onFechar }: { categoria: Categoria | null;
       aberta={!!categoria}
       onFechar={onFechar}
       titulo={nova ? "Nova categoria" : "Editar categoria"}
-      subtitulo="É a primeira escolha do cliente na hora de agendar."
       rodape={
         <>
           {!nova && (
@@ -474,7 +473,7 @@ function EditorCategoria({ categoria, onFechar }: { categoria: Categoria | null;
           <Campo rotulo="Nome">
             <Entrada autoFocus={!!nova} value={c.nome} onChange={(e) => setC({ ...c, nome: e.target.value })} placeholder="Ex.: Procedimentos Femininos" />
           </Campo>
-          <Campo rotulo="Descrição" opcional ajuda="Uma linha no cartão da categoria. Ex.: Duas áreas com valor promocional.">
+          <Campo rotulo="Descrição" opcional ajuda="Ex.: Duas áreas com valor promocional.">
             <Entrada value={c.descricao} onChange={(e) => setC({ ...c, descricao: e.target.value })} />
           </Campo>
           <div className="pn-opcao">
@@ -495,7 +494,7 @@ function OrdemCategorias({ aberta, onFechar }: { aberta: boolean; onFechar: () =
   if (!banco) return null;
   const cats = banco.categorias.slice().sort((a, c) => a.ordem - c.ordem);
   return (
-    <Folha aberta={aberta} onFechar={onFechar} titulo="Ordem das categorias" subtitulo="Arraste. É a ordem em que o cliente vê na hora de agendar.">
+    <Folha aberta={aberta} onFechar={onFechar} titulo="Ordem das categorias" subtitulo="Arraste para ordenar.">
       <Reorder.Group as="div" axis="y" values={cats.map((c) => c.id)} onReorder={(ids: string[]) => mudar((x) => ({ ...x, categorias: reordenar(x.categorias, ids) }))} className="pn-lista">
         {cats.map((c) => (
           <Reorder.Item as="div" key={c.id} value={c.id} className="pn-linha" style={{ background: "var(--c-superficie)", cursor: "grab" }}>
