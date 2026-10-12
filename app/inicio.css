@@ -199,3 +199,9 @@
   color: #5c5c66;
   max-width: 42ch;
 }
+.nao-encontrado-painel {
+  font-size: 13px;
+  color: #5c5c66;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

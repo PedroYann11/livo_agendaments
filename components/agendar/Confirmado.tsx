@@ -109,8 +109,8 @@ export function Confirmado({ ag }: { ag: Agendamento }) {
       </motion.h1>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5, duration: 0.5 }}>
         {espera
-          ? `${n.nome} vai confirmar em breve pelo WhatsApp. Seu horário já está guardado.`
-          : `Te esperamos. Um dia antes chega um lembrete no seu WhatsApp.`}
+          ? `Horário guardado. A confirmação chega pelo WhatsApp.`
+          : `Um dia antes chega um lembrete no WhatsApp.`}
       </motion.p>
 
       <motion.div className="ok-bilhete" initial={{ opacity: 0, y: 24, rotate: -1.5 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ delay: 0.45, duration: 0.7, ease: SAIDA }}>
@@ -188,7 +188,7 @@ export function Confirmado({ ag }: { ag: Agendamento }) {
             <h2>
               <Icone nome="ficha" /> Ganhe tempo no dia
             </h2>
-            <p>Antes do primeiro atendimento, precisamos de algumas informações sobre a sua pele. Leva 2 minutos.</p>
+            <p>Responda a ficha antes de vir. Leva 2 minutos.</p>
             <Link href={`/${slug}/ficha/${ag.token}`} className="ui-botao ui-botao-principal ui-botao-m">
               Preencher ficha agora
             </Link>

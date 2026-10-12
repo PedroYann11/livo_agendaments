@@ -205,8 +205,7 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
         <div className="vt-container">
           <Revelar className="vt-secao-topo">
             <div>
-              <span className="vt-sobretitulo">Serviços</span>
-              <h2 className="vt-titulo">O que você procura?</h2>
+                            <h2 className="vt-titulo">O que você procura?</h2>
             </div>
           </Revelar>
 
@@ -290,8 +289,7 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
           <div className="vt-container">
             <Revelar className="vt-secao-topo">
               <div>
-                <span className="vt-sobretitulo">Equipe</span>
-                <h2 className="vt-titulo">Quem cuida de você</h2>
+                                <h2 className="vt-titulo">Quem cuida de você</h2>
               </div>
             </Revelar>
             <div className="vt-equipe">
@@ -320,8 +318,7 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
           <div className="vt-container">
             <Revelar className="vt-secao-topo">
               <div>
-                <span className="vt-sobretitulo">Avaliações</span>
-                <h2 className="vt-titulo">Quem já veio</h2>
+                                <h2 className="vt-titulo">Quem já veio</h2>
               </div>
               <div className="vt-nota">
                 <strong>{media.toFixed(1).replace(".", ",")}</strong>

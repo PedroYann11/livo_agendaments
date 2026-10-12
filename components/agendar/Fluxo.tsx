@@ -351,7 +351,6 @@ function FluxoComDados({ b }: { b: Banco }) {
 
             {passo === "horario" && (
               <div>
-                <h1 className="vt-titulo ag-passo-titulo">Escolha o dia</h1>
                 <p className="ag-passo-texto">
                   {escolhidos.map((s) => s.nome).join(" + ")} · {duracao(atendimento)}
                   {profEfetivo && !pularProfissional ? ` · com ${primeiroNome(b.profissionais.find((p) => p.id === profEfetivo)?.nome ?? "")}` : ""}
@@ -374,7 +373,6 @@ function FluxoComDados({ b }: { b: Banco }) {
 
             {passo === "dados" && escolha && (
               <div>
-                <h1 className="vt-titulo ag-passo-titulo">Seus dados</h1>
                 <div className="ag-form">
                   <Campo rotulo="Nome completo" erro={erros.nome}>
                     <Entrada
@@ -509,9 +507,9 @@ function FluxoComDados({ b }: { b: Banco }) {
                   </div>
                 )}
                 <p className="ag-politica">
-                  Você recebe um link para remarcar ou cancelar até {n.regras.cancelamentoAteHoras}h antes.
+                  Remarque ou cancele até {n.regras.cancelamentoAteHoras}h antes.
                   {n.regras.confirmacao === "manual" && " O negócio confirma em seguida."}
-                  {n.modulos.sinal && escolhidos.some((s) => n.sinal.servicosIds.includes(s.id)) && ` Sinal de ${n.sinal.percentual}% via Pix para garantir o horário.`}
+                  {n.modulos.sinal && escolhidos.some((s) => n.sinal.servicosIds.includes(s.id)) && ` Sinal de ${n.sinal.percentual}% via Pix.`}
                 </p>
               </div>
             )}
@@ -538,10 +536,7 @@ function FluxoComDados({ b }: { b: Banco }) {
                     </strong>
                   </>
                 ) : (
-                  <>
-                    <small>Nada escolhido ainda</small>
-                    <strong>Toque numa opção</strong>
-                  </>
+                  <strong>Escolha um serviço</strong>
                 )}
               </div>
               {passo === "categoria" ? (
@@ -623,7 +618,6 @@ function PassoServicos({
   return (
     <div>
       <h1 className="vt-titulo ag-passo-titulo">{grupo.nome}</h1>
-      {multiplo && <p className="ag-passo-texto">Pode escolher mais de um.</p>}
       {/* o convite para somar: "Falta 1 para ganhar 15%" */}
       {multiplo && v.ativo && (
         <div className="ag-promo" style={{ marginTop: 0, marginBottom: 14 }} aria-live="polite">

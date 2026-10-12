@@ -196,11 +196,7 @@ function Calendario({
               <h2 className="cal-dia-titulo">{capitalizar(dataLonga(data))}</h2>
               <GradeHorarios vagas={vagas} hora={hora} onEscolher={(v) => onHora({ data, hora: v.hora, profissionalId: v.profissionalId })} />
             </motion.div>
-          ) : (
-            <motion.p key="dica" className="cal-dica" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              Toque num dia para ver os horários.
-            </motion.p>
-          )}
+          ) : null}
         </AnimatePresence>
       </div>
     </div>

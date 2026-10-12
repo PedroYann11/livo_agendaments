@@ -112,9 +112,11 @@ export function FichaPublica({ token }: { token: string }) {
       </Link>
       <span className="vt-sobretitulo">{n.nome}</span>
       <h1 className="vt-titulo">{modelo.nome.replace(/^Anamnese\s*·\s*/i, "Ficha de ")}</h1>
-      <p className="ag-passo-texto" style={{ marginTop: 10 }}>
-        {modelo.descricao || "Responda com calma. Isso garante um atendimento seguro para a sua pele."}
-      </p>
+      {modelo.descricao && (
+        <p className="ag-passo-texto" style={{ marginTop: 10 }}>
+          {modelo.descricao}
+        </p>
+      )}
       <div className="ag-form">
         {modelo.campos.map((c, i) => (
           <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 6) * 0.04, duration: 0.35 }}>
