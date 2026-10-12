@@ -30,11 +30,11 @@ export function PrimeirosPassos({ b }: { b: Banco }) {
   const paginaPronta = Boolean(n.logoUrl || n.tagline);
   if (fechado || (temServico && paginaPronta)) return null;
 
-  const passos: { icone: NomeIcone; titulo: string; texto: string; href?: string; feito?: boolean }[] = [
-    { icone: "servicos", titulo: "Cadastre seus serviços", texto: "Nome, duração e preço. É o que o cliente escolhe.", href: "/painel/servicos", feito: temServico },
-    { icone: "relogio", titulo: "Confira seus horários", texto: "Dias da semana, ou só datas marcadas.", href: "/painel/configuracoes?s=funcionamento" },
-    { icone: "paleta", titulo: "Deixe a página com a sua cara", texto: "Logo, cores e uma frase curta.", href: "/painel/configuracoes?s=pagina", feito: paginaPronta },
-    { icone: "instagram", titulo: "Coloque o link na bio", texto: link },
+  const passos: { icone: NomeIcone; titulo: string; href?: string; feito?: boolean }[] = [
+    { icone: "servicos", titulo: "Cadastre seus serviços", href: "/painel/servicos", feito: temServico },
+    { icone: "relogio", titulo: "Confira seus horários", href: "/painel/configuracoes?s=funcionamento" },
+    { icone: "paleta", titulo: "Deixe a página com a sua cara", href: "/painel/configuracoes?s=pagina", feito: paginaPronta },
+    { icone: "instagram", titulo: "Coloque o link na bio" },
   ];
 
   const fechar = () => {
@@ -59,7 +59,6 @@ export function PrimeirosPassos({ b }: { b: Banco }) {
               <span className={`pp-marca${p.feito ? " feito" : ""}`}>{p.feito ? <Icone nome="ok" tamanho={14} peso="bold" /> : i + 1}</span>
               <span className="pp-texto">
                 <strong>{p.titulo}</strong>
-                <small>{p.texto}</small>
               </span>
             </>
           );

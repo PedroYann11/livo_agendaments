@@ -262,7 +262,6 @@ function Formulario({ b, pre, onFechar, onCriado }: { b: Banco; pre: PreNovo; on
                 <strong style={{ display: "block", fontSize: 14.5 }}>
                   {dataCurta(escolha.data)}, {escolha.hora}
                 </strong>
-                <small style={{ color: "var(--c-texto-2)" }}>Horário que você tocou na agenda</small>
               </div>
               <Botao variante="fantasma" tamanho="p" onClick={() => setEscolha(null)}>
                 Trocar

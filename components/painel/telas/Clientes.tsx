@@ -334,7 +334,7 @@ export function FormCliente({ cliente, onFechar, onSalvo }: { cliente: Cliente |
           <Campo rotulo="E-mail" opcional>
             <Entrada type="email" value={c.email} onChange={(e) => setC({ ...c, email: e.target.value })} />
           </Campo>
-          <Campo rotulo="Etiquetas" opcional ajuda="Separe por vírgula. Ex.: VIP, pele sensível">
+          <Campo rotulo="Etiquetas" opcional ajuda="Separe por vírgula.">
             <Entrada value={tags} onChange={(e) => setTags(e.target.value)} />
           </Campo>
           <Campo rotulo="Observações" opcional ajuda="Só a equipe vê.">

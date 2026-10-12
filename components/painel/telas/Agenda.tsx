@@ -90,7 +90,7 @@ export function Agenda() {
 
   const reabrir = () => {
     mudar((x) => salvarNegocio(x, { datasEspeciais: x.negocio.datasEspeciais.filter((d) => d.data !== data) }));
-    avisar("Dia reaberto: as vagas voltam para o site.");
+    avisar("Dia reaberto.");
   };
   const fecharDia = async () => {
     const ok = await confirmar({
@@ -106,7 +106,7 @@ export function Agenda() {
         ? salvarNegocio(x, { aberturas: x.negocio.aberturas.filter((a) => a.data !== data) })
         : salvarNegocio(x, { datasEspeciais: [...x.negocio.datasEspeciais.filter((d) => d.data !== data), { data, rotulo: "Fechado" }] }),
     );
-    avisar("Dia fechado. Some do site na hora.");
+    avisar("Dia fechado.");
   };
 
   return (
@@ -581,7 +581,7 @@ function FolhaAbrirDia({ aberta, onFechar, data }: { aberta: boolean; onFechar: 
   const salvar = () => {
     if (ate <= de) return avisar("O fim precisa ser depois do início.", "erro");
     mudar((b) => salvarNegocio(b, { aberturas: [...b.negocio.aberturas.filter((a) => a.data !== data), { data, inicio: de, fim: ate }] }));
-    avisar("Dia aberto: as vagas já aparecem no site.");
+    avisar("Dia aberto.");
     onFechar();
   };
 
@@ -590,7 +590,7 @@ function FolhaAbrirDia({ aberta, onFechar, data }: { aberta: boolean; onFechar: 
       aberta={aberta}
       onFechar={onFechar}
       titulo="Abrir este dia"
-      subtitulo={`${capitalizar(dataLonga(data))} — para quem não atende toda semana.`}
+      subtitulo={capitalizar(dataLonga(data))}
       rodape={
         <>
           <Botao variante="fantasma" onClick={onFechar}>
@@ -630,7 +630,7 @@ function FolhaBloqueio({ aberta, onFechar, data, equipe }: { aberta: boolean; on
     const fim = juntar(dia, diaTodo ? "23:59" : ate);
     if (fim <= ini) return avisar("O fim precisa ser depois do início.", "erro");
     mudar((b) => salvarBloqueio(b, { id: novoId("bl"), profissionalId: pro === "todos" ? null : pro, inicio: ini, fim, motivo }));
-    avisar("Horário bloqueado. Ninguém consegue marcar nele.");
+    avisar("Horário bloqueado.");
     onFechar();
   };
 
@@ -639,7 +639,6 @@ function FolhaBloqueio({ aberta, onFechar, data, equipe }: { aberta: boolean; on
       aberta={aberta}
       onFechar={onFechar}
       titulo="Bloquear horário"
-      subtitulo="Folga, consulta, curso, manutenção — some do site na hora."
       rodape={
         <>
           <Botao variante="fantasma" onClick={onFechar}>

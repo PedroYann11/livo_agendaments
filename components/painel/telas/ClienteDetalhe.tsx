@@ -156,7 +156,7 @@ export function ClienteDetalhe({ id }: { id: string }) {
           )}
           {aba === "fichas" && (
             <div className="pn-lista">
-              {fichas.length === 0 && <EstadoVazio icone="ficha" titulo="Nenhuma ficha preenchida" texto="A ficha é pedida automaticamente quando o cliente marca um serviço que exige anamnese." />}
+              {fichas.length === 0 && <EstadoVazio icone="ficha" titulo="Nenhuma ficha" />}
               {fichas.map((f) => {
                 const m = b.modelosFicha.find((x) => x.id === f.modeloId);
                 const alertas = m?.campos.filter((campo) => {
@@ -180,7 +180,7 @@ export function ClienteDetalhe({ id }: { id: string }) {
           )}
           {aba === "pacotes" && (
             <div className="pn-lista">
-              {pacotes.length === 0 && <EstadoVazio icone="pacote" titulo="Nenhum pacote" texto="Venda um pacote de sessões e o sistema desconta a cada atendimento." />}
+              {pacotes.length === 0 && <EstadoVazio icone="pacote" titulo="Nenhum pacote" />}
               {pacotes.map((pc) => {
                 const p = b.pacotes.find((x) => x.id === pc.pacoteId);
                 if (!p) return null;
@@ -222,7 +222,7 @@ export function ClienteDetalhe({ id }: { id: string }) {
               </h2>
             </div>
             <div className="pn-cartao-corpo" style={{ fontSize: 14, color: c.observacoes ? "var(--c-texto)" : "var(--c-texto-3)", whiteSpace: "pre-wrap" }}>
-              {c.observacoes || "Nada anotado. Toque em Editar para registrar preferências."}
+              {c.observacoes || "Nada anotado."}
             </div>
           </div>
           <div className="pn-cartao pn-cartao-corpo" style={{ display: "grid", gap: 10, fontSize: 14 }}>

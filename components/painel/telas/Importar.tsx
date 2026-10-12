@@ -158,9 +158,12 @@ export function Importar() {
                   <Icone nome="planilha" tamanho={26} />
                 </span>
                 <strong style={{ fontSize: 16 }}>Planilha (.csv) ou contatos do celular (.vcf)</strong>
-                <p style={{ color: "var(--c-texto-2)", fontSize: 14, maxWidth: "52ch" }}>
-                  No Excel ou Google Planilhas: <b>Arquivo → Salvar como / Fazer download → CSV</b>. No celular: <b>Contatos → Exportar</b> gera um arquivo .vcf.
-                </p>
+                <details style={{ color: "var(--c-texto-2)", fontSize: 14, maxWidth: "52ch" }}>
+                  <summary style={{ cursor: "pointer", fontWeight: 550 }}>Como exportar?</summary>
+                  <p style={{ marginTop: 8 }}>
+                    No Excel ou Google Planilhas: <b>Arquivo → Salvar como / Fazer download → CSV</b>. No celular: <b>Contatos → Exportar</b> gera um arquivo .vcf.
+                  </p>
+                </details>
                 <input
                   ref={arquivo}
                   type="file"
@@ -185,7 +188,7 @@ export function Importar() {
               </div>
             ) : (
               <div className="pn-cartao pn-cartao-corpo" style={{ display: "grid", gap: 12 }}>
-                <Campo rotulo="Cole aqui" ajuda="Copie as linhas da planilha (com as colunas), ou uma pessoa por linha: “Maria Souza 88 99999-0000”.">
+                <Campo rotulo="Cole aqui" ajuda="Cole as linhas da planilha ou uma pessoa por linha.">
                   <Texto rows={10} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={"Maria Souza\t(88) 9 9999-0000\nJoão Lima - 88 98888-1111"} style={{ fontFamily: "var(--f-mono), monospace", fontSize: 13 }} />
                 </Campo>
                 <Botao variante="principal" disabled={!texto.trim()} onClick={() => processar(texto)} iconeDepois="avancar">
@@ -300,7 +303,7 @@ export function Importar() {
                 </table>
               </div>
             </div>
-            <Campo rotulo="Etiqueta para os importados" opcional ajuda="Ajuda a achar esse grupo depois — ou a mandar uma mensagem só para eles.">
+            <Campo rotulo="Etiqueta para os importados" opcional>
               <Entrada value={etiqueta} onChange={(e) => setEtiqueta(e.target.value)} icone="etiqueta" />
             </Campo>
             <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>

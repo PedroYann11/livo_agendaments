@@ -15,7 +15,7 @@ import { Avatar, Botao, EstadoVazio, Medidor, NumeroAnimado, Selo } from "@/comp
 import { STATUS, enviarWhats } from "../DetalheAgendamento";
 import { Faisca } from "../graficos";
 import { aniversariantes, clientesParaRetorno, resumo, serieDiaria } from "@/lib/metricas";
-import { brl, brlCurto, duracao, pct, primeiroNome } from "@/lib/formato";
+import { brl, brlCurto, pct, primeiroNome } from "@/lib/formato";
 import { dataLonga, difMin, horaDe, inicioDaSemana, inicioDoMes, fimDoMes, somarDias, somarMin } from "@/lib/datas";
 import { corDaPessoa } from "@/lib/paleta";
 import { capitalizar } from "@/components/vitrine/util";
@@ -68,12 +68,12 @@ export function Inicio() {
   const hora = Number(momento.slice(11, 13));
   const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
 
-  const atencao: { icone: NomeIcone; titulo: string; texto: string; qtd: number; href: string; cor: string }[] = [];
+  const atencao: { icone: NomeIcone; titulo: string; texto?: string; qtd: number; href: string; cor: string }[] = [];
   if (aConfirmar.length) atencao.push({ icone: "ampulheta", titulo: "A confirmar", texto: "Nas próximas 48 horas", qtd: aConfirmar.length, href: "/painel/agenda?filtro=pendente", cor: "var(--atencao)" });
   if (lembretes.length && pode("mensagens")) atencao.push({ icone: "sino", titulo: "Lembretes de amanhã", texto: "Ainda não enviados", qtd: lembretes.length, href: "/painel/mensagens", cor: "var(--info)" });
   if (sinais.length) atencao.push({ icone: "pix", titulo: "Sinais em aberto", texto: brl(sinais.reduce((s, a) => s + a.sinal!.valor, 0)), qtd: sinais.length, href: "/painel/agenda", cor: "var(--atencao)" });
   if (fichasAmanha.length) atencao.push({ icone: "ficha", titulo: "Fichas pendentes", texto: "Clientes de hoje e amanhã", qtd: fichasAmanha.length, href: "/painel/anamnese", cor: "var(--critico)" });
-  if (avaliacoes.length && pode("configuracoes")) atencao.push({ icone: "estrela", titulo: "Avaliações novas", texto: "Aprove para aparecer na página", qtd: avaliacoes.length, href: "/painel/configuracoes?s=avaliacoes", cor: "#b8860b" });
+  if (avaliacoes.length && pode("configuracoes")) atencao.push({ icone: "estrela", titulo: "Avaliações novas", qtd: avaliacoes.length, href: "/painel/configuracoes?s=avaliacoes", cor: "#b8860b" });
 
   const meta = n.metaMensal;
   const progresso = meta ? realizadoMes / meta : 0;
@@ -120,17 +120,16 @@ export function Inicio() {
                 </Botao>
               </div>
             </motion.div>
-          ) : (
+          ) : doDia.length > 0 ? (
             <div className="ini-proximo">
               <small>Hoje</small>
               <div className="ini-proximo-linha">
                 <div>
-                  <strong>{doDia.length ? "Todos os atendimentos de hoje já passaram." : "Nenhum atendimento hoje."}</strong>
-                  <span>Que tal divulgar seu link? {typeof window !== "undefined" ? `${window.location.host}/${n.slug}` : ""}</span>
+                  <strong>Todos os atendimentos de hoje já passaram.</strong>
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           <div className="pn-cartao">
             <div className="pn-cartao-cabeca">
@@ -146,7 +145,7 @@ export function Inicio() {
               {brl(hojeTotal)} entre concluídos e previstos
             </p>
             <div className="pn-lista" style={{ marginTop: 8 }}>
-              {doDia.length === 0 && <EstadoVazio icone="agenda" titulo="Dia livre" texto="Nenhum horário marcado para hoje." />}
+              {doDia.length === 0 && <EstadoVazio icone="agenda" titulo="Dia livre" />}
               {(todos ? doDia : doDia.filter((a) => a.fim > somarMin(momento, -45) || a.status === "pendente")).map((a) => {
                 const c = b.clientes.find((x) => x.id === a.clienteId);
                 const p = b.profissionais.find((x) => x.id === a.profissionalId);
@@ -188,7 +187,7 @@ export function Inicio() {
                     </span>
                     <div>
                       <strong>{x.titulo}</strong>
-                      <small>{x.texto}</small>
+                      {x.texto && <small>{x.texto}</small>}
                     </div>
                     <b>{x.qtd}</b>
                   </Link>
@@ -286,7 +285,7 @@ export function Inicio() {
             </span>
             <span className="pn-kpi-valor">{pct(trinta.online / Math.max(1, trinta.totalAgendamentos))}</span>
             <span className="pn-kpi-rodape">
-              {trinta.online} horários marcados sem você precisar responder mensagem · {duracao(trinta.online * 4)} economizados
+              {trinta.online} pelo link
             </span>
           </div>
         </div>
