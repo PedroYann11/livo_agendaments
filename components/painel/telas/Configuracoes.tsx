@@ -15,7 +15,7 @@ import { useBanco, useLoja } from "@/lib/dados/loja";
 import { usePainel } from "../PainelRaiz";
 import { Cabecalho } from "../Cabecalho";
 import { EditorSemana } from "../EditorSemana";
-import { CampoFoto, EditorGaleria } from "../CampoFoto";
+import { CampoFoto, EditorGaleria, TirarFundo } from "../CampoFoto";
 import { Passo } from "./Servicos";
 import { Icone, type NomeIcone } from "@/components/ui/Icone";
 import { Botao, BotaoCopiar, BotaoIcone, Campo, Entrada, Estrelas, Interruptor, Segmentado, Selo, Texto } from "@/components/ui/basicos";
@@ -252,9 +252,10 @@ function SecaoPagina({ n, muda }: PropsSecao) {
         </Campo>
       </Bloco>
       <Bloco titulo="Sua foto" texto="No Sobre e, se quiser, no topo (Aparência).">
-        <CampoFoto url={n.retrato.url} pasta="retrato" onMudar={(url) => muda({ retrato: { ...n.retrato, url } })} />
+        <CampoFoto url={n.retrato.url} pasta="retrato" onMudar={(url) => muda({ retrato: { ...n.retrato, url, semFundo: null } })} />
         {n.retrato.url && (
           <>
+            <TirarFundo url={n.retrato.url} semFundo={n.retrato.semFundo} onMudar={(semFundo) => muda({ retrato: { ...n.retrato, semFundo } })} />
             <Campo rotulo="Legenda" opcional>
               <Entrada
                 value={n.retrato.legenda}
@@ -381,7 +382,12 @@ function SecaoAparencia({ n, muda }: PropsSecao) {
             ]}
           />
           {/* a mesma foto de Minha página › Sua foto: dá para enviar daqui também */}
-          {n.enfeiteTopo === "foto" && <CampoFoto url={n.retrato.url} pasta="retrato" onMudar={(url) => muda({ retrato: { ...n.retrato, url } })} />}
+          {n.enfeiteTopo === "foto" && (
+            <>
+              <CampoFoto url={n.retrato.url} pasta="retrato" onMudar={(url) => muda({ retrato: { ...n.retrato, url, semFundo: null } })} />
+              {n.retrato.url && <TirarFundo url={n.retrato.url} semFundo={n.retrato.semFundo} onMudar={(semFundo) => muda({ retrato: { ...n.retrato, semFundo } })} />}
+            </>
+          )}
         </Bloco>
         <Bloco titulo="Cor da marca">
           <div className="pn-cores">

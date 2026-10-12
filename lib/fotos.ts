@@ -123,9 +123,27 @@ export async function enviarFoto({ remoto, negocioId, pasta, arquivo }: { remoto
   return enderecoPublico(caminho);
 }
 
+/** Envia a foto sem fundo (já pronta, PNG ou WebP) para a pasta da Sua foto. */
+export async function enviarRecorte({ remoto, negocioId, blob }: { remoto: boolean; negocioId: string; blob: Blob }): Promise<string> {
+  if (!remoto) return paraDataUrl(blob);
+  const ext = blob.type === "image/webp" ? "webp" : "png";
+  const caminho = `${negocioId}/retrato/${novoId("r").replace(/[^A-Za-z0-9_-]/g, "")}.${ext}`;
+  const { error } = await getSupabase()
+    .storage.from(BUCKET)
+    .upload(caminho, await blob.arrayBuffer(), { contentType: blob.type, cacheControl: "31536000", upsert: false });
+  if (error) {
+    const msg = String(error.message ?? "");
+    // banco sem a migration 012: a Supabase recusa pelo tipo (.webp/.png) ou,
+    // antes disso, pela regra da pasta. Só dono/admin chega aqui (Configurações).
+    if (/mime type|invalid_mime|415|row-level security|unauthorized|403/i.test(msg)) throw new ErroFoto("O recorte ainda não foi liberado nesta conta.");
+    throw new ErroFoto("Não deu para enviar o recorte. Confira a internet e tente de novo.");
+  }
+  return enderecoPublico(caminho);
+}
+
 /** Todas as fotos do Storage que alguma parte da página usa. */
 function emUso(b: Banco): Set<string> {
-  const urls = [b.negocio.retrato?.url, ...(b.negocio.galeria ?? []), ...b.profissionais.map((p) => p.fotoUrl), ...b.servicos.map((s) => s.fotoUrl)];
+  const urls = [b.negocio.retrato?.url, b.negocio.retrato?.semFundo, ...(b.negocio.galeria ?? []), ...b.profissionais.map((p) => p.fotoUrl), ...b.servicos.map((s) => s.fotoUrl)];
   return new Set(urls.map(caminhoNoBucket).filter((c): c is string => !!c));
 }
 

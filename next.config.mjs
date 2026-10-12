@@ -10,7 +10,9 @@
 //   - Supabase: REST/Auth (https) + Realtime (wss) + Storage;
 //   - BrasilAPI: feriados nacionais (painel › funcionamento) e CEP;
 //   - ViaCEP: endereço por CEP (cadastro do negócio e do cliente);
-//   - blob:/data: — prévia de foto antes do upload.
+//   - blob:/data: — prévia de foto antes do upload;
+//   - só no painel: o recorte da foto (MediaPipe) roda WASM servido pelo
+//     próprio site ('wasm-unsafe-eval') e baixa o modelo do Google Storage.
 // Links de saída (wa.me, instagram.com, maps) são navegação, não subrecurso.
 // =====================================================================
 
@@ -32,14 +34,16 @@ const scriptSrc = [
   process.env.NODE_ENV === "development" ? "'unsafe-eval'" : null,
 ].filter(Boolean);
 
-/** frame-ancestors muda por rota (abaixo); o resto da CSP é igual em todas. */
-const cspCom = (frameAncestors) => [
+const MODELO_RECORTE = "https://storage.googleapis.com";
+
+/** frame-ancestors muda por rota (abaixo); o painel ganha só o necessário para o recorte. */
+const cspCom = (frameAncestors, painel = false) => [
   "default-src 'self'",
-  `script-src ${scriptSrc.join(" ")}`,
+  `script-src ${[...scriptSrc, painel ? "'wasm-unsafe-eval'" : null].filter(Boolean).join(" ")}`,
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   `img-src 'self' data: blob: ${supabaseHttp}`,
-  `connect-src 'self' ${supabaseHttp} ${supabaseWs} https://brasilapi.com.br https://viacep.com.br`,
+  `connect-src 'self' ${supabaseHttp} ${supabaseWs} https://brasilapi.com.br https://viacep.com.br${painel ? ` ${MODELO_RECORTE}` : ""}`,
   "worker-src 'self'",
   "manifest-src 'self'",
   "base-uri 'self'",
@@ -65,7 +69,7 @@ const emMolduraSoDoSite = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
 ];
 const nuncaEmMoldura = [
-  { key: "Content-Security-Policy", value: cspCom("'none'") },
+  { key: "Content-Security-Policy", value: cspCom("'none'", true) },
   { key: "X-Frame-Options", value: "DENY" },
 ];
 

@@ -9,7 +9,7 @@
 import { useState, type ReactNode } from "react";
 import { useLoja } from "@/lib/dados/loja";
 import { Icone } from "@/components/ui/Icone";
-import { BotaoIcone } from "@/components/ui/basicos";
+import { BotaoIcone, Interruptor } from "@/components/ui/basicos";
 import { ErroFoto, enviarFoto, type PastaFoto } from "@/lib/fotos";
 import { MAX_GALERIA } from "@/lib/padroes";
 
@@ -141,6 +141,63 @@ export function EditorGaleria({ fotos, onMudar }: { fotos: string[]; onMudar: (f
       <small style={{ color: "var(--c-texto-3)", fontSize: 12.5 }}>
         {fotos.length} de {MAX_GALERIA}
       </small>
+      {erro && (
+        <span className="ui-campo-erro" role="alert">
+          {erro}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** "Tirar o fundo" da Sua foto: recorta no navegador e envia o recorte. */
+export function TirarFundo({ url, semFundo, onMudar }: { url: string; semFundo: string | null; onMudar: (semFundo: string | null) => void }) {
+  const { remoto, banco } = useLoja();
+  const [etapa, setEtapa] = useState<"parado" | "recortando" | "enviando">("parado");
+  const [erro, setErro] = useState<string | null>(null);
+  const ocupado = etapa !== "parado";
+
+  const recortar = async () => {
+    setErro(null);
+    setEtapa("recortando");
+    try {
+      const { tirarFundo } = await import("@/lib/recorte");
+      const blob = await tirarFundo(url);
+      if (!blob) {
+        setErro("Não achei uma pessoa nessa foto. Tente uma em que você apareça de frente.");
+        return;
+      }
+      setEtapa("enviando");
+      const { enviarRecorte } = await import("@/lib/fotos");
+      onMudar(await enviarRecorte({ remoto, negocioId: banco!.negocio.id, blob }));
+    } catch (e) {
+      setErro(e instanceof ErroFoto ? e.message : "Não deu para tirar o fundo. Confira a internet e tente de novo.");
+    } finally {
+      setEtapa("parado");
+    }
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      <Interruptor
+        ligado={!!semFundo || ocupado}
+        onMudar={(v) => (v ? void recortar() : onMudar(null))}
+        rotulo="Tirar o fundo"
+        mostrarRotulo
+        desabilitado={ocupado}
+      />
+      {ocupado && (
+        <span className="cf-recorte-estado" role="status">
+          <Icone nome="carregando" tamanho={16} className="ui-girando" />
+          {etapa === "recortando" ? "Tirando o fundo… (na primeira vez demora um pouco mais)" : "Enviando…"}
+        </span>
+      )}
+      {semFundo && !ocupado && (
+        <span className="cf-recorte-previa">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={semFundo} alt="Sua foto sem o fundo" />
+        </span>
+      )}
       {erro && (
         <span className="ui-campo-erro" role="alert">
           {erro}

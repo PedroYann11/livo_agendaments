@@ -150,6 +150,8 @@ export type EnfeiteTopo = "desenho" | "foto" | "nenhum";
 
 export type Retrato = {
   url: string | null;
+  /** a mesma foto sem o fundo (recorte com transparência), para o topo */
+  semFundo: string | null;
   /** ex.: "Marcela Souza · especialista em laser" */
   legenda: string;
   /** mostra na seção Sobre (o topo é escolhido em Aparência) */

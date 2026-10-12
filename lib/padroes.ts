@@ -106,7 +106,7 @@ export const TEMA_NEUTRO: Tema = {
   acento: "#c9a46a",
 };
 
-export const RETRATO_VAZIO: Retrato = { url: null, legenda: "", noSobre: true };
+export const RETRATO_VAZIO: Retrato = { url: null, semFundo: null, legenda: "", noSobre: true };
 
 /** Até quantas fotos do espaço a página mostra. */
 export const MAX_GALERIA = 6;
