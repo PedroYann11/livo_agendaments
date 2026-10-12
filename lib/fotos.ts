@@ -114,6 +114,8 @@ export async function enviarFoto({ remoto, negocioId, pasta, arquivo }: { remoto
     .upload(caminho, await blob.arrayBuffer(), { contentType: "image/jpeg", cacheControl: "31536000", upsert: false });
   if (error) {
     const msg = String(error.message ?? "");
+    // o banco ainda sem a migration 011 (a pasta de fotos não existe)
+    if (/bucket not found/i.test(msg)) throw new ErroFoto("O envio de fotos ainda não foi liberado nesta conta.");
     if (/row-level security|unauthorized|403/i.test(msg)) throw new ErroFoto("Só o dono ou um administrador envia fotos.");
     if (/exceeded|too large|413/i.test(msg)) throw new ErroFoto("A foto ficou grande demais. Tente outra.");
     throw new ErroFoto("Não deu para enviar a foto. Confira a internet e tente de novo.");
