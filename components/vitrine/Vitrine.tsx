@@ -15,6 +15,7 @@ import { linkWhatsApp, enderecoTexto } from "@/lib/whatsapp";
 import { resumoPromocao } from "@/lib/precos";
 import { Arte, Emergir, Revelar } from "./efeitos";
 import { Galeria } from "./Galeria";
+import { RetratoTopo } from "./RetratoTopo";
 import { capitalizar, gruposVisiveis, menorPreco, servicosVisiveis } from "./util";
 
 /** Os próximos horários livres do serviço mais pedido — o atalho do herói. */
@@ -80,12 +81,25 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
   const mapa = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${n.nome}, ${enderecoTexto(b)}`)}`;
   // a foto de quem atende: no topo (Aparência) e/ou no Sobre (Minha página)
   const retrato = n.retrato?.url ?? null;
+  const semFundo = n.retrato?.semFundo ?? null;
   const fotoNoTopo = n.enfeiteTopo === "foto" && !!retrato;
   const fotoNoSobre = !!retrato && n.retrato.noSobre;
   const altRetrato = n.retrato?.legenda || `Foto de quem atende na ${n.nome}`;
   const promos = (["variosItens", "primeiraVez", "aniversario"] as const)
     .filter((t) => n.promocoes?.[t]?.ativo)
     .map((t) => resumoPromocao(t, n.promocoes));
+
+  const estado = (
+    <motion.span
+      className={`vt-estado${situacao.aberto ? " aberto" : ""}`}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+    >
+      <span className="vt-estado-ponto" />
+      {situacao.texto}
+    </motion.span>
+  );
 
   return (
     <>
@@ -119,43 +133,29 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
       <section className={`vt-heroi${n.logoCompletoUrl ? " com-logo" : ""}`}>
         {/* "Sua foto" sem foto enviada: fica o desenho */}
         <Arte pele={n.pele} nome={n.nome} desenho={n.enfeiteTopo === "desenho" || (n.enfeiteTopo === "foto" && !retrato)} />
-        <div className="vt-container vt-heroi-grade">
+        <div className={`vt-container vt-heroi-grade${fotoNoTopo ? " com-foto" : ""}`}>
           <div>
-            {(n.logoCompletoUrl || fotoNoTopo) && (
+            {n.logoCompletoUrl || fotoNoTopo ? (
               <div className="vt-heroi-marca">
-                {n.logoCompletoUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <motion.img
-                    src={n.logoCompletoUrl}
-                    alt={n.nome}
-                    className="vt-logo"
-                    initial={{ opacity: 0, y: 12, filter: "blur(8px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-                  />
-                )}
-                {fotoNoTopo && (
-                  <motion.figure
-                    className="vt-moldura vt-heroi-foto"
-                    initial={{ opacity: 0, scale: 0.94 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.8, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={retrato!} alt={altRetrato} decoding="async" />
-                  </motion.figure>
-                )}
+                <div className="vt-heroi-marca-texto">
+                  {n.logoCompletoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <motion.img
+                      src={n.logoCompletoUrl}
+                      alt={n.nome}
+                      className="vt-logo"
+                      initial={{ opacity: 0, y: 12, filter: "blur(8px)" }}
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+                    />
+                  )}
+                  {estado}
+                </div>
+                {fotoNoTopo && <RetratoTopo url={retrato!} semFundo={semFundo} alt={altRetrato} variante="canto" />}
               </div>
+            ) : (
+              estado
             )}
-            <motion.span
-              className={`vt-estado${situacao.aberto ? " aberto" : ""}`}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-            >
-              <span className="vt-estado-ponto" />
-              {situacao.texto}
-            </motion.span>
             <h1 className="vt-titulo">
               <Emergir texto={n.tagline || n.nome} />
             </h1>
@@ -205,22 +205,27 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
             </Revelar>
           </div>
 
-          {alvo && vagas.length > 0 && (
-            <Revelar atraso={0.5} className="vt-heroi-cartao">
-              <h2>Próximos horários livres</h2>
-              <p style={{ fontSize: 14, color: "var(--c-texto-2)", marginTop: 4 }}>{alvo.nome}</p>
-              <div className="vt-proximos">
-                {vagas.map((v) => (
-                  <Link key={v.data + v.hora} href={`${agendar}?servico=${alvo.id}&data=${v.data}`} className="vt-proximo">
-                    <span>
-                      <small>{capitalizar(dataRelativa(v.data, hoje))}</small>
-                      <strong className="vt-proximo-hora">{v.hora}</strong>
-                    </span>
-                    <Icone nome="avancar" tamanho={18} />
-                  </Link>
-                ))}
-              </div>
-            </Revelar>
+          {(fotoNoTopo || (alvo && vagas.length > 0)) && (
+            <div className={`vt-heroi-lado${fotoNoTopo ? " com-foto" : ""}`}>
+              {fotoNoTopo && <RetratoTopo url={retrato!} semFundo={semFundo} alt={altRetrato} variante="lado" />}
+              {alvo && vagas.length > 0 && (
+                <Revelar atraso={0.5} className="vt-heroi-cartao">
+                  <h2>Próximos horários livres</h2>
+                  <p style={{ fontSize: 14, color: "var(--c-texto-2)", marginTop: 4 }}>{alvo.nome}</p>
+                  <div className="vt-proximos">
+                    {vagas.map((v) => (
+                      <Link key={v.data + v.hora} href={`${agendar}?servico=${alvo.id}&data=${v.data}`} className="vt-proximo">
+                        <span>
+                          <small>{capitalizar(dataRelativa(v.data, hoje))}</small>
+                          <strong className="vt-proximo-hora">{v.hora}</strong>
+                        </span>
+                        <Icone nome="avancar" tamanho={18} />
+                      </Link>
+                    ))}
+                  </div>
+                </Revelar>
+              )}
+            </div>
           )}
         </div>
       </section>
