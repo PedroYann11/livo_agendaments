@@ -88,7 +88,7 @@ export function Configuracoes() {
 
   return (
     <div className="pn-pagina">
-      <Cabecalho titulo="Configurações" texto="Tudo o que aparece para o cliente, você muda aqui." />
+      <Cabecalho titulo="Configurações" />
       <div className="cf-layout">
         <nav className="cf-menu" aria-label="Seções">
           {SECOES.map((s) => (
@@ -179,7 +179,7 @@ function SecaoPagina({ n, muda }: PropsSecao) {
 
   return (
     <>
-      <Bloco titulo="Seu link de agendamento" texto="Coloque na bio do Instagram, no status do WhatsApp e imprima o QR Code para o balcão.">
+      <Bloco titulo="Seu link de agendamento">
         <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {qr && <img src={qr} alt="QR Code do link" width={112} height={112} style={{ borderRadius: 12, border: "1px solid var(--c-linha)" }} />}
@@ -203,13 +203,13 @@ function SecaoPagina({ n, muda }: PropsSecao) {
         <Campo rotulo="Nome do negócio">
           <Entrada value={n.nome} onChange={(e) => muda({ nome: e.target.value })} />
         </Campo>
-        <Campo rotulo="Frase de destaque" ajuda="O título grande do topo. Curta e com a sua cara.">
+        <Campo rotulo="Frase de destaque" ajuda="O título do topo.">
           <Entrada value={n.tagline} onChange={(e) => muda({ tagline: e.target.value })} maxLength={60} placeholder="Ex.: Pele lisa, cuidado de verdade." />
         </Campo>
         <Campo rotulo="Descrição" ajuda="Aparece embaixo do título e no Google.">
           <Texto rows={2} value={n.descricao} onChange={(e) => muda({ descricao: e.target.value })} maxLength={200} />
         </Campo>
-        <Campo rotulo="Sobre" opcional ajuda="A história do negócio, na seção Sobre.">
+        <Campo rotulo="Sobre" opcional>
           <Texto rows={4} value={n.sobre} onChange={(e) => muda({ sobre: e.target.value })} />
         </Campo>
         <Campo rotulo="Diferenciais" ajuda="Selos que aparecem no topo (ex.: Material descartável).">
@@ -236,11 +236,11 @@ function SecaoPagina({ n, muda }: PropsSecao) {
           </div>
         </Campo>
       </Bloco>
-      <Bloco titulo="Aviso no topo" texto="Promoção, férias, mudança de endereço — aparece em destaque na página.">
+      <Bloco titulo="Aviso no topo">
         <Interruptor ligado={n.aviso.ativo} onMudar={(v) => muda({ aviso: { ...n.aviso, ativo: v } })} rotulo="Mostrar aviso" mostrarRotulo />
         <Entrada value={n.aviso.texto} onChange={(e) => muda({ aviso: { ...n.aviso, texto: e.target.value } })} placeholder="Ex.: 15% off no laser de axilas em outubro" disabled={!n.aviso.ativo} />
       </Bloco>
-      <Bloco titulo="Símbolo" texto="Quadrado, de preferência. Aparece no topo da página e no painel.">
+      <Bloco titulo="Símbolo" texto="Quadrado.">
         <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center" }}>
           <span className={`pn-negocio-simbolo${n.logoUrl ? " com-imagem" : ""}`} style={{ width: 64, height: 64, borderRadius: 16, fontSize: 26 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -257,7 +257,7 @@ function SecaoPagina({ n, muda }: PropsSecao) {
           )}
         </div>
       </Bloco>
-      <Bloco titulo="Logo com o nome" texto="Aparece grande no começo da sua página. PNG com fundo transparente fica melhor.">
+      <Bloco titulo="Logo com o nome" texto="PNG com fundo transparente.">
         <div style={{ display: "grid", gap: 12, justifyItems: "start" }}>
           {n.logoCompletoUrl && (
             <span style={{ display: "grid", placeItems: "center", padding: 14, borderRadius: 14, background: n.tema.fundo, border: "1px solid var(--c-linha)" }}>
@@ -321,10 +321,10 @@ function SecaoAparencia({ n, muda }: PropsSecao) {
   return (
     <div className="pn-grade g-21">
       <div>
-        <Bloco titulo="Estilo da página" texto="Muda as letras, os cantos e a arte do topo. As cores você escolhe abaixo.">
+        <Bloco titulo="Estilo da página">
           <div className="cf-peles">
             {PELES.map((p) => (
-              <button key={p.id} type="button" className="cf-pele" aria-pressed={n.pele === p.id} onClick={() => muda({ pele: p.id })} title={p.descricao}>
+              <button key={p.id} type="button" className="cf-pele" aria-pressed={n.pele === p.id} onClick={() => muda({ pele: p.id })}>
                 <span className="cf-pele-amostra" style={{ background: p.id === "barbearia" ? "#141311" : t.fundo, color: p.id === "barbearia" ? "#efe8dc" : t.texto }}>
                   <b style={{ fontFamily: p.fonte, fontWeight: p.id === "barbearia" ? 800 : 400, textTransform: p.id === "barbearia" ? "uppercase" : "none" }}>Agende</b>
                   <i style={{ background: t.marca, borderRadius: p.id === "barbearia" ? 3 : 8 }} />
@@ -346,7 +346,7 @@ function SecaoAparencia({ n, muda }: PropsSecao) {
             ]}
           />
         </Bloco>
-        <Bloco titulo="Cor da marca" texto="Botões, destaques e a cor do seu painel.">
+        <Bloco titulo="Cor da marca">
           <div className="pn-cores">
             {CORES.map((c) => (
               <button key={c} type="button" className="pn-cor" style={{ background: c }} aria-pressed={t.marca === c} aria-label={c} onClick={() => mudaTema({ marca: c, sobreMarca: textoSobre(c) })}>
@@ -396,7 +396,7 @@ function SecaoAparencia({ n, muda }: PropsSecao) {
               </button>
             ))}
           </div>
-          <Campo rotulo="Cor de apoio" opcional ajuda="Usada em detalhes da arte do topo.">
+          <Campo rotulo="Cor de apoio" opcional>
             <div className="pn-cores">
               <label className="pn-cor-livre">
                 <input type="color" value={hexValido(t.acento) ? t.acento : "#c9a46a"} onChange={(e) => mudaTema({ acento: e.target.value })} />
@@ -411,7 +411,7 @@ function SecaoAparencia({ n, muda }: PropsSecao) {
       </div>
       <div>
         <div style={{ position: "sticky", top: 20 }}>
-          <p style={{ fontSize: 13, color: "var(--c-texto-2)", marginBottom: 8 }}>Prévia ao vivo · atualiza ao salvar</p>
+          <p style={{ fontSize: 13, color: "var(--c-texto-2)", marginBottom: 8 }}>Prévia · atualiza ao salvar</p>
           <div className="cf-previa">
             <iframe src={`/${n.slug}`} title="Prévia da página" />
           </div>
@@ -434,10 +434,10 @@ function SecaoFuncionamento({ n, muda }: PropsSecao) {
   const [novoAvulso, setNovoAvulso] = useState({ data: "", inicio: avulsos.at(-1)?.inicio ?? "08:00", fim: avulsos.at(-1)?.fim ?? "14:00" });
   return (
     <>
-      <Bloco titulo="Horário de funcionamento" texto="Os dias fixos da semana. As vagas vêm do horário de cada profissional, em Equipe. Se você não atende toda semana, deixe tudo fechado e use os dias avulsos abaixo.">
+      <Bloco titulo="Horário de funcionamento" texto="Os dias fixos. Quem não atende toda semana usa os dias avulsos.">
         <EditorSemana valor={n.horario} onMudar={(h) => muda({ horario: h })} />
       </Bloco>
-      <Bloco titulo="Dias avulsos de atendimento" texto="Para quem atende só em algumas datas (ex.: um sábado por mês). Abre o dia escolhido, no horário escolhido, para toda a equipe.">
+      <Bloco titulo="Dias avulsos de atendimento" texto="Abre só a data escolhida, para toda a equipe.">
         <div className="pn-lista" style={{ margin: "0 -18px" }}>
           {avulsos.length === 0 && <p style={{ padding: "0 18px", color: "var(--c-texto-3)", fontSize: 14 }}>Nenhum dia avulso marcado.</p>}
           {avulsos.map((a) => (
@@ -550,9 +550,9 @@ function SecaoRegras({ n, muda }: PropsSecao) {
   const r = n.regras;
   const mudaR = (p: Partial<Negocio["regras"]>) => muda({ regras: { ...r, ...p } });
   return (
-    <Bloco titulo="Como o cliente agenda" texto="As regras valem para o link. No painel, você sempre pode encaixar.">
+    <Bloco titulo="Como o cliente agenda" texto="Valem para o link. No painel você encaixa.">
       <div className="ui-grade-campos duas">
-        <Campo rotulo="Horários de quanto em quanto" ajuda="15 min deixa a agenda mais cheia, sem buracos.">
+        <Campo rotulo="Horários de quanto em quanto">
           <select className="ui-entrada" value={r.intervaloSlotsMin} onChange={(e) => mudaR({ intervaloSlotsMin: Number(e.target.value) })}>
             {[10, 15, 20, 30, 45, 60].map((v) => (
               <option key={v} value={v}>
@@ -561,7 +561,7 @@ function SecaoRegras({ n, muda }: PropsSecao) {
             ))}
           </select>
         </Campo>
-        <Campo rotulo="Antecedência mínima" ajuda="Evita marcação em cima da hora.">
+        <Campo rotulo="Antecedência mínima">
           <Passo valor={r.antecedenciaMinHoras} passo={1} min={0} max={72} formatar={(v) => (v ? `${v}h antes` : "pode ser já")} onMudar={(v) => mudaR({ antecedenciaMinHoras: v })} />
         </Campo>
         <Campo rotulo="Até quantos dias à frente">
@@ -622,7 +622,7 @@ function SecaoContato({ n, muda }: PropsSecao) {
     <>
       <Bloco titulo="Contato">
         <div className="ui-grade-campos duas">
-          <Campo rotulo="WhatsApp do negócio" ajuda="Onde o cliente fala com você.">
+          <Campo rotulo="WhatsApp do negócio">
             <Entrada inputMode="tel" value={mascaraTelefone(n.contato.whatsapp)} onChange={(x) => muda({ contato: { ...n.contato, whatsapp: x.target.value.replace(/\D/g, "") } })} icone="whatsapp" />
           </Campo>
           <Campo rotulo="Instagram" opcional>
@@ -699,7 +699,7 @@ function SecaoPagamentos({ n, muda }: PropsSecao) {
         </div>
       </Bloco>
       {n.modulos.sinal && (
-        <Bloco titulo="Sinal para garantir o horário" texto="O cliente paga uma parte por Pix ao marcar. Reduz falta em serviço longo.">
+        <Bloco titulo="Sinal para garantir o horário" texto="Uma parte por Pix ao marcar.">
           <Campo rotulo="Percentual do sinal">
             <Passo valor={n.sinal.percentual} passo={5} min={5} max={100} formatar={(v) => `${v}%`} onMudar={(v) => muda({ sinal: { ...n.sinal, percentual: v } })} />
           </Campo>
@@ -731,7 +731,7 @@ function SecaoModulos({ n, muda }: PropsSecao) {
   const confirmar = useConfirmar();
   return (
     <>
-      <Bloco titulo="Tipo de negócio" texto="Ao trocar, sugerimos as funções que costumam fazer sentido. Você ajusta depois.">
+      <Bloco titulo="Tipo de negócio">
         <select
           className="ui-entrada"
           value={n.nicho}
@@ -748,7 +748,7 @@ function SecaoModulos({ n, muda }: PropsSecao) {
           ))}
         </select>
       </Bloco>
-      <Bloco titulo="Funções" texto="Cada negócio usa o que precisa. Desligar esconde a função — os dados ficam guardados.">
+      <Bloco titulo="Funções" texto="Desligar esconde; os dados ficam.">
         <div>
           {MODULOS.map((m) => (
             <div key={m.id} className="pn-opcao">
@@ -983,7 +983,7 @@ function SecaoAvaliacoes() {
   const { mudar } = useLoja();
   const lista = b.depoimentos.slice().sort((a, c) => Number(a.visivel) - Number(c.visivel) || (a.data > c.data ? -1 : 1));
   return (
-    <Bloco titulo="Avaliações dos clientes" texto="Chegam pelo link depois do atendimento. Só aparecem na página depois que você aprova.">
+    <Bloco titulo="Avaliações dos clientes" texto="Só aparecem depois que você aprova.">
       <div className="pn-lista" style={{ margin: "0 -18px" }}>
         {lista.map((d) => (
           <div key={d.id} className="pn-linha" style={{ alignItems: "flex-start" }}>
@@ -1014,9 +1014,6 @@ function SecaoConta() {
         <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
           <span>
             <b>{sessao.nome}</b> · {sessao.email}
-          </span>
-          <span style={{ color: "var(--c-texto-2)" }}>
-            Conta conectada à Livo.
           </span>
         </div>
         <Botao variante="secundario" icone="sair" onClick={() => sair()}>
