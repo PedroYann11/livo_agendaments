@@ -95,6 +95,9 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 | `007_agenda_painel` | o que o painel chama | **aplicada** (09/10, pelo Pedro no SQL Editor — a ferramenta de migrations expirava esperando uma confirmação que não chegava ao app). Funções conferidas pelo md5, idênticas ao arquivo; painel testado em produção dentro de uma transação desfeita no fim |
 | `009_convite_negocio_pronto` | convite para **assumir um negócio que a Livo montou** (como a DepiLED): `licenca_emitir_negocio`, `negocio_assumir`; o convite mostra o negócio | **aplicada** (09/10, aprovada pelo Pedro). Advisor: só o aviso esperado de `negocio_assumir` (logado, confere convite e e-mail por dentro) |
 | `008_cadastro` | cadastro com pagamento: licenças, convite, hook "antes de criar conta", `slug_disponivel`, `negocio_criar_meu` (depende da 007) | **aplicada** (09/10, aprovada pelo Pedro) antes da 007 — sem ela, criar negócio ainda falha. Advisor: só os avisos esperados das portas públicas |
+| `010_promocoes` | promoções automáticas (primeira vez, volta, aniversário) e cupom; o preço final é decidido no banco | **aplicada** (`painel_salvar` pelo Pedro no SQL Editor) |
+| `011_fotos` | pasta `fotos` no Storage: pública para ver, só JPEG até 2 MB; só dono/admin envia e apaga, só na pasta do próprio negócio | **aplicada** (aprovada pelo Pedro). Advisor: só os avisos já conhecidos |
+| `012_fotos_sem_fundo` | a mesma pasta aceita também PNG e WebP (o recorte da "Sua foto" tem fundo transparente); SVG e GIF continuam de fora | **pronta e testada (T56); aguarda aprovação**. Sem ela, ligar "Tirar o fundo" mostra "O recorte ainda não foi liberado nesta conta." e nada quebra |
 
 A 008 entrou antes da 007 (que dependia do Pedro no SQL Editor); o registro da 007 no
 histórico do banco ganhou a versão `20261009140000`, entre a 006 e a 008, e o histórico
@@ -156,8 +159,9 @@ Claude confere e registra no histórico.
 ferramenta da Supabase. Cada parte é uma migration; o histórico do banco e o
 repositório têm as mesmas 5.
 
-**Testes** — `./supabase/tests/rodar.sh`: 44 testes (suítes 001, 002, a da agenda, `007_agenda.sql`, a 009,
-e a do cadastro, `008_cadastro.sql`), a conferência dos endereços reservados e a
+**Testes** — `./supabase/tests/rodar.sh`: 56 testes (suítes 001, 002, a da agenda, `007_agenda.sql`, a 009,
+a do cadastro, `008_cadastro.sql`, promoções, fotos e foto sem fundo), a conferência dos endereços reservados, a
+paridade de preços (navegador × banco) e a
 **paridade** — agendas sorteadas, o motor do navegador e o do banco têm que dar as
 mesmas vagas, pedido por pedido (1.200 pedidos por rodada; conferido que pega
 diferença quando o motor é estragado de propósito).
