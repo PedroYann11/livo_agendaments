@@ -4,6 +4,7 @@
 // Entrada de atendimento é automática (vem do "Concluir e receber"); o que
 // o dono lança à mão são despesas e vendas avulsas.
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useBanco, useLoja } from "@/lib/dados/loja";
 import { Cabecalho } from "../Cabecalho";
@@ -126,7 +127,11 @@ export function Financeiro() {
             <Icone nome="raio" tamanho={16} /> Meta do mês
           </span>
           <span className="pn-kpi-valor">{meta ? pct(r.faturamento / meta) : "—"}</span>
-          {meta > 0 ? <Medidor valor={r.faturamento / meta} tom={r.faturamento >= meta ? "bom" : "marca"} rotulo="Meta" /> : <span className="pn-kpi-rodape">Defina em Configurações › Negócio</span>}
+          {meta > 0 ? <Medidor valor={r.faturamento / meta} tom={r.faturamento >= meta ? "bom" : "marca"} rotulo="Meta" /> : (
+            <Link href="/painel/configuracoes?s=pagamentos" className="ui-botao ui-botao-secundario ui-botao-p" style={{ alignSelf: "flex-start" }}>
+              Definir meta
+            </Link>
+          )}
           {meta > 0 && mesAtual && <span className="pn-kpi-rodape">+ {brlCurto(r.previsto)} já agendados</span>}
         </div>
       </div>

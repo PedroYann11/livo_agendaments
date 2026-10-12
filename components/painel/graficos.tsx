@@ -210,7 +210,7 @@ export function MapaCalor({ dias, horas, valores }: { dias: string[]; horas: num
         ))}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, gap: 12, flexWrap: "wrap" }}>
-        <small style={{ color: "var(--c-texto-2)", minHeight: 18 }}>{dica ?? "Passe o dedo sobre um quadrado"}</small>
+        <small style={{ color: "var(--c-texto-2)", minHeight: 18 }}>{dica}</small>
         <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--c-texto-3)" }}>
           vazio
           {SEQUENCIAL.slice(1).map((c) => (

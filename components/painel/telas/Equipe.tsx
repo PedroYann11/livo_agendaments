@@ -102,9 +102,6 @@ export function Equipe() {
             <Icone nome="proibido" tamanho={18} /> Folgas e bloqueios
           </h2>
         </div>
-        <p className="pn-cartao-sub" style={{ padding: "0 18px" }}>
-          Para bloquear um horário, use “Bloquear horário” na Agenda.
-        </p>
         <div className="pn-lista" style={{ marginTop: 8 }}>
           {folgas.length === 0 && <EstadoVazio icone="agenda" titulo="Nenhuma folga marcada" />}
           {folgas.map((f) => {
@@ -189,10 +186,10 @@ function EditorProfissional({ profissional, onFechar }: { profissional: Profissi
                 <Entrada value={p.cargo} onChange={(e) => setP({ ...p, cargo: e.target.value })} placeholder="Ex.: Barbeiro" />
               </Campo>
             </div>
-            <Campo rotulo="Apresentação" opcional ajuda="Aparece na sua página, na seção Equipe.">
+            <Campo rotulo="Apresentação" opcional>
               <Texto rows={2} value={p.bio} onChange={(e) => setP({ ...p, bio: e.target.value })} />
             </Campo>
-            <Interruptor ligado={p.ativo} onMudar={(v) => setP({ ...p, ativo: v })} rotulo="Atendendo (aparece no site e na agenda)" mostrarRotulo />
+            <Interruptor ligado={p.ativo} onMudar={(v) => setP({ ...p, ativo: v })} rotulo="Atendendo" mostrarRotulo />
           </div>
 
           <div className="pn-secao-form">
@@ -215,7 +212,7 @@ function EditorProfissional({ profissional, onFechar }: { profissional: Profissi
 
           <div className="pn-secao-form">
             <h3>Horário de trabalho</h3>
-            <p>É este horário que abre vagas no site. Folgas pontuais vão em “Bloquear horário”.</p>
+            <p>Este horário abre as vagas do site.</p>
             <EditorSemana valor={p.horario} onMudar={(h) => setP({ ...p, horario: h })} />
           </div>
 

@@ -110,7 +110,7 @@ export function Relatorios() {
             <h2>O que rende mais por hora</h2>
           </div>
           <p className="pn-cartao-sub" style={{ padding: "0 18px" }}>
-            Faturamento dividido pelo tempo de cadeira. Um serviço caro e longo pode render menos que um rápido.
+            Faturamento ÷ tempo de cadeira.
           </p>
           <div className="pn-cartao-corpo">
             <BarrasH

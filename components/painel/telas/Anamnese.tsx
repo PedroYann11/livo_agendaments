@@ -70,7 +70,6 @@ export function Anamnese() {
     <div className="pn-pagina">
       <Cabecalho
         titulo="Anamnese"
-        texto="Fichas de saúde preenchidas pelo cliente antes de chegar."
         acoes={
           aba === "modelos" && (
             <Botao variante="principal" icone="mais" onClick={() => setEditar({ id: novoId("fm"), nome: "", descricao: "", ativo: true, campos: [] })}>
@@ -240,7 +239,7 @@ function EditorModelo({ modelo, onFechar }: { modelo: ModeloFicha | null; onFech
 
           <div className="pn-secao-form">
             <h3>Perguntas</h3>
-            <p>Arraste para reordenar. “Alerta” destaca a resposta para quem vai atender.</p>
+            <p>“Alerta” destaca a resposta para quem atende.</p>
             <Reorder.Group as="div" axis="y" values={m.campos.map((c) => c.id)} onReorder={(ids: string[]) => setM({ ...m, campos: ids.map((id) => m.campos.find((c) => c.id === id)!) })} style={{ display: "grid", gap: 10 }}>
               {m.campos.map((c, i) => {
                 const opcoes = c.tipo === "simNao" ? ["Sim", "Não"] : c.opcoes;
