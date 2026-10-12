@@ -9,6 +9,7 @@ import { motion } from "motion/react";
 import { useBanco, useLoja } from "@/lib/dados/loja";
 import { Cabecalho } from "../Cabecalho";
 import { EditorSemana } from "../EditorSemana";
+import { CampoFoto } from "../CampoFoto";
 import { Passo } from "./Servicos";
 import { Icone } from "@/components/ui/Icone";
 import { Avatar, Botao, BotaoIcone, Campo, Entrada, EstadoVazio, Interruptor, Medidor, Selo, Texto } from "@/components/ui/basicos";
@@ -170,8 +171,14 @@ function EditorProfissional({ profissional, onFechar }: { profissional: Profissi
       {p && (
         <div style={{ display: "grid", gap: 4 }}>
           <div className="pn-secao-form">
+            <CampoFoto
+              url={p.fotoUrl}
+              pasta="equipe"
+              formato="redondo"
+              onMudar={(fotoUrl) => setP({ ...p, fotoUrl })}
+              vazio={<Avatar nome={p.nome || "?"} cor={p.cor} tamanho={64} />}
+            />
             <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-              <Avatar nome={p.nome || "?"} cor={p.cor} tamanho={56} />
               <div className="pn-cores">
                 {PALETA.map((c, i) => (
                   <button key={c} type="button" className="pn-cor" style={{ background: c, width: 28, height: 28 }} aria-pressed={p.cor === i} aria-label={`Cor ${i + 1}`} onClick={() => setP({ ...p, cor: i })} />

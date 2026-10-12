@@ -1127,3 +1127,213 @@
 .pele-barbearia .vt-barra {
   border-radius: 10px;
 }
+
+/* ---------------------------------------------------------------------
+   Fotos: a de quem atende (topo e Sobre) e as do espaço
+   --------------------------------------------------------------------- */
+
+/* a moldura muda com o estilo da página: arco, bloco, forma orgânica, cartão */
+.vt-moldura {
+  display: block;
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  background: var(--v-sutil);
+  border-radius: 18px;
+}
+.vt-moldura img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+.pele-beleza .vt-moldura {
+  border-radius: 999px 999px 18px 18px;
+  box-shadow: 0 0 0 5px var(--v-fundo), 0 0 0 6px color-mix(in srgb, var(--v-marca) 35%, transparent);
+}
+.pele-barbearia .vt-moldura {
+  border-radius: 4px;
+  box-shadow: 6px 6px 0 var(--v-marca);
+}
+.pele-delicada .vt-moldura {
+  border-radius: 58% 42% 55% 45% / 46% 44% 56% 54%;
+}
+
+/* topo: a foto ao lado do logo, no lugar do desenho */
+.vt-heroi-marca {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.vt-heroi-marca .vt-logo {
+  margin-bottom: 0;
+  min-width: 0;
+  width: min(220px, 52vw);
+}
+.vt-heroi-foto {
+  flex-shrink: 0;
+  margin-left: auto;
+  width: clamp(104px, 30vw, 150px);
+}
+@media (min-width: 900px) {
+  /* no computador a foto fica junto do logo, não solta no meio da tela */
+  .vt-heroi-marca {
+    justify-content: flex-start;
+    gap: 36px;
+  }
+  .vt-heroi-foto {
+    width: 168px;
+    margin-left: 0;
+  }
+}
+
+/* Sobre: foto com legenda ao lado do texto (embaixo um do outro no celular) */
+.vt-sobre-pessoa {
+  display: grid;
+  gap: 26px;
+  align-items: start;
+}
+@media (min-width: 640px) {
+  .vt-sobre-pessoa {
+    grid-template-columns: minmax(180px, 0.75fr) minmax(0, 1fr);
+    gap: 32px;
+  }
+}
+/* sem o cartão de endereço/contato, o Sobre ocupa a largura toda */
+@media (min-width: 900px) {
+  .vt-sobre.so-um {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vt-sobre.so-um .vt-sobre-pessoa {
+    grid-template-columns: 300px minmax(0, 560px);
+    gap: 48px;
+  }
+}
+.vt-sobre-retrato {
+  margin: 0;
+  max-width: 320px;
+  display: grid;
+  gap: 12px;
+}
+.vt-sobre-retrato figcaption {
+  font-size: 14px;
+  color: var(--c-texto-2);
+  line-height: 1.45;
+}
+
+/* fotos do espaço: faixa que desliza no celular, grade no computador */
+.vt-galeria {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 18px;
+  margin: 34px -18px 0;
+  padding: 0 18px 6px;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent);
+}
+.vt-galeria::-webkit-scrollbar {
+  display: none;
+}
+.vt-galeria-foto {
+  flex: 0 0 min(64%, 260px);
+  scroll-snap-align: start;
+  aspect-ratio: 4 / 5;
+  border-radius: calc(var(--raio-cartao) - 4px);
+  overflow: hidden;
+  background: var(--v-sutil);
+  cursor: zoom-in;
+  transition: transform 300ms var(--ease-out, ease);
+}
+.vt-galeria-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 500ms var(--ease-out, ease);
+}
+@media (hover: hover) {
+  .vt-galeria-foto:hover img {
+    transform: scale(1.04);
+  }
+}
+.vt-galeria-foto:focus-visible {
+  outline: 2px solid var(--v-marca);
+  outline-offset: 3px;
+}
+@media (min-width: 720px) {
+  .vt-galeria-foto {
+    aspect-ratio: 4 / 3;
+  }
+  .vt-galeria {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 40px 0 0;
+    padding: 0;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+/* a foto inteira, por cima da página */
+.vt-visor {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 56px 12px;
+  background: rgb(10 10 12 / 0.92);
+  touch-action: pan-y;
+}
+.vt-visor img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+  user-select: none;
+}
+.vt-visor-botao {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #fff;
+  background: rgb(255 255 255 / 0.12);
+  transition: background-color 150ms ease;
+}
+.vt-visor-botao:hover {
+  background: rgb(255 255 255 / 0.22);
+}
+.vt-visor-fechar {
+  top: 12px;
+  right: 12px;
+}
+.vt-visor-antes,
+.vt-visor-depois {
+  top: 50%;
+  transform: translateY(-50%);
+}
+.vt-visor-antes {
+  left: 12px;
+}
+.vt-visor-depois {
+  right: 12px;
+}
+.vt-visor-conta {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgb(255 255 255 / 0.8);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}

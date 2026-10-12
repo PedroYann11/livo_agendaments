@@ -14,6 +14,7 @@ import type {
   Pele,
   Promocoes,
   RegrasAgendamento,
+  Retrato,
   Semana,
   Tema,
 } from "./tipos";
@@ -104,6 +105,11 @@ export const TEMA_NEUTRO: Tema = {
   textoSuave: "#5f5f69",
   acento: "#c9a46a",
 };
+
+export const RETRATO_VAZIO: Retrato = { url: null, legenda: "", noSobre: true };
+
+/** Até quantas fotos do espaço a página mostra. */
+export const MAX_GALERIA = 6;
 
 export const REGRAS_PADRAO: RegrasAgendamento = {
   intervaloSlotsMin: 15,
@@ -215,6 +221,7 @@ export function negocioNovo(id: string, slug: string, nome: string, nicho: Nicho
     logoCompletoUrl: null,
     capaUrl: null,
     galeria: [],
+    retrato: RETRATO_VAZIO,
     contato: { whatsapp: "", instagram: "", telefone: "", email: "" },
     endereco: { cep: "", rua: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "", referencia: "" },
     horario: semanaComercial(),

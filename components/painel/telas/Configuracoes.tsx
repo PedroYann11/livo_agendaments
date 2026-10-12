@@ -15,6 +15,7 @@ import { useBanco, useLoja } from "@/lib/dados/loja";
 import { usePainel } from "../PainelRaiz";
 import { Cabecalho } from "../Cabecalho";
 import { EditorSemana } from "../EditorSemana";
+import { CampoFoto, EditorGaleria } from "../CampoFoto";
 import { Passo } from "./Servicos";
 import { Icone, type NomeIcone } from "@/components/ui/Icone";
 import { Botao, BotaoCopiar, BotaoIcone, Campo, Entrada, Estrelas, Interruptor, Segmentado, Selo, Texto } from "@/components/ui/basicos";
@@ -30,6 +31,7 @@ import { centavosParaReais, formatarValorCampo, mascaraCep, mascaraTelefone } fr
 import { brl } from "@/lib/formato";
 import { novoId } from "@/lib/id";
 import { sair } from "@/lib/sessao";
+import { faxinaDeFotos } from "@/lib/fotos";
 
 type Secao = "pagina" | "aparencia" | "funcionamento" | "regras" | "contato" | "pagamentos" | "modulos" | "promocoes" | "avaliacoes" | "conta";
 
@@ -68,7 +70,8 @@ const ENFEITES: Record<Pele, string> = {
 
 export function Configuracoes() {
   const b = useBanco();
-  const { mudar } = useLoja();
+  const { mudar, remoto } = useLoja();
+  const { sessao } = usePainel();
   const avisar = useAvisos();
   const params = useSearchParams();
   const router = useRouter();
@@ -83,6 +86,17 @@ export function Configuracoes() {
     if (JSON.stringify(rascunho) === JSON.stringify(base)) setRascunho(b.negocio);
   }
   const sujo = JSON.stringify(rascunho) !== JSON.stringify(b.negocio);
+  // uma vez por sessão: apaga do Storage as fotos que a página não usa mais
+  useEffect(() => {
+    if (!remoto || (sessao.papel !== "owner" && sessao.papel !== "admin")) return;
+    const chave = `livo-agenda:faxina-fotos:${b.negocio.id}`;
+    try {
+      if (sessionStorage.getItem(chave)) return;
+      sessionStorage.setItem(chave, "1");
+    } catch {}
+    faxinaDeFotos(b).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remoto, sessao.papel]);
   const ir = (s: Secao) => router.replace(`/painel/configuracoes?s=${s}`, { scroll: false });
   const muda = (p: Partial<Negocio>) => setRascunho((r) => ({ ...r, ...p }));
 
@@ -237,6 +251,25 @@ function SecaoPagina({ n, muda }: PropsSecao) {
           </div>
         </Campo>
       </Bloco>
+      <Bloco titulo="Sua foto" texto="No Sobre e, se quiser, no topo (Aparência).">
+        <CampoFoto url={n.retrato.url} pasta="retrato" onMudar={(url) => muda({ retrato: { ...n.retrato, url } })} />
+        {n.retrato.url && (
+          <>
+            <Campo rotulo="Legenda" opcional>
+              <Entrada
+                value={n.retrato.legenda}
+                onChange={(e) => muda({ retrato: { ...n.retrato, legenda: e.target.value } })}
+                maxLength={80}
+                placeholder="Ex.: Marcela Souza · especialista em laser"
+              />
+            </Campo>
+            <Interruptor ligado={n.retrato.noSobre} onMudar={(v) => muda({ retrato: { ...n.retrato, noSobre: v } })} rotulo="Mostrar no Sobre" mostrarRotulo />
+          </>
+        )}
+      </Bloco>
+      <Bloco titulo="Fotos do espaço" texto="Aparecem no Sobre.">
+        <EditorGaleria fotos={n.galeria} onMudar={(galeria) => muda({ galeria })} />
+      </Bloco>
       <Bloco titulo="Aviso no topo">
         <Interruptor ligado={n.aviso.ativo} onMudar={(v) => muda({ aviso: { ...n.aviso, ativo: v } })} rotulo="Mostrar aviso" mostrarRotulo />
         <Entrada value={n.aviso.texto} onChange={(e) => muda({ aviso: { ...n.aviso, texto: e.target.value } })} placeholder="Ex.: 15% off no laser de axilas em outubro" disabled={!n.aviso.ativo} />
@@ -343,9 +376,12 @@ function SecaoAparencia({ n, muda }: PropsSecao) {
             onMudar={(v) => muda({ enfeiteTopo: v })}
             opcoes={[
               { id: "desenho", rotulo: ENFEITES[n.pele] },
+              { id: "foto", rotulo: "Sua foto" },
               { id: "nenhum", rotulo: "Sem enfeite" },
             ]}
           />
+          {/* a mesma foto de Minha página › Sua foto: dá para enviar daqui também */}
+          {n.enfeiteTopo === "foto" && <CampoFoto url={n.retrato.url} pasta="retrato" onMudar={(url) => muda({ retrato: { ...n.retrato, url } })} />}
         </Bloco>
         <Bloco titulo="Cor da marca">
           <div className="pn-cores">

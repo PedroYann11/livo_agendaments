@@ -9,6 +9,11 @@
 //
 // SÓ PARA TESTE LOCAL: o login aqui não confere assinatura nenhuma.
 //
+// Fotos: /storage/v1/object/… como a Storage API — o envio, a lista e o
+// apagar viram INSERT/SELECT/DELETE em storage.objects com o papel de quem
+// chamou (a RLS da 011 decide); os bytes ficam na memória deste servidor e
+// saem em /storage/v1/object/public/<bucket>/<caminho>.
+//
 // Cadastro: /auth/v1/signup cria a conta em auth.users. Com
 // BOLSO_CONFIRMAR=1 ela nasce sem e-mail confirmado (como em produção) e o
 // "link do e-mail" é GET /auth/v1/bolso-link?email=…&tipo=signup|recovery
@@ -248,10 +253,95 @@ async function auth(caminho, url, corpo, req) {
 }
 
 // ---------------------------------------------------------------------
+// Storage: enviar, listar, apagar e ver (público)
+// ---------------------------------------------------------------------
+
+const arquivos = new Map(); // "bucket/caminho" -> { tipo, bytes }
+
+/** roda SQL com o papel de quem chamou; o SELECT final diz 'RESULTADO:' || <json> */
+async function comoQuemChamou(usuario, sql, vars = {}) {
+  const r = await psql(
+    `begin;
+select set_config('request.jwt.claim.sub', :'sub', true) is null;
+set local role ${usuario ? "authenticated" : "anon"};
+${sql};
+commit;`,
+    { sub: usuario?.sub ?? "", ...vars },
+  );
+  if (r.codigo !== 0) return { erro: r.err.match(/ERROR:\s+(.*)/)?.[1] ?? r.err.trim() };
+  const linha = r.out.split("\n").find((l) => l.startsWith("RESULTADO:"));
+  return { dados: JSON.parse(linha.slice("RESULTADO:".length)) };
+}
+
+async function storage(req, url, bruto, usuario) {
+  const resto = url.pathname.slice("/storage/v1/object/".length);
+  if (req.method === "GET" && resto.startsWith("public/")) {
+    const chave = decodeURIComponent(resto.slice("public/".length));
+    const [bucket] = chave.split("/");
+    const pub = await psql(`select public from storage.buckets where id = :'b'`, { b: bucket });
+    const a = arquivos.get(chave);
+    if (pub.out.trim() !== "t" || !a) return [404, { statusCode: "404", error: "not_found", message: "Object not found" }];
+    return [200, a.bytes, { "content-type": a.tipo, "cache-control": "max-age=3600" }, true];
+  }
+  if (req.method === "POST" && resto.startsWith("list/")) {
+    const bucket = resto.slice("list/".length);
+    const corpo = JSON.parse(bruto.toString() || "{}");
+    const prefixo = String(corpo.prefix ?? "").replace(/\/+$/, "");
+    const r = await comoQuemChamou(
+      usuario,
+      `select 'RESULTADO:' || coalesce(jsonb_agg(jsonb_build_object('name', substr(name, length(:'p') + 2), 'id', id, 'created_at', created_at,
+         'updated_at', created_at, 'metadata', metadata) order by name), '[]')::text
+       from storage.objects where bucket_id = :'b' and name like :'p' || '/%' and position('/' in substr(name, length(:'p') + 2)) = 0`,
+      { b: bucket, p: prefixo },
+    );
+    return r.erro ? [400, { statusCode: "400", error: "list_failed", message: r.erro }] : [200, r.dados];
+  }
+  if (req.method === "DELETE") {
+    const bucket = resto;
+    const corpo = JSON.parse(bruto.toString() || "{}");
+    const r = await comoQuemChamou(
+      usuario,
+      `with apagados as (delete from storage.objects where bucket_id = :'b'
+         and name in (select jsonb_array_elements_text(:'n'::jsonb)) returning name)
+       select 'RESULTADO:' || coalesce(jsonb_agg(jsonb_build_object('name', name, 'bucket_id', :'b')), '[]')::text from apagados`,
+      { b: bucket, n: JSON.stringify(corpo.prefixes ?? []) },
+    );
+    if (r.erro) return [400, { statusCode: "400", error: "delete_failed", message: r.erro }];
+    for (const o of r.dados) arquivos.delete(`${bucket}/${o.name}`);
+    return [200, r.dados];
+  }
+  if (req.method === "POST" || req.method === "PUT") {
+    const [bucket, ...partes] = resto.split("/");
+    const caminho = decodeURIComponent(partes.join("/"));
+    const tipo = (req.headers["content-type"] ?? "").split(";")[0];
+    const b = await psql(`select jsonb_build_object('limite', file_size_limit, 'tipos', allowed_mime_types) from storage.buckets where id = :'b'`, { b: bucket });
+    if (!b.out.trim()) return [400, { statusCode: "404", error: "Bucket not found", message: "Bucket not found" }];
+    const cfg = JSON.parse(b.out.trim());
+    if (cfg.limite && bruto.length > cfg.limite) return [400, { statusCode: "413", error: "Payload too large", message: "The object exceeded the maximum allowed size" }];
+    if (cfg.tipos && !cfg.tipos.includes(tipo)) return [400, { statusCode: "415", error: "invalid_mime_type", message: `mime type ${tipo} is not supported` }];
+    const r = await comoQuemChamou(
+      usuario,
+      `with novo as (insert into storage.objects (bucket_id, name, owner, metadata)
+         values (:'b', :'c', nullif(:'sub', '')::uuid, jsonb_build_object('mimetype', :'t', 'size', :'tam'::int)) returning id)
+       select 'RESULTADO:' || to_jsonb(id)::text from novo`,
+      { b: bucket, c: caminho, t: tipo, tam: String(bruto.length) },
+    );
+    if (r.erro) {
+      const rls = /row-level security/.test(r.erro);
+      const dup = /duplicate key/.test(r.erro);
+      return [400, { statusCode: rls ? "403" : dup ? "409" : "400", error: rls ? "Unauthorized" : dup ? "Duplicate" : "Error", message: r.erro }];
+    }
+    arquivos.set(`${bucket}/${caminho}`, { tipo, bytes: bruto });
+    return [200, { Key: `${bucket}/${caminho}`, Id: r.dados }];
+  }
+  return [404, { message: "não existe no bolso" }];
+}
+
+// ---------------------------------------------------------------------
 
 const CORS = {
   "access-control-allow-origin": "*",
-  "access-control-allow-headers": "apikey, authorization, content-type, x-client-info, prefer, accept-profile, content-profile, x-supabase-api-version",
+  "access-control-allow-headers": "apikey, authorization, content-type, x-client-info, prefer, accept-profile, content-profile, x-supabase-api-version, cache-control, x-upsert, x-metadata",
   "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 };
 
@@ -261,12 +351,13 @@ http
       res.writeHead(204, CORS);
       return res.end();
     }
-    let bruto = "";
-    for await (const parte of req) bruto += parte;
+    const pedacos = [];
+    for await (const parte of req) pedacos.push(parte);
+    const bruto = Buffer.concat(pedacos);
     const url = new URL(req.url, "http://bolso");
     let corpo = {};
     try {
-      corpo = bruto ? JSON.parse(bruto) : {};
+      corpo = bruto.length && !url.pathname.startsWith("/storage/") ? JSON.parse(bruto.toString()) : {};
     } catch {}
     let resposta;
     try {
@@ -274,15 +365,17 @@ http
         resposta = await rpc(url.pathname.slice("/rest/v1/rpc/".length), corpo, lerJwt(req.headers.authorization));
       } else if (url.pathname.startsWith("/auth/v1/")) {
         resposta = await auth(url.pathname, url, corpo, req);
+      } else if (url.pathname.startsWith("/storage/v1/object/")) {
+        resposta = await storage(req, url, bruto, lerJwt(req.headers.authorization));
       } else {
         resposta = [404, { message: "não existe no bolso" }];
       }
     } catch (e) {
       resposta = [500, { message: String(e) }];
     }
-    const [status, dados, extras = {}] = resposta;
+    const [status, dados, extras = {}, binario = false] = resposta;
     if (process.env.BOLSO_LOG) console.log(req.method, url.pathname, status, status >= 400 ? JSON.stringify(dados) : "");
     res.writeHead(status, { ...CORS, "content-type": "application/json", ...extras });
-    res.end(status === 204 || dados === null ? undefined : JSON.stringify(dados));
+    res.end(status === 204 || dados === null ? undefined : binario ? dados : JSON.stringify(dados));
   })
   .listen(PORTA, () => console.log(`supabase de bolso em http://localhost:${PORTA}`));

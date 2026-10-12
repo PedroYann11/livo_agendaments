@@ -2573,3 +2573,121 @@ li.feito .pp-texto strong {
   text-decoration: line-through;
   text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
 }
+
+/* ---------------------------------------------------------------------
+   Fotos (Configurações › Minha página, Equipe)
+   --------------------------------------------------------------------- */
+
+.cf-foto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+.cf-foto-previa {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--c-sutil);
+  color: var(--c-texto-3);
+  border: 1px solid var(--c-linha);
+}
+.cf-foto-previa.retrato {
+  width: 96px;
+  aspect-ratio: 4 / 5;
+  border-radius: 14px;
+}
+.cf-foto-previa.redondo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+.cf-foto-previa img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+.cf-foto-previa.enviando img {
+  opacity: 0.35;
+}
+.cf-foto-previa .ui-girando {
+  position: absolute;
+  color: var(--c-texto);
+}
+.cf-foto-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.cf-foto-acoes .ui-campo-erro {
+  flex-basis: 100%;
+}
+label.ui-botao {
+  cursor: pointer;
+}
+label.ui-botao.desligado {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.cf-galeria {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (min-width: 720px) {
+  .cf-galeria {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+.cf-galeria-item,
+.cf-galeria-mais {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.cf-galeria-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cf-galeria-botoes {
+  position: absolute;
+  inset: auto 4px 4px 4px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.cf-galeria-botoes .ui-botao-icone {
+  width: 30px;
+  height: 30px;
+  background: rgb(255 255 255 / 0.92);
+  color: #17171a;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+}
+.cf-galeria-mais {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  border: 1.5px dashed var(--c-linha);
+  color: var(--c-texto-2);
+  font-size: 12.5px;
+  font-weight: 560;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+.cf-galeria-mais:hover {
+  background: var(--c-sutil);
+  border-color: var(--c-texto-3);
+}
+.cf-galeria-mais.enviando {
+  pointer-events: none;
+  opacity: 0.7;
+}

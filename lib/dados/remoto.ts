@@ -110,6 +110,7 @@ export function negocioDe(j: NegocioDoBanco): Negocio {
     datasEspeciais: j.datasEspeciais ?? [],
     destaques: j.destaques ?? [],
     galeria: j.galeria ?? [],
+    retrato: { ...base.retrato, ...j.retrato },
   };
 }
 

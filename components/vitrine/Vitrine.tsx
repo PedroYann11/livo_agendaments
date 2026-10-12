@@ -14,6 +14,7 @@ import { useVagas } from "@/lib/dados/vagas";
 import { linkWhatsApp, enderecoTexto } from "@/lib/whatsapp";
 import { resumoPromocao } from "@/lib/precos";
 import { Arte, Emergir, Revelar } from "./efeitos";
+import { Galeria } from "./Galeria";
 import { capitalizar, gruposVisiveis, menorPreco, servicosVisiveis } from "./util";
 
 /** Os próximos horários livres do serviço mais pedido — o atalho do herói. */
@@ -74,7 +75,14 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
     .sort((a, c) => (a.data < c.data ? -1 : 1))
     .slice(0, 4);
   const temSemana = Object.values(n.horario).some((f) => f.length > 0);
+  // o cartão do Sobre (endereço, dias, contato) só aparece se tem o que mostrar
+  const temInfo = Boolean(n.endereco.rua || n.contato.whatsapp || n.contato.instagram || temSemana) || proximosDias.length > 0;
   const mapa = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${n.nome}, ${enderecoTexto(b)}`)}`;
+  // a foto de quem atende: no topo (Aparência) e/ou no Sobre (Minha página)
+  const retrato = n.retrato?.url ?? null;
+  const fotoNoTopo = n.enfeiteTopo === "foto" && !!retrato;
+  const fotoNoSobre = !!retrato && n.retrato.noSobre;
+  const altRetrato = n.retrato?.legenda || `Foto de quem atende na ${n.nome}`;
   const promos = (["variosItens", "primeiraVez", "aniversario"] as const)
     .filter((t) => n.promocoes?.[t]?.ativo)
     .map((t) => resumoPromocao(t, n.promocoes));
@@ -109,19 +117,35 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
       </header>
 
       <section className={`vt-heroi${n.logoCompletoUrl ? " com-logo" : ""}`}>
-        <Arte pele={n.pele} nome={n.nome} desenho={n.enfeiteTopo !== "nenhum"} />
+        {/* "Sua foto" sem foto enviada: fica o desenho */}
+        <Arte pele={n.pele} nome={n.nome} desenho={n.enfeiteTopo === "desenho" || (n.enfeiteTopo === "foto" && !retrato)} />
         <div className="vt-container vt-heroi-grade">
           <div>
-            {n.logoCompletoUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <motion.img
-                src={n.logoCompletoUrl}
-                alt={n.nome}
-                className="vt-logo"
-                initial={{ opacity: 0, y: 12, filter: "blur(8px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
-              />
+            {(n.logoCompletoUrl || fotoNoTopo) && (
+              <div className="vt-heroi-marca">
+                {n.logoCompletoUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <motion.img
+                    src={n.logoCompletoUrl}
+                    alt={n.nome}
+                    className="vt-logo"
+                    initial={{ opacity: 0, y: 12, filter: "blur(8px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{ duration: 0.8, ease: [0.23, 1, 0.32, 1] }}
+                  />
+                )}
+                {fotoNoTopo && (
+                  <motion.figure
+                    className="vt-moldura vt-heroi-foto"
+                    initial={{ opacity: 0, scale: 0.94 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.8, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={retrato!} alt={altRetrato} decoding="async" />
+                  </motion.figure>
+                )}
+              </div>
             )}
             <motion.span
               className={`vt-estado${situacao.aberto ? " aberto" : ""}`}
@@ -345,92 +369,110 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
       )}
 
       <section className="vt-secao" id="sobre">
-        <div className="vt-container vt-sobre">
-          <Revelar>
-            <span className="vt-sobretitulo">Sobre</span>
-            <h2 className="vt-titulo" style={{ marginBottom: 18 }}>
-              {n.nome}
-            </h2>
-            <p className="vt-sobre-texto">{n.sobre || n.descricao}</p>
-            {n.destaques.length > 0 && (
-              <div className="vt-destaques">
-                {n.destaques.map((d) => (
-                  <span key={d}>
-                    <Icone nome="okCirculo" tamanho={16} peso="fill" />
-                    {d}
-                  </span>
-                ))}
-              </div>
+        <div className={`vt-container vt-sobre${temInfo ? "" : " so-um"}`}>
+          <Revelar className={fotoNoSobre ? "vt-sobre-pessoa" : undefined}>
+            {fotoNoSobre && (
+              <figure className="vt-sobre-retrato">
+                <span className="vt-moldura">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={retrato!} alt={altRetrato} loading="lazy" decoding="async" />
+                </span>
+                {n.retrato.legenda && <figcaption>{n.retrato.legenda}</figcaption>}
+              </figure>
             )}
-          </Revelar>
-          <Revelar atraso={0.1} className="vt-info">
-            {n.endereco.rua && (
-              <div>
-                <h3>Onde estamos</h3>
-                <p className="vt-endereco">
-                  {n.endereco.rua}, {n.endereco.numero}
-                  {n.endereco.complemento && ` · ${n.endereco.complemento}`}
-                  <br />
-                  {n.endereco.bairro} · {n.endereco.cidade}/{n.endereco.uf}
-                  {n.endereco.referencia && (
-                    <>
-                      <br />
-                      <small style={{ color: "var(--c-texto-2)" }}>{n.endereco.referencia}</small>
-                    </>
-                  )}
-                </p>
-              </div>
-            )}
-            {proximosDias.length > 0 && (
-              <div>
-                <h3>Próximos dias de atendimento</h3>
-                <div className="vt-horarios">
-                  {proximosDias.map((a) => (
-                    <div key={a.data} className={a.data === hoje ? "hoje" : ""}>
-                      <span>{capitalizar(dataCurta(a.data))}</span>
-                      <span>
-                        {a.inicio}–{a.fim}
-                      </span>
-                    </div>
+            <div>
+              <span className="vt-sobretitulo">Sobre</span>
+              <h2 className="vt-titulo" style={{ marginBottom: 18 }}>
+                {n.nome}
+              </h2>
+              <p className="vt-sobre-texto">{n.sobre || n.descricao}</p>
+              {n.destaques.length > 0 && (
+                <div className="vt-destaques">
+                  {n.destaques.map((d) => (
+                    <span key={d}>
+                      <Icone nome="okCirculo" tamanho={16} peso="fill" />
+                      {d}
+                    </span>
                   ))}
                 </div>
-              </div>
-            )}
-            {temSemana && (
-              <div>
-                <h3>Horário</h3>
-                <div className="vt-horarios">
-                  {[1, 2, 3, 4, 5, 6, 0].map((d) => {
-                    const faixas = n.horario[d] ?? [];
-                    return (
-                      <div key={d} className={diaDaSemana(hoje) === d ? "hoje" : ""}>
-                        <span>{capitalizar(NOMES_DIAS[d].replace("-feira", ""))}</span>
-                        <span>{faixas.length ? faixas.map((f) => `${f.inicio}–${f.fim}`).join(" · ") : "Fechado"}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            <div className="vt-info-acoes">
-              {n.endereco.rua && (
-                <a href={mapa} target="_blank" rel="noopener noreferrer" className="ui-botao ui-botao-secundario ui-botao-p">
-                  <Icone nome="local" tamanho={16} /> Como chegar
-                </a>
-              )}
-              {n.contato.whatsapp && (
-                <a href={linkWhatsApp(n.contato.whatsapp, `Olá, ${n.nome}! Tenho uma dúvida.`)} target="_blank" rel="noopener noreferrer" className="ui-botao ui-botao-secundario ui-botao-p">
-                  <Icone nome="whatsapp" tamanho={16} /> WhatsApp
-                </a>
-              )}
-              {n.contato.instagram && (
-                <a href={`https://instagram.com/${n.contato.instagram}`} target="_blank" rel="noopener noreferrer" className="ui-botao ui-botao-secundario ui-botao-p">
-                  <Icone nome="instagram" tamanho={16} /> @{n.contato.instagram}
-                </a>
               )}
             </div>
           </Revelar>
+          {temInfo && (
+            <Revelar atraso={0.1} className="vt-info">
+              {n.endereco.rua && (
+                <div>
+                  <h3>Onde estamos</h3>
+                  <p className="vt-endereco">
+                    {n.endereco.rua}, {n.endereco.numero}
+                    {n.endereco.complemento && ` · ${n.endereco.complemento}`}
+                    <br />
+                    {n.endereco.bairro} · {n.endereco.cidade}/{n.endereco.uf}
+                    {n.endereco.referencia && (
+                      <>
+                        <br />
+                        <small style={{ color: "var(--c-texto-2)" }}>{n.endereco.referencia}</small>
+                      </>
+                    )}
+                  </p>
+                </div>
+              )}
+              {proximosDias.length > 0 && (
+                <div>
+                  <h3>Próximos dias de atendimento</h3>
+                  <div className="vt-horarios">
+                    {proximosDias.map((a) => (
+                      <div key={a.data} className={a.data === hoje ? "hoje" : ""}>
+                        <span>{capitalizar(dataCurta(a.data))}</span>
+                        <span>
+                          {a.inicio}–{a.fim}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {temSemana && (
+                <div>
+                  <h3>Horário</h3>
+                  <div className="vt-horarios">
+                    {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+                      const faixas = n.horario[d] ?? [];
+                      return (
+                        <div key={d} className={diaDaSemana(hoje) === d ? "hoje" : ""}>
+                          <span>{capitalizar(NOMES_DIAS[d].replace("-feira", ""))}</span>
+                          <span>{faixas.length ? faixas.map((f) => `${f.inicio}–${f.fim}`).join(" · ") : "Fechado"}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div className="vt-info-acoes">
+                {n.endereco.rua && (
+                  <a href={mapa} target="_blank" rel="noopener noreferrer" className="ui-botao ui-botao-secundario ui-botao-p">
+                    <Icone nome="local" tamanho={16} /> Como chegar
+                  </a>
+                )}
+                {n.contato.whatsapp && (
+                  <a href={linkWhatsApp(n.contato.whatsapp, `Olá, ${n.nome}! Tenho uma dúvida.`)} target="_blank" rel="noopener noreferrer" className="ui-botao ui-botao-secundario ui-botao-p">
+                    <Icone nome="whatsapp" tamanho={16} /> WhatsApp
+                  </a>
+                )}
+                {n.contato.instagram && (
+                  <a href={`https://instagram.com/${n.contato.instagram}`} target="_blank" rel="noopener noreferrer" className="ui-botao ui-botao-secundario ui-botao-p">
+                    <Icone nome="instagram" tamanho={16} /> @{n.contato.instagram}
+                  </a>
+                )}
+              </div>
+            </Revelar>
+          )}
         </div>
+        {n.galeria.length > 0 && (
+          <div className="vt-container">
+            <Galeria fotos={n.galeria} nome={n.nome} />
+          </div>
+        )}
       </section>
 
       <footer className="vt-rodape">

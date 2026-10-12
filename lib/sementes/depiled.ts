@@ -13,7 +13,7 @@
 // =====================================================================
 
 import type { Categoria, Negocio, Profissional, Semana, Servico } from "../tipos";
-import { MENSAGENS_PADRAO, REGRAS_PADRAO, modulosDoNicho, promocoesPadrao } from "../padroes";
+import { MENSAGENS_PADRAO, REGRAS_PADRAO, RETRATO_VAZIO, modulosDoNicho, promocoesPadrao } from "../padroes";
 import type { Semente } from "./tipos";
 
 const FEM = "dp_cat_feminino";
@@ -137,6 +137,7 @@ const negocio: Negocio = {
   logoCompletoUrl: "/marcas/depiled/logo.png",
   capaUrl: null,
   galeria: [],
+  retrato: RETRATO_VAZIO,
   contato: { whatsapp: "", instagram: "", telefone: "", email: "" },
   endereco: { cep: "", rua: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "CE", referencia: "" },
   horario: semDiaFixo,

@@ -123,7 +123,10 @@ export type Negocio = {
   /** logo com o nome, no começo da página */
   logoCompletoUrl: string | null;
   capaUrl: string | null;
+  /** fotos do espaço, na seção Sobre (até 6) */
   galeria: string[];
+  /** a foto de quem atende: no Sobre e/ou no canto do topo (enfeiteTopo = "foto") */
+  retrato: Retrato;
   contato: { whatsapp: string; instagram: string; telefone: string; email: string };
   endereco: Endereco;
   horario: Semana;
@@ -138,12 +141,20 @@ export type Negocio = {
   sinal: { percentual: number; servicosIds: string[] };
   metaMensal: number;
   aviso: { texto: string; ativo: boolean };
-  /** o enfeite do canto do topo (celular): o desenho do estilo da página ou nenhum */
+  /** o enfeite do canto do topo: o desenho do estilo da página, a foto de quem atende ou nada */
   enfeiteTopo: EnfeiteTopo;
   promocoes: Promocoes;
 };
 
-export type EnfeiteTopo = "desenho" | "nenhum";
+export type EnfeiteTopo = "desenho" | "foto" | "nenhum";
+
+export type Retrato = {
+  url: string | null;
+  /** ex.: "Marcela Souza · especialista em laser" */
+  legenda: string;
+  /** mostra na seção Sobre (o topo é escolhido em Aparência) */
+  noSobre: boolean;
+};
 
 export type Categoria = {
   id: string;
