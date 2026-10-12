@@ -159,7 +159,8 @@ function Bloco({ titulo, texto, children }: { titulo: string; texto?: string; ch
           {texto}
         </p>
       )}
-      <div className="pn-cartao-corpo" style={{ display: "grid", gap: 16 }}>
+      {/* minmax(0, 1fr): uma linha comprida encolhe em vez de empurrar o cartão para fora da tela */}
+      <div className="pn-cartao-corpo" style={{ display: "grid", gap: 16, gridTemplateColumns: "minmax(0, 1fr)" }}>
         {children}
       </div>
     </div>
@@ -456,8 +457,8 @@ function SecaoFuncionamento({ n, muda }: PropsSecao) {
         <div className="ui-grade-campos duas">
           <Entrada type="date" min={hoje} value={novoAvulso.data} onChange={(e) => setNovoAvulso({ ...novoAvulso, data: e.target.value })} />
           <div style={{ display: "flex", gap: 8 }}>
-            <Entrada type="time" step={600} value={novoAvulso.inicio} onChange={(e) => setNovoAvulso({ ...novoAvulso, inicio: e.target.value })} aria-label="Das" />
-            <Entrada type="time" step={600} value={novoAvulso.fim} onChange={(e) => setNovoAvulso({ ...novoAvulso, fim: e.target.value })} aria-label="Até" />
+            <Entrada type="time" step={600} value={novoAvulso.inicio} onChange={(e) => setNovoAvulso({ ...novoAvulso, inicio: e.target.value })} aria-label="Das" style={{ minWidth: 0 }} />
+            <Entrada type="time" step={600} value={novoAvulso.fim} onChange={(e) => setNovoAvulso({ ...novoAvulso, fim: e.target.value })} aria-label="Até" style={{ minWidth: 0 }} />
             <Botao
               variante="secundario"
               disabled={!novoAvulso.data || novoAvulso.fim <= novoAvulso.inicio}
@@ -488,7 +489,7 @@ function SecaoFuncionamento({ n, muda }: PropsSecao) {
         <div className="ui-grade-campos duas">
           <Entrada type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
           <div style={{ display: "flex", gap: 8 }}>
-            <Entrada value={novoRotulo} onChange={(e) => setNovoRotulo(e.target.value)} placeholder="Motivo (ex.: Férias)" />
+            <Entrada value={novoRotulo} onChange={(e) => setNovoRotulo(e.target.value)} placeholder="Motivo (ex.: Férias)" style={{ minWidth: 0 }} />
             <Botao
               variante="secundario"
               disabled={!novaData}

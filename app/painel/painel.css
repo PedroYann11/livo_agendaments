@@ -907,7 +907,8 @@ a.pn-linha:hover {
 }
 .pn-dia-linha {
   display: grid;
-  grid-template-columns: 92px 1fr;
+  /* interruptor + "Segunda"/"Domingo" cabem sem invadir o "Fechado" */
+  grid-template-columns: 124px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
   padding: 8px 0;
@@ -920,6 +921,7 @@ a.pn-linha:hover {
   display: flex;
   align-items: center;
   gap: 10px;
+  white-space: nowrap;
   font-size: 14px;
   font-weight: 560;
 }
@@ -929,12 +931,15 @@ a.pn-linha:hover {
 }
 .pn-faixa {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 .pn-faixa input {
   height: 38px;
-  width: 100%;
+  flex: 1 1 0;
+  min-width: 84px;
   max-width: 110px;
   padding: 0 8px;
   border-radius: 9px;
@@ -949,6 +954,12 @@ a.pn-linha:hover {
 .pn-fechado {
   font-size: 13.5px;
   color: var(--c-texto-3);
+}
+/* celular: o dia aberto põe os horários embaixo do nome, com espaço para as horas */
+@media (max-width: 560px) {
+  .pn-dia-linha:has(.pn-faixas) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* ---------------------------------------------------------------------
