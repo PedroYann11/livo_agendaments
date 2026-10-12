@@ -65,7 +65,7 @@ export default function CriarNegocio() {
 
   if (!pronto) {
     return (
-      <CascaAcesso titulo="Só um instante…" arte="cadastro">
+      <CascaAcesso titulo="Só um instante…">
         <div style={{ display: "grid", gap: 12, marginTop: 24 }}>
           <Esqueleto altura={48} raio={12} />
           <Esqueleto altura={96} raio={12} />
@@ -76,10 +76,10 @@ export default function CriarNegocio() {
   }
 
   return (
-    <CascaAcesso titulo="Crie seu negócio" subtitulo={`Você entrou como ${email}. Falta só descrever o negócio.`} arte="cadastro">
+    <CascaAcesso titulo="Crie seu negócio" subtitulo={`Você entrou como ${email}. Falta só descrever o negócio.`}>
       <form onSubmit={criar} onChange={() => setErros({})} className="en-campos">
         {erro && <AvisoAcesso>{erro}</AvisoAcesso>}
-        <Campo rotulo="Nome no painel" erro={erros.dono} ajuda="O seu nome ou o do negócio. Aparece no painel e na agenda.">
+        <Campo rotulo="Nome no painel" erro={erros.dono} ajuda="Seu nome ou o do negócio.">
           <Entrada value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Ana Souza ou Studio Bela" autoComplete="name" maxLength={80} required icone="cliente" />
         </Campo>
         <FormNegocio

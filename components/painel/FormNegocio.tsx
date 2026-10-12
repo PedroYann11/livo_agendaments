@@ -113,7 +113,7 @@ export function FormNegocio({
             </button>
           ))}
         </div>
-        {erros.nicho ? <span className="ui-campo-erro">{erros.nicho}</span> : <span className="ui-campo-ajuda">Já liga as funções certas para o seu tipo de negócio. Dá para mudar depois.</span>}
+        {erros.nicho ? <span className="ui-campo-erro">{erros.nicho}</span> : <span className="ui-campo-ajuda">Dá para mudar depois.</span>}
       </div>
 
       <Campo rotulo="Endereço da sua página" erro={erroSlug} ajuda={ajudaSlug}>
@@ -137,7 +137,7 @@ export function FormNegocio({
         </span>
       </Campo>
 
-      <Campo rotulo="WhatsApp do negócio" opcional ajuda="Aparece na sua página para os clientes falarem com você.">
+      <Campo rotulo="WhatsApp do negócio" opcional>
         <Entrada
           type="tel"
           inputMode="tel"

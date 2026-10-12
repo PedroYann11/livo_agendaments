@@ -113,7 +113,7 @@ export default function CriarConta() {
 
   if (!convite) {
     return (
-      <CascaAcesso titulo="Conferindo seu convite…" arte="cadastro">
+      <CascaAcesso titulo="Conferindo seu convite…">
         <div style={{ display: "grid", gap: 12, marginTop: 24 }}>
           <Esqueleto altura={48} raio={12} />
           <Esqueleto altura={96} raio={12} />
@@ -126,7 +126,7 @@ export default function CriarConta() {
   if (convite.estado === "usado") return <ConviteUsado />;
   if (convite.estado === "erro") {
     return (
-      <CascaAcesso titulo="Não deu para conferir o convite" subtitulo="Confira a internet e tente de novo." arte="cadastro">
+      <CascaAcesso titulo="Não deu para conferir o convite" subtitulo="Confira a internet e tente de novo.">
         <div className="en-campos">
           <Botao variante="principal" tamanho="g" onClick={() => window.location.reload()}>
             Tentar de novo
@@ -144,7 +144,7 @@ export default function CriarConta() {
 
   if (passo === "confirmar") {
     return (
-      <CascaAcesso titulo="Confira seu e-mail" arte="cadastro">
+      <CascaAcesso titulo="Confira seu e-mail">
         <div className="en-campos">
           <div className="en-carta" aria-hidden>
             <Icone nome="enviar" tamanho={26} />
@@ -177,14 +177,7 @@ export default function CriarConta() {
   return (
     <CascaAcesso
       titulo={pronto ? `Seu acesso à ${pronto.nome}` : passo === "negocio" ? "Crie sua agenda" : "Seu acesso ao painel"}
-      subtitulo={
-        pronto
-          ? `A página agenda.livo.tec.br/${pronto.slug} já está montada. Crie seu acesso para assumir o painel.`
-          : passo === "negocio"
-            ? "Pagamento confirmado. Leva 2 minutos, e você ajusta tudo depois no painel."
-            : "É com este e-mail e senha que você entra no painel."
-      }
-      arte="cadastro"
+      subtitulo={pronto ? `A página agenda.livo.tec.br/${pronto.slug} já está montada. Crie seu acesso para assumir o painel.` : undefined}
     >
       {!pronto && <ol className="en-passos" aria-label="Etapas">
         <li className={passo === "negocio" ? "atual" : "feito"}>
@@ -207,7 +200,7 @@ export default function CriarConta() {
         ) : (
           <motion.form key="acesso" onSubmit={criar} onChange={() => setErros({})} className="en-campos" {...TROCA}>
             {erro && <AvisoAcesso>{erro}</AvisoAcesso>}
-            <Campo rotulo="Nome no painel" erro={erros.dono} ajuda="O seu nome ou o do negócio. Aparece no painel e na agenda.">
+            <Campo rotulo="Nome no painel" erro={erros.dono} ajuda="Seu nome ou o do negócio.">
               <Entrada value={nome} onChange={(e) => setNome(e.target.value)} placeholder={`Ex.: Ana Souza ou ${pronto?.nome ?? "Studio Bela"}`} autoComplete="name" maxLength={80} required icone="cliente" autoFocus />
             </Campo>
             <Campo rotulo="E-mail" erro={erros.email} ajuda="O e-mail da compra. Para usar outro, fale com a Livo.">
@@ -256,7 +249,7 @@ function ComConta({ convite, logado }: { convite: Extract<Convite, { estado: "va
 
   if (!mesmo) {
     return (
-      <CascaAcesso titulo="Convite para outra conta" subtitulo={<>Este convite é para <strong>{convite.email}</strong>, e você está com <strong>{logado}</strong>.</>} arte="cadastro">
+      <CascaAcesso titulo="Convite para outra conta" subtitulo={<>Este convite é para <strong>{convite.email}</strong>, e você está com <strong>{logado}</strong>.</>}>
         <div className="en-campos">
           <Botao variante="principal" tamanho="g" onClick={() => sair().then(() => window.location.reload())}>
             Sair desta conta e continuar
@@ -284,7 +277,6 @@ function ComConta({ convite, logado }: { convite: Extract<Convite, { estado: "va
           ? `Você já tem conta. A ${convite.negocio.nome} entra no seu painel, ao lado dos seus outros negócios.`
           : "Você já tem conta. O novo negócio entra no seu painel, ao lado dos outros."
       }
-      arte="cadastro"
     >
       <div className="en-campos">
         {erro && <AvisoAcesso>{erro}</AvisoAcesso>}
@@ -302,19 +294,7 @@ function SemConvite() {
     <CascaAcesso
       titulo="Sua agenda começa pela contratação"
       subtitulo="A conta é criada depois do pagamento. Assim que ele é confirmado, você recebe um link para criar seu acesso."
-      arte="cadastro"
     >
-      <ol className="en-etapas">
-        <li>
-          <span>1</span> Contrate o plano com a Livo
-        </li>
-        <li>
-          <span>2</span> Receba o link de convite no e-mail ou no WhatsApp
-        </li>
-        <li>
-          <span>3</span> Crie seu acesso e sua agenda, em 2 minutos
-        </li>
-      </ol>
       <div className="en-campos">
         {WHATSAPP_LIVO && (
           <a href={linkWhatsApp(WHATSAPP_LIVO, "Olá! Quero contratar a Livo Agenda.")} target="_blank" rel="noopener noreferrer" className="ui-botao ui-botao-principal ui-botao-g">
@@ -331,7 +311,7 @@ function SemConvite() {
 
 function ConviteUsado() {
   return (
-    <CascaAcesso titulo="Convite já usado" subtitulo="Este link já criou uma conta. Entre com o e-mail e a senha que você escolheu." arte="cadastro">
+    <CascaAcesso titulo="Convite já usado" subtitulo="Este link já criou uma conta. Entre com o e-mail e a senha que você escolheu.">
       <div className="en-campos">
         <Link href="/painel/entrar" className="ui-botao ui-botao-principal ui-botao-g">
           Entrar no painel

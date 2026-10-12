@@ -15,7 +15,7 @@ function erroDoLink(): string | null {
   if (!p.get("error") && !p.get("error_code")) return null;
   // o link de confirmação também cai aqui quando um e-mail mais novo foi pedido (o reenvio anula os anteriores)
   return p.get("error_code") === "otp_expired"
-    ? "Esse link não vale mais: expirou ou um e-mail mais novo foi enviado. Abra o e-mail mais recente ou entre com seu e-mail e senha."
+    ? "Esse link não vale mais. Use o e-mail mais recente."
     : "Não foi possível abrir esse link. Entre com seu e-mail e senha.";
 }
 
@@ -90,7 +90,7 @@ export default function Entrar() {
   }
 
   return (
-    <CascaAcesso titulo="Entrar no painel" subtitulo="Use o e-mail e a senha da sua conta.">
+    <CascaAcesso titulo="Entrar no painel">
       <form onSubmit={entrar} className="en-campos">
         {erro && (
           <AvisoAcesso>
@@ -99,7 +99,7 @@ export default function Entrar() {
               <div style={{ marginTop: 8 }}>
                 {reenvio === "enviado" ? (
                   <span>
-                    <strong>Enviamos um novo link para {email}.</strong> Use só esse e-mail: os links anteriores deixam de valer.
+                    <strong>Novo link enviado para {email}.</strong> Só ele vale.
                   </span>
                 ) : (
                   <button type="button" className="en-link" onClick={reenviar} disabled={reenvio === "enviando"}>

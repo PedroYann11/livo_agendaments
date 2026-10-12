@@ -8,7 +8,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
-import { Icone, type NomeIcone } from "@/components/ui/Icone";
+import { Icone } from "@/components/ui/Icone";
 import { PALETA } from "@/lib/paleta";
 
 const ENTRAR = [0.23, 1, 0.32, 1] as const;
@@ -16,18 +16,7 @@ const ENTRAR = [0.23, 1, 0.32, 1] as const;
 /** WhatsApp comercial da Livo (variável da Vercel). Sem ele, as telas não mostram o botão de contratar. */
 export const WHATSAPP_LIVO = process.env.NEXT_PUBLIC_LIVO_WHATSAPP ?? "";
 
-export function CascaAcesso({
-  titulo,
-  subtitulo,
-  arte = "agenda",
-  children,
-}: {
-  titulo: string;
-  subtitulo?: ReactNode;
-  /** agenda: o login de todo dia · cadastro: o que a pessoa ganha ao criar a conta */
-  arte?: "agenda" | "cadastro";
-  children: ReactNode;
-}) {
+export function CascaAcesso({ titulo, subtitulo, children }: { titulo: string; subtitulo?: ReactNode; children: ReactNode }) {
   return (
     <div className="en">
       <aside className="en-arte">
@@ -38,7 +27,7 @@ export function CascaAcesso({
           </span>
           Livo Agenda
         </Link>
-        {arte === "agenda" ? <ArteAgenda /> : <ArteCadastro />}
+        <ArteAgenda />
       </aside>
 
       <main className="en-form">
@@ -63,7 +52,6 @@ function ArteAgenda() {
     <>
       <div>
         <h2>A agenda do dia, sem bagunça.</h2>
-        <p>Seus clientes marcam sozinhos pelo link. Você abre o painel e já sabe quem vem, quem confirmou e quanto entra hoje.</p>
       </div>
       <div className="en-agenda-mini">
         {[
@@ -78,31 +66,6 @@ function ArteAgenda() {
           </motion.div>
         ))}
       </div>
-    </>
-  );
-}
-
-const GANHOS: [NomeIcone, string][] = [
-  ["navegador", "Página com o seu nome e as suas cores"],
-  ["agenda", "Clientes marcam sozinhos, a qualquer hora"],
-  ["whatsapp", "Lembretes prontos para enviar no WhatsApp"],
-];
-
-function ArteCadastro() {
-  return (
-    <>
-      <div>
-        <h2>Sua agenda online, pronta hoje.</h2>
-        <p>Crie a conta, cadastre seus serviços e cole o link na bio do Instagram. O resto a agenda faz por você.</p>
-      </div>
-      <ul className="en-ganhos">
-        {GANHOS.map(([icone, texto], i) => (
-          <motion.li key={texto} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.12, duration: 0.5, ease: ENTRAR }}>
-            <Icone nome={icone} tamanho={18} />
-            {texto}
-          </motion.li>
-        ))}
-      </ul>
     </>
   );
 }
@@ -125,7 +88,7 @@ export function AvisoAcesso({ tom = "erro", children }: { tom?: "erro" | "ok" | 
 /** O banco ainda não tem o cadastro próprio (migration 008): avisa em vez de abrir o formulário. */
 export function CadastroEmBreve() {
   return (
-    <CascaAcesso titulo="Cadastro abre em breve" subtitulo="Estamos preparando a criação de contas pelo site. Já tem conta? Entre por aqui." arte="cadastro">
+    <CascaAcesso titulo="Cadastro abre em breve" subtitulo="Estamos preparando a criação de contas pelo site. Já tem conta? Entre por aqui.">
       <div className="en-campos">
         <Link href="/painel/entrar" className="ui-botao ui-botao-principal ui-botao-g">
           Entrar no painel

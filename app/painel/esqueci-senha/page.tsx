@@ -24,7 +24,7 @@ export default function EsqueciSenha() {
   };
 
   return (
-    <CascaAcesso titulo="Esqueci minha senha" subtitulo="Enviamos um link para você criar uma senha nova.">
+    <CascaAcesso titulo="Esqueci minha senha">
       {enviado ? (
         <div className="en-campos">
           <AvisoAcesso tom="ok">
