@@ -97,7 +97,7 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 | `008_cadastro` | cadastro com pagamento: licenças, convite, hook "antes de criar conta", `slug_disponivel`, `negocio_criar_meu` (depende da 007) | **aplicada** (09/10, aprovada pelo Pedro) antes da 007 — sem ela, criar negócio ainda falha. Advisor: só os avisos esperados das portas públicas |
 | `010_promocoes` | promoções automáticas (primeira vez, volta, aniversário) e cupom; o preço final é decidido no banco | **aplicada** (`painel_salvar` pelo Pedro no SQL Editor) |
 | `011_fotos` | pasta `fotos` no Storage: pública para ver, só JPEG até 2 MB; só dono/admin envia e apaga, só na pasta do próprio negócio | **aplicada** (aprovada pelo Pedro). Advisor: só os avisos já conhecidos |
-| `012_fotos_sem_fundo` | a mesma pasta aceita também PNG e WebP (o recorte da "Sua foto" tem fundo transparente); SVG e GIF continuam de fora | **pronta e testada (T56); aguarda aprovação**. Sem ela, ligar "Tirar o fundo" mostra "O recorte ainda não foi liberado nesta conta." e nada quebra |
+| `012_fotos_sem_fundo` | a mesma pasta aceita também PNG e WebP (o recorte da "Sua foto" tem fundo transparente); SVG e GIF continuam de fora | **aplicada** (13/10, aprovada pelo Pedro, depois de o recorte ser recusado no painel sem ela). Advisor: só os avisos já conhecidos |
 
 A 008 entrou antes da 007 (que dependia do Pedro no SQL Editor); o registro da 007 no
 histórico do banco ganhou a versão `20261009140000`, entre a 006 e a 008, e o histórico
