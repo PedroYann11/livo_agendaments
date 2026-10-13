@@ -581,6 +581,8 @@ select.ui-entrada {
   font-size: 15px;
   color: var(--c-texto);
   height: 100%;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .ui-busca input::-webkit-search-cancel-button {
   display: none;
@@ -588,6 +590,34 @@ select.ui-entrada {
 .ui-busca .ui-botao-icone {
   width: 32px;
   height: 32px;
+}
+
+/* iPhone: campo com letra menor que 16px faz a página dar zoom ao tocar
+   (e o zoom fica depois). Em tela de toque, os campos têm 16px. */
+@media (pointer: coarse) {
+  .ui-entrada,
+  .ui-busca input,
+  .pn-faixa input {
+    font-size: 16px;
+  }
+}
+
+/* alça de arrastar (ItemOrdenavel): só ela arrasta; o resto do item rola a página */
+.ui-alca {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  margin: -6px -4px -6px -8px;
+  border-radius: 10px;
+  color: var(--c-texto-3);
+  cursor: grab;
+  touch-action: none;
+}
+.ui-alca:active {
+  cursor: grabbing;
+  background: var(--c-sutil);
 }
 
 .ui-grade-campos {
@@ -718,6 +748,11 @@ select.ui-entrada {
   /* uma folha nunca rola para o lado (no celular, isso cortava a tela) */
   overflow-x: hidden;
   overscroll-behavior: contain;
+  /* a folha inteira arrasta para fechar, e isso bloqueia a seleção de texto;
+     aqui dentro dá para selecionar e copiar (telefone, chave Pix) */
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
   flex: 1;
 }
 .ui-folha-rodape {

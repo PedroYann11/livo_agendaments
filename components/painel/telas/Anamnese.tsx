@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Reorder } from "motion/react";
+import { ItemOrdenavel } from "@/components/ui/Ordenavel";
 import { useBanco, useLoja } from "@/lib/dados/loja";
 import { Cabecalho } from "../Cabecalho";
 import { Icone } from "@/components/ui/Icone";
@@ -244,39 +245,41 @@ function EditorModelo({ modelo, onFechar }: { modelo: ModeloFicha | null; onFech
               {m.campos.map((c, i) => {
                 const opcoes = c.tipo === "simNao" ? ["Sim", "Não"] : c.opcoes;
                 return (
-                  <Reorder.Item as="div" key={c.id} value={c.id} style={{ padding: 12, borderRadius: 12, border: "1px solid var(--c-linha)", background: "var(--c-superficie)", display: "grid", gap: 10 }}>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      <span style={{ cursor: "grab", color: "var(--c-texto-3)" }}>
-                        <Icone nome="menuVertical" tamanho={18} />
-                      </span>
-                      <span style={{ fontSize: 12, fontWeight: 650, color: "var(--c-texto-3)" }}>{i + 1}</span>
-                      <Entrada value={c.rotulo} onChange={(e) => mudarCampo(c.id, { rotulo: e.target.value })} placeholder="Pergunta" />
-                      <BotaoIcone icone="apagar" rotulo="Remover pergunta" onClick={() => setM({ ...m, campos: m.campos.filter((x) => x.id !== c.id) })} />
-                    </div>
-                    <div className="ui-grade-campos duas">
-                      <select className="ui-entrada" value={c.tipo} onChange={(e) => mudarCampo(c.id, { tipo: e.target.value as TipoCampoFicha, alerta: null })}>
-                        {TIPOS.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.rotulo}
-                          </option>
-                        ))}
-                      </select>
-                      {opcoes.length > 0 && (
-                        <select className="ui-entrada" value={c.alerta ?? ""} onChange={(e) => mudarCampo(c.id, { alerta: e.target.value || null })}>
-                          <option value="">Sem alerta</option>
-                          {opcoes.map((o) => (
-                            <option key={o} value={o}>
-                              Alerta se “{o}”
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                    </div>
-                    {(c.tipo === "escolha" || c.tipo === "multipla") && (
-                      <Entrada value={c.opcoes.join(", ")} onChange={(e) => mudarCampo(c.id, { opcoes: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })} placeholder="Opções separadas por vírgula" />
+                  <ItemOrdenavel key={c.id} valor={c.id} style={{ padding: 12, borderRadius: 12, border: "1px solid var(--c-linha)", background: "var(--c-superficie)", display: "grid", gap: 10 }}>
+                    {(alca) => (
+                      <>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                          {alca}
+                          <span style={{ fontSize: 12, fontWeight: 650, color: "var(--c-texto-3)" }}>{i + 1}</span>
+                          <Entrada value={c.rotulo} onChange={(e) => mudarCampo(c.id, { rotulo: e.target.value })} placeholder="Pergunta" />
+                          <BotaoIcone icone="apagar" rotulo="Remover pergunta" onClick={() => setM({ ...m, campos: m.campos.filter((x) => x.id !== c.id) })} />
+                        </div>
+                        <div className="ui-grade-campos duas">
+                          <select className="ui-entrada" value={c.tipo} onChange={(e) => mudarCampo(c.id, { tipo: e.target.value as TipoCampoFicha, alerta: null })}>
+                            {TIPOS.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.rotulo}
+                              </option>
+                            ))}
+                          </select>
+                          {opcoes.length > 0 && (
+                            <select className="ui-entrada" value={c.alerta ?? ""} onChange={(e) => mudarCampo(c.id, { alerta: e.target.value || null })}>
+                              <option value="">Sem alerta</option>
+                              {opcoes.map((o) => (
+                                <option key={o} value={o}>
+                                  Alerta se “{o}”
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                        {(c.tipo === "escolha" || c.tipo === "multipla") && (
+                          <Entrada value={c.opcoes.join(", ")} onChange={(e) => mudarCampo(c.id, { opcoes: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) })} placeholder="Opções separadas por vírgula" />
+                        )}
+                        <Interruptor ligado={c.obrigatorio} onMudar={(v) => mudarCampo(c.id, { obrigatorio: v })} rotulo="Obrigatória" mostrarRotulo />
+                      </>
                     )}
-                    <Interruptor ligado={c.obrigatorio} onMudar={(v) => mudarCampo(c.id, { obrigatorio: v })} rotulo="Obrigatória" mostrarRotulo />
-                  </Reorder.Item>
+                  </ItemOrdenavel>
                 );
               })}
             </Reorder.Group>

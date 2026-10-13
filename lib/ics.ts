@@ -6,7 +6,7 @@ function carimbo(instante: string): string {
 }
 
 function escapar(t: string): string {
-  return t.replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  return t.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
 }
 
 export function gerarIcs(dados: {

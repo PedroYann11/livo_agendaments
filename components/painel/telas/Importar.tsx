@@ -218,8 +218,7 @@ export function Importar() {
                       {mapa.map((m, i) => (
                         <th key={i} style={{ minWidth: 160 }}>
                           <select
-                            className="ui-entrada"
-                            style={{ height: 36, fontSize: 13, textTransform: "none", letterSpacing: 0, fontWeight: 560 }}
+                            className="ui-entrada imp-mapa"
                             value={m}
                             onChange={(e) => setMapa((x) => x.map((y, j) => (j === i ? (e.target.value as CampoDestino) : y)))}
                           >

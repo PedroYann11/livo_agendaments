@@ -14,6 +14,7 @@
 
 import { useState } from "react";
 import { Reorder } from "motion/react";
+import { ItemOrdenavel } from "@/components/ui/Ordenavel";
 import { useBanco, useLoja } from "@/lib/dados/loja";
 import { Cabecalho } from "../Cabecalho";
 import { Icone } from "@/components/ui/Icone";
@@ -164,36 +165,40 @@ export function Servicos() {
 function LinhaServico({ b, s, arrastar, onEditar, onPausar }: { b: Banco; s: Servico; arrastar: boolean; onEditar: () => void; onPausar: (v: boolean) => void }) {
   const quem = b.profissionais.filter((p) => p.ativo && p.servicosIds.includes(s.id));
   return (
-    <Reorder.Item as="div" value={s.id} dragListener={arrastar} className="pn-linha" style={{ background: "var(--c-superficie)", cursor: arrastar ? "grab" : undefined, opacity: s.pausado ? 0.6 : 1 }}>
-      {arrastar && <Icone nome="menuVertical" tamanho={18} />}
-      {/* no celular o nome e o preço aparecem inteiros; os selos descem para baixo do preço */}
-      <button type="button" className="pn-linha-info quebra" style={{ textAlign: "left" }} onClick={onEditar}>
-        <strong>
-          {s.nome}
-          {s.destaque && <Icone nome="estrela" tamanho={14} peso="fill" />}
-        </strong>
-        <small>
-          <span>
-            {duracao(s.duracaoMin)}
-            {s.intervaloMin > 0 && ` + ${s.intervaloMin} min de limpeza`} ·{" "}
-            {s.modoPreco === "oculto" ? "preço sob consulta" : `${s.modoPreco === "a_partir_de" ? "a partir de " : ""}${brl(s.preco)}`}
-            {quem.length > 0 && (
-              <span style={{ display: "inline-flex", gap: 2, marginLeft: 8, verticalAlign: "middle" }}>
-                {quem.map((p) => (
-                  <span key={p.id} className="ag-ponto-pro" title={p.nome} style={{ background: corDaPessoa(p.cor) }} />
-                ))}
+    <ItemOrdenavel valor={s.id} ativo={arrastar} className="pn-linha" style={{ background: "var(--c-superficie)", opacity: s.pausado ? 0.6 : 1 }}>
+      {(alca) => (
+        <>
+          {alca}
+          {/* no celular o nome e o preço aparecem inteiros; os selos descem para baixo do preço */}
+          <button type="button" className="pn-linha-info quebra" style={{ textAlign: "left" }} onClick={onEditar}>
+            <strong>
+              {s.nome}
+              {s.destaque && <Icone nome="estrela" tamanho={14} peso="fill" />}
+            </strong>
+            <small>
+              <span>
+                {duracao(s.duracaoMin)}
+                {s.intervaloMin > 0 && ` + ${s.intervaloMin} min de limpeza`} ·{" "}
+                {s.modoPreco === "oculto" ? "preço sob consulta" : `${s.modoPreco === "a_partir_de" ? "a partir de " : ""}${brl(s.preco)}`}
+                {quem.length > 0 && (
+                  <span style={{ display: "inline-flex", gap: 2, marginLeft: 8, verticalAlign: "middle" }}>
+                    {quem.map((p) => (
+                      <span key={p.id} className="ag-ponto-pro" title={p.nome} style={{ background: corDaPessoa(p.cor) }} />
+                    ))}
+                  </span>
+                )}
               </span>
-            )}
+              {!s.online && <Selo>Só no balcão</Selo>}
+              {s.pausado && <Selo tom="atencao">Pausado</Selo>}
+            </small>
+          </button>
+          <span onPointerDown={(e) => e.stopPropagation()}>
+            <Interruptor ligado={!s.pausado} onMudar={(v) => onPausar(!v)} rotulo={s.pausado ? "Reativar" : "Pausar"} />
           </span>
-          {!s.online && <Selo>Só no balcão</Selo>}
-          {s.pausado && <Selo tom="atencao">Pausado</Selo>}
-        </small>
-      </button>
-      <span onPointerDown={(e) => e.stopPropagation()}>
-        <Interruptor ligado={!s.pausado} onMudar={(v) => onPausar(!v)} rotulo={s.pausado ? "Reativar" : "Pausar"} />
-      </span>
-      <BotaoIcone icone="editar" rotulo="Editar" onClick={onEditar} />
-    </Reorder.Item>
+          <BotaoIcone icone="editar" rotulo="Editar" onClick={onEditar} />
+        </>
+      )}
+    </ItemOrdenavel>
   );
 }
 
@@ -497,13 +502,17 @@ function OrdemCategorias({ aberta, onFechar }: { aberta: boolean; onFechar: () =
     <Folha aberta={aberta} onFechar={onFechar} titulo="Ordem das categorias" subtitulo="Arraste para ordenar.">
       <Reorder.Group as="div" axis="y" values={cats.map((c) => c.id)} onReorder={(ids: string[]) => mudar((x) => ({ ...x, categorias: reordenar(x.categorias, ids) }))} className="pn-lista">
         {cats.map((c) => (
-          <Reorder.Item as="div" key={c.id} value={c.id} className="pn-linha" style={{ background: "var(--c-superficie)", cursor: "grab" }}>
-            <Icone nome="menuVertical" tamanho={18} />
-            <span className="pn-linha-info">
-              <strong>{c.nome}</strong>
-              <small>{plural(banco.servicos.filter((x) => x.ativo && x.categoriaId === c.id).length, "serviço", "serviços")}{c.pausada ? " · pausada" : ""}</small>
-            </span>
-          </Reorder.Item>
+          <ItemOrdenavel key={c.id} valor={c.id} className="pn-linha" style={{ background: "var(--c-superficie)" }}>
+            {(alca) => (
+              <>
+                {alca}
+                <span className="pn-linha-info">
+                  <strong>{c.nome}</strong>
+                  <small>{plural(banco.servicos.filter((x) => x.ativo && x.categoriaId === c.id).length, "serviço", "serviços")}{c.pausada ? " · pausada" : ""}</small>
+                </span>
+              </>
+            )}
+          </ItemOrdenavel>
         ))}
       </Reorder.Group>
     </Folha>

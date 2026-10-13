@@ -146,8 +146,11 @@
 .pele-barbearia .ag-hora {
   border-radius: 5px;
 }
-.ag-hora:hover {
-  border-color: color-mix(in srgb, var(--c-marca) 55%, var(--c-linha));
+/* só com mouse: no toque, o :hover "gruda" no botão depois do toque */
+@media (hover: hover) {
+  .ag-hora:hover {
+    border-color: color-mix(in srgb, var(--c-marca) 55%, var(--c-linha));
+  }
 }
 .ag-hora:active {
   transform: scale(0.95);
@@ -257,11 +260,13 @@
 .cal-dia:not(:disabled) {
   color: var(--c-texto);
 }
-.cal-dia:not(:disabled):not(.livre):not(.ativo):hover {
-  background: var(--c-sutil);
-}
-.cal-dia.livre:hover {
-  background: color-mix(in srgb, var(--c-marca) 16%, var(--c-superficie));
+@media (hover: hover) {
+  .cal-dia:not(:disabled):not(.livre):not(.ativo):hover {
+    background: var(--c-sutil);
+  }
+  .cal-dia.livre:hover {
+    background: color-mix(in srgb, var(--c-marca) 16%, var(--c-superficie));
+  }
 }
 .cal-dia:not(:disabled):active {
   transform: scale(0.92);

@@ -1193,6 +1193,12 @@ a.pn-linha:hover {
 .ag-vago:focus-visible {
   opacity: 1;
 }
+/* sem mouse (iPad na grade do dia): os horários livres ficam sempre à vista */
+@media (hover: none) {
+  .ag-vago {
+    opacity: 1;
+  }
+}
 .ag-bloco {
   position: absolute;
   left: 4px;
@@ -2739,4 +2745,30 @@ label.ui-botao.desligado {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
+}
+
+/* Importar: a coluna escolhida em cada cabeçalho da tabela */
+.imp-mapa {
+  height: 36px;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 560;
+}
+
+/* tela de toque: alvos pequenos do painel ganham altura para o dedo */
+@media (pointer: coarse) {
+  .ag-painel-data .ui-botao-icone {
+    width: 40px;
+    height: 40px;
+  }
+  .ag-painel-data-escolher {
+    min-height: 40px;
+  }
+  .pn-ficha {
+    height: 38px;
+  }
+  .imp-mapa {
+    font-size: 16px;
+  }
 }
