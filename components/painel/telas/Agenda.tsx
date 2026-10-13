@@ -19,11 +19,11 @@ import { Cabecalho } from "../Cabecalho";
 import { STATUS } from "../DetalheAgendamento";
 import { Mes } from "@/components/agendar/Mes";
 import { Icone } from "@/components/ui/Icone";
-import { Avatar, Botao, BotaoIcone, Campo, Entrada, Interruptor, Segmentado, Selo } from "@/components/ui/basicos";
+import { Avatar, Botao, BotaoIcone, Campo, Entrada, EstadoVazio, Interruptor, Segmentado, Selo } from "@/components/ui/basicos";
 import { Folha, useTelaLarga } from "@/components/ui/Folha";
 import { useAvisos, useConfirmar } from "@/components/ui/Avisos";
 import type { Agendamento, Banco, Profissional } from "@/lib/tipos";
-import { STATUS_OCUPAM, aberturasDoDia, diaFechado, expedienteDoDia, janelasDoDia } from "@/lib/disponibilidade";
+import { STATUS_OCUPAM, aberturasDoDia, diaDeAtendimento, diaFechado, expedienteDoDia, janelasDoDia, proximoDiaDeAtendimento } from "@/lib/disponibilidade";
 import { removerBloqueio, salvarBloqueio, salvarNegocio } from "@/lib/dados/acoes";
 import {
   NOMES_DIAS_CURTOS,
@@ -84,8 +84,10 @@ export function Agenda() {
   const disponivel = colunas.reduce((s, p) => s + minutosDisponiveis(b, p, data, data), 0);
   const fechado = diaFechado(b, data);
   const avulso = aberturasDoDia(b, data);
-  // ninguém trabalha nesse dia da semana: só abre como dia avulso
-  const semDiaFixo = equipe.every((p) => (p.horario[diaDaSemana(data)] ?? []).length === 0);
+  // dia de atendimento: horário da semana de alguém, ou dia avulso — e não fechado
+  const aberto = diaDeAtendimento(b, data, equipe);
+  // dia sem atendimento: o canto de cima leva ao próximo dia aberto (a partir de hoje)
+  const proximoAberto = aberto ? null : proximoDiaDeAtendimento(b, data < hoje ? somarDias(hoje, -1) : data, equipe);
   const marcados = doDia.filter((a) => STATUS_OCUPAM.includes(a.status)).length;
 
   const mover = (dias: number) => setData((d) => somarDias(d, visao === "semana" ? dias * 7 : dias));
@@ -118,34 +120,28 @@ export function Agenda() {
         texto={
           fechado
             ? `Fechado: ${fechado}`
-            : avulso.length || !semDiaFixo
+            : aberto
               ? `${avulso.length ? `Dia de atendimento ${avulso.map((a) => `${a.inicio}–${a.fim}`).join(", ")} · ` : ""}${doDia.filter((a) => a.status !== "cancelado").length} atendimentos · ${disponivel ? Math.round((ocupado / disponivel) * 100) : 0}% ocupado`
               : "Sem atendimento neste dia"
         }
         acoes={
-          <>
-            {fechado ? (
-              <Botao variante="secundario" icone="desfazer" onClick={reabrir}>
-                Reabrir o dia
+          // Cada botão com uma função só: o "+" (e o "Novo agendamento" do menu) marca no
+          // próximo horário livre; o cartão do dia marca / abre / reabre ESTE dia; aqui em
+          // cima ficam as ações do dia aberto — ou, sem atendimento, o atalho até o próximo dia aberto.
+          aberto ? (
+            <>
+              <Botao variante="secundario" icone="agendaX" onClick={fecharDia}>
+                {avulso.length ? "Desmarcar dia" : "Fechar o dia"}
               </Botao>
-            ) : avulso.length || !semDiaFixo ? (
-              <>
-                <Botao variante="secundario" icone="agendaX" onClick={fecharDia}>
-                  {avulso.length ? "Desmarcar dia" : "Fechar o dia"}
-                </Botao>
-                <Botao variante="secundario" icone="proibido" onClick={() => setBloquear(true)}>
-                  Bloquear horário
-                </Botao>
-              </>
-            ) : (
-              <Botao variante="secundario" icone="agendaOk" onClick={() => setAbrirDia(true)}>
-                Abrir este dia
+              <Botao variante="secundario" icone="proibido" onClick={() => setBloquear(true)}>
+                Bloquear horário
               </Botao>
-            )}
-            <Botao variante="principal" icone="agendaMais" onClick={() => novo({ data, profissionalId: pro !== "todos" ? pro : undefined })}>
-              Novo
+            </>
+          ) : proximoAberto ? (
+            <Botao variante="principal" iconeDepois="avancar" onClick={() => setData(proximoAberto)}>
+              Próximo dia aberto · {dataCurta(proximoAberto)}
             </Botao>
-          </>
+          ) : null
         }
       />
 
@@ -202,14 +198,21 @@ export function Agenda() {
         </div>
       )}
 
-      {!larga && <FaixaSemana b={b} data={data} hoje={hoje} onData={setData} filtro={visiveis} />}
+      {!larga && <FaixaSemana b={b} data={data} hoje={hoje} onData={setData} filtro={visiveis} equipe={equipe} />}
 
       {larga && visao === "semana" ? (
         <Semana b={b} data={data} hoje={hoje} filtro={visiveis} onDia={(d) => { setData(d); setVisao("dia"); }} />
-      ) : larga ? (
-        <GradeDia b={b} data={data} colunas={colunas} agendamentos={doDia} momento={momento} onVago={(p, hora) => novo({ data, hora, profissionalId: p })} />
       ) : (
-        <ListaDia b={b} data={data} colunas={colunas} agendamentos={doDia} momento={momento} onVago={(p, hora) => novo({ data, hora, profissionalId: p ?? undefined })} />
+        <>
+          {!aberto && <CartaoDia fechado={fechado} passado={data < hoje} onAbrir={() => setAbrirDia(true)} onReabrir={reabrir} />}
+          {/* dia fechado ou sem atendimento só mostra a lista se já tem alguém marcado nele */}
+          {(aberto || doDia.length > 0) &&
+            (larga ? (
+              <GradeDia b={b} data={data} colunas={colunas} agendamentos={doDia} momento={momento} onVago={(p, hora) => novo({ data, hora, profissionalId: p })} />
+            ) : (
+              <ListaDia b={b} data={data} colunas={colunas} agendamentos={doDia} momento={momento} onVago={(p, hora) => novo({ data, hora, profissionalId: p ?? undefined })} />
+            ))}
+        </>
       )}
 
       <FolhaBloqueio aberta={bloquear} onFechar={() => setBloquear(false)} data={data} equipe={equipe} />
@@ -220,7 +223,8 @@ export function Agenda() {
         b={b}
         data={data}
         hoje={hoje}
-        equipe={colunas.map((p) => p.id)}
+        equipe={equipe}
+        visiveis={colunas.map((p) => p.id)}
         onData={(d) => {
           setData(d);
           setEscolherData(false);
@@ -232,7 +236,21 @@ export function Agenda() {
 
 // ---------------------------------------------------------------------
 
-function FaixaSemana({ b, data, hoje, onData, filtro }: { b: Banco; data: string; hoje: string; onData: (d: string) => void; filtro: (a: Agendamento) => boolean }) {
+function FaixaSemana({
+  b,
+  data,
+  hoje,
+  onData,
+  filtro,
+  equipe,
+}: {
+  b: Banco;
+  data: string;
+  hoje: string;
+  onData: (d: string) => void;
+  filtro: (a: Agendamento) => boolean;
+  equipe: Profissional[];
+}) {
   const inicio = inicioDaSemana(data);
   const dias = Array.from({ length: 7 }, (_, i) => somarDias(inicio, i));
   return (
@@ -241,7 +259,12 @@ function FaixaSemana({ b, data, hoje, onData, filtro }: { b: Banco; data: string
         const qtd = b.agendamentos.filter((a) => a.inicio.slice(0, 10) === d && a.status !== "cancelado" && filtro(a)).length;
         const ativo = d === data;
         return (
-          <button key={d} type="button" className={`ag-semana-dia${ativo ? " ativo" : ""}${d === hoje ? " hoje" : ""}`} onClick={() => onData(d)}>
+          <button
+            key={d}
+            type="button"
+            className={`ag-semana-dia${ativo ? " ativo" : ""}${d === hoje ? " hoje" : ""}${diaDeAtendimento(b, d, equipe) ? "" : " sem-atendimento"}`}
+            onClick={() => onData(d)}
+          >
             {ativo && <motion.span layoutId="ag-semana" className="ag-semana-dia-fundo" transition={{ type: "spring", stiffness: 480, damping: 38 }} />}
             {NOMES_DIAS_CURTOS[diaDaSemana(d)]}
             <b>{Number(d.slice(8))}</b>
@@ -253,6 +276,41 @@ function FaixaSemana({ b, data, hoje, onData, filtro }: { b: Banco; data: string
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/** Dia sem atendimento ou fechado: o que dá para fazer com ESTE dia, ali mesmo. */
+function CartaoDia({ fechado, passado, onAbrir, onReabrir }: { fechado: string | null; passado: boolean; onAbrir: () => void; onReabrir: () => void }) {
+  return (
+    <div className="pn-cartao" style={{ marginBottom: 12 }}>
+      {fechado ? (
+        <EstadoVazio
+          icone="agendaX"
+          titulo={`Fechado: ${fechado}`}
+          texto="Ninguém consegue marcar neste dia."
+          acao={
+            !passado && (
+              <Botao variante="secundario" icone="desfazer" onClick={onReabrir}>
+                Reabrir o dia
+              </Botao>
+            )
+          }
+        />
+      ) : (
+        <EstadoVazio
+          icone="agenda"
+          titulo="Sem atendimento neste dia"
+          texto={passado ? undefined : "Abra só esta data, para toda a equipe: os clientes passam a ver os horários dela."}
+          acao={
+            !passado && (
+              <Botao variante="principal" icone="agendaOk" onClick={onAbrir}>
+                Abrir este dia
+              </Botao>
+            )
+          }
+        />
+      )}
     </div>
   );
 }
@@ -276,6 +334,7 @@ function ListaDia({
   const { abrir } = usePainel();
   const umaPessoa = colunas.length === 1 ? colunas[0] : null;
   const fechado = diaFechado(b, data);
+  const ehHoje = momento.slice(0, 10) === data;
 
   // buracos livres só quando a visão é de uma pessoa (com a equipe toda, a lista mistura)
   type Item = { tipo: "ag"; ag: Agendamento } | { tipo: "livre"; de: number; ate: number } | { tipo: "bloqueio"; motivo: string; de: string; ate: string };
@@ -303,9 +362,6 @@ function ListaDia({
   itens.sort((x, y) => (chave(x) < chave(y) ? -1 : 1));
   const agoraMin = momento.slice(0, 10) === data ? minDoDia(momento.slice(11)) : null;
 
-  if (fechado) {
-    return <div className="ag-sem-vaga" style={{ background: "var(--c-superficie)" }}>Fechado: {fechado}</div>;
-  }
   if (!itens.length) {
     return (
       <div className="pn-cartao">
@@ -313,9 +369,9 @@ function ListaDia({
           <span className="ui-vazio-icone">
             <Icone nome="agenda" tamanho={26} />
           </span>
-          <strong>Nada marcado neste dia</strong>
+          <strong>{ehHoje ? "Nada marcado hoje" : "Nada marcado neste dia"}</strong>
           <Botao variante="principal" icone="agendaMais" onClick={() => onVago(null, "")}>
-            Agendar
+            {ehHoje ? "Agendar hoje" : "Agendar neste dia"}
           </Botao>
         </div>
       </div>
@@ -586,7 +642,7 @@ function Semana({ b, data, hoje, filtro, onDia }: { b: Banco; data: string; hoje
 }
 
 /** Dia avulso de atendimento: o negócio abre só nesta data (toda a equipe). */
-/** Ir para qualquer data pelo calendário do mês; os dias com agendamento ficam em destaque. */
+/** Ir para qualquer data pelo calendário do mês: dias de atendimento em destaque, ponto nos que têm agendamento. */
 function FolhaData({
   aberta,
   onFechar,
@@ -594,6 +650,7 @@ function FolhaData({
   data,
   hoje,
   equipe,
+  visiveis,
   onData,
 }: {
   aberta: boolean;
@@ -601,14 +658,16 @@ function FolhaData({
   b: Banco;
   data: string;
   hoje: string;
-  equipe: string[];
+  equipe: Profissional[];
+  /** de quem contar os agendamentos (o filtro da equipe na Agenda) */
+  visiveis: string[];
   onData: (d: string) => void;
 }) {
-  const chave = equipe.join(",");
+  const chave = visiveis.join(",");
   const porDia = useMemo(() => {
     const m = new Map<string, number>();
     for (const a of b.agendamentos) {
-      if (!STATUS_OCUPAM.includes(a.status) || !equipe.includes(a.profissionalId)) continue;
+      if (!STATUS_OCUPAM.includes(a.status) || !visiveis.includes(a.profissionalId)) continue;
       const d = a.inicio.slice(0, 10);
       m.set(d, (m.get(d) ?? 0) + 1);
     }
@@ -622,11 +681,17 @@ function FolhaData({
             inicial={data}
             data={data}
             hoje={hoje}
-            legenda="dias com agendamento"
+            legenda="dias de atendimento · o ponto: tem agendamento"
             onDia={onData}
             sobre={(d) => {
               const n = porDia.get(d) ?? 0;
-              return { livre: true, destaque: n > 0, rotulo: `${capitalizar(dataLonga(d))}: ${n ? `${n} agendamento${n > 1 ? "s" : ""}` : "nada marcado"}` };
+              const abre = diaDeAtendimento(b, d, equipe);
+              return {
+                livre: true,
+                destaque: abre,
+                ponto: n > 0,
+                rotulo: `${capitalizar(dataLonga(d))}: ${abre ? "dia de atendimento" : "sem atendimento"}, ${n ? `${n} agendamento${n > 1 ? "s" : ""}` : "nada marcado"}`,
+              };
             }}
           />
           {data !== hoje && (

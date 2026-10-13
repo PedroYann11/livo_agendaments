@@ -1046,6 +1046,11 @@ a.pn-linha:hover {
 .ag-semana-dia.hoje b {
   color: var(--c-marca-tinta);
 }
+/* dia sem atendimento (nem semana nem avulso, ou fechado): apagado, para os dias abertos saltarem aos olhos */
+.ag-semana-dia.sem-atendimento:not(.ativo) b {
+  color: var(--c-texto-3);
+  font-weight: 450;
+}
 .ag-semana-dia.ativo,
 .ag-semana-dia.ativo b {
   color: var(--c-sobre-marca);

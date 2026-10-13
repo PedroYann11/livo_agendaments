@@ -85,6 +85,20 @@ export function janelasDoDia(b: Banco, pro: Profissional, data: string): Interva
 }
 
 /** O horário do NEGÓCIO na data — o que a página mostra ("aberto agora"). */
+/** Dia de atendimento: alguém desta equipe trabalha nele (dia fechado não conta; dia avulso conta). */
+export function diaDeAtendimento(b: Banco, data: string, equipe: Profissional[]): boolean {
+  return equipe.some((p) => janelasDoDia(b, p, data).length > 0);
+}
+
+/** O próximo dia de atendimento depois de `depois` (procura até um ano à frente). */
+export function proximoDiaDeAtendimento(b: Banco, depois: string, equipe: Profissional[]): string | null {
+  for (let i = 1; i <= 366; i++) {
+    const d = somarDias(depois, i);
+    if (diaDeAtendimento(b, d, equipe)) return d;
+  }
+  return null;
+}
+
 export function horarioDoNegocio(b: Banco, data: string): Intervalo[] {
   if (diaFechado(b, data)) return [];
   const avulsas = aberturasDoDia(b, data);

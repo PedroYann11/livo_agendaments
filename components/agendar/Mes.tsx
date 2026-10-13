@@ -5,8 +5,9 @@
 // lugares, com a mesma cara:
 //   - cliente (DiaHora): os dias com horário livre em destaque;
 //   - painel › Novo agendamento / remarcar: idem, para pular a faixa;
-//   - painel › Agenda: qualquer dia, com os dias que têm agendamento
-//     em destaque — para ir direto a uma data distante.
+//   - painel › Agenda: qualquer dia, com os dias de atendimento em
+//     destaque e um ponto nos que têm agendamento — para ir direto a
+//     uma data distante.
 // Quem usa decide, dia a dia, se o dia pode ser tocado e se fica em
 // destaque (`sobre`).
 // =====================================================================
@@ -27,6 +28,8 @@ export type SobreODia = {
   destaque: boolean;
   /** o que o leitor de tela diz do dia */
   rotulo: string;
+  /** um ponto embaixo do número (Agenda: tem agendamento) */
+  ponto?: boolean;
 };
 
 export function Mes({
@@ -111,6 +114,7 @@ export function Mes({
               >
                 {ativo && <motion.span layoutId="cal-dia" className="cal-dia-fundo" transition={{ type: "spring", stiffness: 520, damping: 38 }} />}
                 {Number(d.slice(8))}
+                {s.ponto && <i className="cal-ponto" aria-hidden="true" />}
               </button>
             );
           })}

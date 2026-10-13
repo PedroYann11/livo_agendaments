@@ -89,7 +89,8 @@ export function Inicio() {
         }
         texto={capitalizar(dataLonga(hoje))}
         acoes={
-          <Botao variante="principal" icone="agendaMais" onClick={() => novo({ data: hoje })}>
+          // como o "+": abre no próximo horário livre (hoje, se ainda tiver vaga)
+          <Botao variante="principal" icone="agendaMais" onClick={() => novo()}>
             Agendar
           </Botao>
         }
