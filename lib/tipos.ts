@@ -125,8 +125,10 @@ export type Negocio = {
   capaUrl: string | null;
   /** fotos do espaço, na seção Sobre (até 6) */
   galeria: string[];
-  /** a foto de quem atende: no Sobre e/ou no canto do topo (enfeiteTopo = "foto") */
+  /** a foto do topo (enfeiteTopo = "foto"), com ou sem fundo */
   retrato: Retrato;
+  /** a foto da seção Sobre, ao lado do texto — independente da do topo */
+  fotoSobre: FotoSobre;
   contato: { whatsapp: string; instagram: string; telefone: string; email: string };
   endereco: Endereco;
   horario: Semana;
@@ -150,12 +152,14 @@ export type EnfeiteTopo = "desenho" | "foto" | "nenhum";
 
 export type Retrato = {
   url: string | null;
-  /** a mesma foto sem o fundo (recorte com transparência), para o topo */
+  /** a mesma foto sem o fundo (recorte com transparência) */
   semFundo: string | null;
+};
+
+export type FotoSobre = {
+  url: string | null;
   /** ex.: "Marcela Souza · especialista em laser" */
   legenda: string;
-  /** mostra na seção Sobre (o topo é escolhido em Aparência) */
-  noSobre: boolean;
 };
 
 export type Categoria = {

@@ -22,7 +22,7 @@ import { Botao, BotaoCopiar, BotaoIcone, Campo, Entrada, Estrelas, Interruptor, 
 import { useAvisos, useConfirmar } from "@/components/ui/Avisos";
 import type { Cupom, Negocio, Pele, Promocoes } from "@/lib/tipos";
 import { removerCupom, salvarCupom, salvarDepoimento, salvarNegocio } from "@/lib/dados/acoes";
-import { MODULOS, NICHOS, modulosDoNicho } from "@/lib/padroes";
+import { FOTO_SOBRE_VAZIA, MODULOS, NICHOS, modulosDoNicho } from "@/lib/padroes";
 import { buscarCep, buscarFeriados, type Feriado } from "@/lib/feriados";
 import { capitalizar } from "@/components/vitrine/util";
 import { contraste, hexValido, misturar, textoSobre } from "@/lib/cor";
@@ -182,6 +182,7 @@ function Bloco({ titulo, texto, children }: { titulo: string; texto?: string; ch
 }
 
 function SecaoPagina({ n, muda }: PropsSecao) {
+  const sobre = n.fotoSobre ?? FOTO_SOBRE_VAZIA;
   const [qr, setQr] = useState<string | null>(null);
   const [destaque, setDestaque] = useState("");
   const [origem, setOrigem] = useState("");
@@ -251,21 +252,45 @@ function SecaoPagina({ n, muda }: PropsSecao) {
           </div>
         </Campo>
       </Bloco>
-      <Bloco titulo="Sua foto" texto="No Sobre e, se quiser, no topo (Aparência).">
-        <CampoFoto url={n.retrato.url} pasta="retrato" onMudar={(url) => muda({ retrato: { ...n.retrato, url, semFundo: null } })} />
-        {n.retrato.url && (
+      <Bloco titulo="Topo da página" texto="Ao lado do logo, no alto da página.">
+        <Segmentado
+          rotulo="Topo da página"
+          valor={n.enfeiteTopo}
+          onMudar={(v) => muda({ enfeiteTopo: v })}
+          opcoes={[
+            { id: "foto", rotulo: "Sua foto" },
+            { id: "desenho", rotulo: ENFEITES[n.pele] },
+            { id: "nenhum", rotulo: "Nada" },
+          ]}
+        />
+        {n.enfeiteTopo === "foto" && (
           <>
-            <TirarFundo url={n.retrato.url} semFundo={n.retrato.semFundo} onMudar={(semFundo) => muda({ retrato: { ...n.retrato, semFundo } })} />
-            <Campo rotulo="Legenda" opcional>
-              <Entrada
-                value={n.retrato.legenda}
-                onChange={(e) => muda({ retrato: { ...n.retrato, legenda: e.target.value } })}
-                maxLength={80}
-                placeholder="Ex.: Marcela Souza · especialista em laser"
-              />
-            </Campo>
-            <Interruptor ligado={n.retrato.noSobre} onMudar={(v) => muda({ retrato: { ...n.retrato, noSobre: v } })} rotulo="Mostrar no Sobre" mostrarRotulo />
+            <CampoFoto url={n.retrato.url} pasta="retrato" onMudar={(url) => muda({ retrato: { url, semFundo: null } })} />
+            {!n.retrato.url && sobre.url && (
+              <Botao variante="secundario" icone="imagem" style={{ justifySelf: "start" }} onClick={() => muda({ retrato: { url: sobre.url, semFundo: null } })}>
+                Usar a foto do Sobre
+              </Botao>
+            )}
+            {n.retrato.url && <TirarFundo url={n.retrato.url} semFundo={n.retrato.semFundo} onMudar={(semFundo) => muda({ retrato: { ...n.retrato, semFundo } })} />}
           </>
+        )}
+      </Bloco>
+      <Bloco titulo="Foto do Sobre" texto="Ao lado do texto do Sobre.">
+        <CampoFoto url={sobre.url} pasta="retrato" onMudar={(url) => muda({ fotoSobre: { ...sobre, url } })} />
+        {!sobre.url && n.retrato.url && (
+          <Botao variante="secundario" icone="imagem" style={{ justifySelf: "start" }} onClick={() => muda({ fotoSobre: { ...sobre, url: n.retrato.url } })}>
+            Usar a foto do topo
+          </Botao>
+        )}
+        {sobre.url && (
+          <Campo rotulo="Legenda" opcional>
+            <Entrada
+              value={sobre.legenda}
+              onChange={(e) => muda({ fotoSobre: { ...sobre, legenda: e.target.value } })}
+              maxLength={80}
+              placeholder="Ex.: Marcela Souza · especialista em laser"
+            />
+          </Campo>
         )}
       </Bloco>
       <Bloco titulo="Fotos do espaço" texto="Aparecem no Sobre.">
@@ -369,25 +394,6 @@ function SecaoAparencia({ n, muda }: PropsSecao) {
             ))}
           </div>
           <small style={{ color: "var(--c-texto-2)" }}>{PELES.find((p) => p.id === n.pele)?.descricao}</small>
-        </Bloco>
-        <Bloco titulo="Enfeite do topo">
-          <Segmentado
-            rotulo="Enfeite do topo"
-            valor={n.enfeiteTopo}
-            onMudar={(v) => muda({ enfeiteTopo: v })}
-            opcoes={[
-              { id: "desenho", rotulo: ENFEITES[n.pele] },
-              { id: "foto", rotulo: "Sua foto" },
-              { id: "nenhum", rotulo: "Sem enfeite" },
-            ]}
-          />
-          {/* a mesma foto de Minha página › Sua foto: dá para enviar daqui também */}
-          {n.enfeiteTopo === "foto" && (
-            <>
-              <CampoFoto url={n.retrato.url} pasta="retrato" onMudar={(url) => muda({ retrato: { ...n.retrato, url, semFundo: null } })} />
-              {n.retrato.url && <TirarFundo url={n.retrato.url} semFundo={n.retrato.semFundo} onMudar={(semFundo) => muda({ retrato: { ...n.retrato, semFundo } })} />}
-            </>
-          )}
         </Bloco>
         <Bloco titulo="Cor da marca">
           <div className="pn-cores">

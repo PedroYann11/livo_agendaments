@@ -150,7 +150,7 @@ export function EditorGaleria({ fotos, onMudar }: { fotos: string[]; onMudar: (f
   );
 }
 
-/** "Tirar o fundo" da Sua foto: recorta no navegador e envia o recorte. */
+/** "Tirar o fundo" da foto do topo: recorta no navegador e envia o recorte. */
 export function TirarFundo({ url, semFundo, onMudar }: { url: string; semFundo: string | null; onMudar: (semFundo: string | null) => void }) {
   const { remoto, banco } = useLoja();
   const [etapa, setEtapa] = useState<"parado" | "recortando" | "enviando">("parado");
@@ -195,7 +195,7 @@ export function TirarFundo({ url, semFundo, onMudar }: { url: string; semFundo: 
       {semFundo && !ocupado && (
         <span className="cf-recorte-previa">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={semFundo} alt="Sua foto sem o fundo" />
+          <img src={semFundo} alt="A foto do topo sem o fundo" />
         </span>
       )}
       {erro && (

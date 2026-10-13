@@ -51,7 +51,7 @@ export function Revelar({ children, atraso = 0, className }: { children: ReactNo
   );
 }
 
-/** desenho = false ("Enfeite do topo: nenhum" no painel): fica só o fundo, sem a figura do canto */
+/** desenho = false (Minha página › Topo da página: "Nada"): fica só o fundo, sem a figura do canto */
 export function Arte({ pele, nome, desenho = true }: { pele: Pele; nome: string; desenho?: boolean }) {
   if (pele === "beleza") {
     return (

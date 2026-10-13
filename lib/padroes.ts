@@ -7,6 +7,7 @@
 // =====================================================================
 
 import type {
+  FotoSobre,
   Modulo,
   ModeloMensagem,
   Negocio,
@@ -106,7 +107,8 @@ export const TEMA_NEUTRO: Tema = {
   acento: "#c9a46a",
 };
 
-export const RETRATO_VAZIO: Retrato = { url: null, semFundo: null, legenda: "", noSobre: true };
+export const RETRATO_VAZIO: Retrato = { url: null, semFundo: null };
+export const FOTO_SOBRE_VAZIA: FotoSobre = { url: null, legenda: "" };
 
 /** Até quantas fotos do espaço a página mostra. */
 export const MAX_GALERIA = 6;
@@ -222,6 +224,7 @@ export function negocioNovo(id: string, slug: string, nome: string, nicho: Nicho
     capaUrl: null,
     galeria: [],
     retrato: RETRATO_VAZIO,
+    fotoSobre: FOTO_SOBRE_VAZIA,
     contato: { whatsapp: "", instagram: "", telefone: "", email: "" },
     endereco: { cep: "", rua: "", numero: "", complemento: "", bairro: "", cidade: "", uf: "", referencia: "" },
     horario: semanaComercial(),

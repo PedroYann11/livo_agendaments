@@ -79,12 +79,13 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
   // o cartão do Sobre (endereço, dias, contato) só aparece se tem o que mostrar
   const temInfo = Boolean(n.endereco.rua || n.contato.whatsapp || n.contato.instagram || temSemana) || proximosDias.length > 0;
   const mapa = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${n.nome}, ${enderecoTexto(b)}`)}`;
-  // a foto de quem atende: no topo (Aparência) e/ou no Sobre (Minha página)
+  // duas fotos independentes: a do topo (Aparência) e a do Sobre (Minha página)
   const retrato = n.retrato?.url ?? null;
   const semFundo = n.retrato?.semFundo ?? null;
   const fotoNoTopo = n.enfeiteTopo === "foto" && !!retrato;
-  const fotoNoSobre = !!retrato && n.retrato.noSobre;
-  const altRetrato = n.retrato?.legenda || `Foto de quem atende na ${n.nome}`;
+  const fotoSobre = n.fotoSobre?.url ?? null;
+  const legendaSobre = n.fotoSobre?.legenda ?? "";
+  const altRetrato = `Foto de quem atende na ${n.nome}`;
   const promos = (["variosItens", "primeiraVez", "aniversario"] as const)
     .filter((t) => n.promocoes?.[t]?.ativo)
     .map((t) => resumoPromocao(t, n.promocoes));
@@ -375,14 +376,14 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
 
       <section className="vt-secao" id="sobre">
         <div className={`vt-container vt-sobre${temInfo ? "" : " so-um"}`}>
-          <Revelar className={fotoNoSobre ? "vt-sobre-pessoa" : undefined}>
-            {fotoNoSobre && (
+          <Revelar className={fotoSobre ? "vt-sobre-pessoa" : undefined}>
+            {fotoSobre && (
               <figure className="vt-sobre-retrato">
                 <span className="vt-moldura">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={retrato!} alt={altRetrato} loading="lazy" decoding="async" />
+                  <img src={fotoSobre} alt={legendaSobre || altRetrato} loading="lazy" decoding="async" />
                 </span>
-                {n.retrato.legenda && <figcaption>{n.retrato.legenda}</figcaption>}
+                {legendaSobre && <figcaption>{legendaSobre}</figcaption>}
               </figure>
             )}
             <div>

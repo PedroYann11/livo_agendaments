@@ -123,7 +123,7 @@ export async function enviarFoto({ remoto, negocioId, pasta, arquivo }: { remoto
   return enderecoPublico(caminho);
 }
 
-/** Envia a foto sem fundo (já pronta, PNG ou WebP) para a pasta da Sua foto. */
+/** Envia a foto do topo sem fundo (já pronta, PNG ou WebP) para a pasta retrato. */
 export async function enviarRecorte({ remoto, negocioId, blob }: { remoto: boolean; negocioId: string; blob: Blob }): Promise<string> {
   if (!remoto) return paraDataUrl(blob);
   const ext = blob.type === "image/webp" ? "webp" : "png";
@@ -143,7 +143,7 @@ export async function enviarRecorte({ remoto, negocioId, blob }: { remoto: boole
 
 /** Todas as fotos do Storage que alguma parte da página usa. */
 function emUso(b: Banco): Set<string> {
-  const urls = [b.negocio.retrato?.url, b.negocio.retrato?.semFundo, ...(b.negocio.galeria ?? []), ...b.profissionais.map((p) => p.fotoUrl), ...b.servicos.map((s) => s.fotoUrl)];
+  const urls = [b.negocio.retrato?.url, b.negocio.retrato?.semFundo, b.negocio.fotoSobre?.url, ...(b.negocio.galeria ?? []), ...b.profissionais.map((p) => p.fotoUrl), ...b.servicos.map((s) => s.fotoUrl)];
   return new Set(urls.map(caminhoNoBucket).filter((c): c is string => !!c));
 }
 

@@ -16,14 +16,16 @@ import type {
   Agendamento,
   Banco,
   Cupom,
+  FotoSobre,
   ModeloFicha,
   ModeloMensagem,
   Negocio,
+  Retrato,
   Servico,
 } from "../tipos";
 import type { Vaga } from "../disponibilidade";
 import { getSupabase, supabaseAnonimo } from "../supabase";
-import { MENSAGENS_PADRAO, negocioNovo } from "../padroes";
+import { FOTO_SOBRE_VAZIA, MENSAGENS_PADRAO, negocioNovo } from "../padroes";
 
 export const TABELAS = ["categorias", "servicos", "profissionais", "clientes", "bloqueios", "agendamentos"] as const;
 export const REGISTROS = [
@@ -84,6 +86,16 @@ async function chamar<T>(fn: string, args: Record<string, unknown>): Promise<T> 
 
 type NegocioDoBanco = Partial<Negocio> & Pick<Negocio, "id" | "slug" | "nome" | "nicho">;
 
+/** Até 13/10/2026 a foto do topo e a do Sobre eram uma só ("Sua foto", com "Mostrar no Sobre"). */
+type RetratoAntigo = Partial<Retrato> & { legenda?: string; noSobre?: boolean };
+
+/** Quem ainda não salvou depois da separação continua com a mesma foto no Sobre. */
+function fotoSobreDe(j: NegocioDoBanco): FotoSobre {
+  if (j.fotoSobre) return { ...FOTO_SOBRE_VAZIA, ...j.fotoSobre };
+  const antigo = j.retrato as RetratoAntigo | undefined;
+  return antigo?.url && antigo.noSobre !== false ? { url: antigo.url, legenda: antigo.legenda ?? "" } : FOTO_SOBRE_VAZIA;
+}
+
 /** O negócio do banco por cima do padrão: configuração nova nunca quebra uma tela antiga. */
 export function negocioDe(j: NegocioDoBanco): Negocio {
   const base = negocioNovo(j.id, j.slug, j.nome, j.nicho);
@@ -110,7 +122,8 @@ export function negocioDe(j: NegocioDoBanco): Negocio {
     datasEspeciais: j.datasEspeciais ?? [],
     destaques: j.destaques ?? [],
     galeria: j.galeria ?? [],
-    retrato: { ...base.retrato, ...j.retrato },
+    retrato: { url: j.retrato?.url ?? null, semFundo: j.retrato?.semFundo ?? null },
+    fotoSobre: fotoSobreDe(j),
   };
 }
 

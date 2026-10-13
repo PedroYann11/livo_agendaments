@@ -1,8 +1,9 @@
 "use client";
 
-// A "Sua foto" no topo da página. Com o fundo tirado, a pessoa sai de uma
-// forma na cor da página (arco, bloco, forma orgânica ou cartão, conforme o
-// estilo); sem recorte, a foto vai dentro da moldura do estilo.
+// A foto do topo da página (Minha página › Topo da página). Com o fundo
+// tirado, a pessoa sai de uma forma na cor da página (arco, bloco, forma
+// orgânica ou cartão, conforme o estilo); sem recorte, a foto vai dentro da
+// moldura do estilo.
 //   canto — celular: ao lado do logo, no canto direito
 //   lado  — computador: grande, na coluna da direita
 
