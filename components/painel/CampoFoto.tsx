@@ -6,12 +6,25 @@
 // entra na página quando a pessoa salva (o rascunho das Configurações).
 // =====================================================================
 
-import { useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { useLoja } from "@/lib/dados/loja";
 import { Icone } from "@/components/ui/Icone";
 import { BotaoIcone, Interruptor } from "@/components/ui/basicos";
 import { ErroFoto, enviarFoto, type PastaFoto } from "@/lib/fotos";
 import { MAX_GALERIA } from "@/lib/padroes";
+
+/**
+ * O valor da última renderização. O que termina depois de um envio (alguns
+ * segundos) usa os dados de agora — não os de quando começou, que podiam
+ * desfazer o que a pessoa mudou nesse meio-tempo (a legenda, outra foto).
+ */
+function useAtual<T>(valor: T) {
+  const ref = useRef(valor);
+  useLayoutEffect(() => {
+    ref.current = valor;
+  });
+  return ref;
+}
 
 function useEnvio(pasta: PastaFoto) {
   const { remoto, banco } = useLoja();
@@ -51,6 +64,7 @@ export function CampoFoto({
   vazio?: ReactNode;
 }) {
   const { enviar, enviando, erro } = useEnvio(pasta);
+  const mudar = useAtual(onMudar);
   return (
     <div className="cf-foto">
       <div className={`cf-foto-previa ${formato}${enviando ? " enviando" : ""}`}>
@@ -71,7 +85,7 @@ export function CampoFoto({
               e.target.value = "";
               if (!f) return;
               const nova = await enviar(f);
-              if (nova) onMudar(nova);
+              if (nova) mudar.current(nova);
             }}
           />
         </label>
@@ -150,26 +164,32 @@ export function EditorGaleria({ fotos, onMudar }: { fotos: string[]; onMudar: (f
   );
 }
 
-/** "Tirar o fundo" da foto do topo: recorta no navegador e envia o recorte. */
+/** "Tirar o fundo" de uma foto (topo ou Sobre): recorta no navegador e envia o recorte. */
 export function TirarFundo({ url, semFundo, onMudar }: { url: string; semFundo: string | null; onMudar: (semFundo: string | null) => void }) {
   const { remoto, banco } = useLoja();
   const [etapa, setEtapa] = useState<"parado" | "recortando" | "enviando">("parado");
   const [erro, setErro] = useState<string | null>(null);
   const ocupado = etapa !== "parado";
+  const mudar = useAtual(onMudar);
+  const fotoAtual = useAtual(url);
 
   const recortar = async () => {
+    const origem = url;
     setErro(null);
     setEtapa("recortando");
     try {
       const { tirarFundo } = await import("@/lib/recorte");
-      const blob = await tirarFundo(url);
+      const blob = await tirarFundo(origem);
+      // a foto foi trocada enquanto recortava: este recorte já não serve
+      if (fotoAtual.current !== origem) return;
       if (!blob) {
         setErro("Não achei uma pessoa nessa foto. Tente uma em que você apareça de frente.");
         return;
       }
       setEtapa("enviando");
       const { enviarRecorte } = await import("@/lib/fotos");
-      onMudar(await enviarRecorte({ remoto, negocioId: banco!.negocio.id, blob }));
+      const recorte = await enviarRecorte({ remoto, negocioId: banco!.negocio.id, blob });
+      if (fotoAtual.current === origem) mudar.current(recorte);
     } catch (e) {
       setErro(e instanceof ErroFoto ? e.message : "Não deu para tirar o fundo. Confira a internet e tente de novo.");
     } finally {
@@ -195,7 +215,7 @@ export function TirarFundo({ url, semFundo, onMudar }: { url: string; semFundo: 
       {semFundo && !ocupado && (
         <span className="cf-recorte-previa">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={semFundo} alt="A foto do topo sem o fundo" />
+          <img src={semFundo} alt="A foto sem o fundo" />
         </span>
       )}
       {erro && (
