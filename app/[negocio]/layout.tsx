@@ -4,6 +4,7 @@ import { resolverNegocio, resolverPagina } from "@/lib/negocio-server";
 import { BancoProvider } from "@/lib/dados/loja";
 import { Provedores } from "@/components/ui/Avisos";
 import { VitrineRaiz } from "@/components/vitrine/VitrineRaiz";
+import { ZapDoAviso } from "@/components/ui/NavegadorAntigo";
 import "./vitrine.css";
 import "../agendar-comum.css";
 import "./agendar.css";
@@ -29,12 +30,15 @@ export default async function LayoutNegocio({ children, params }: Props) {
   if (!pagina) notFound();
   const n = pagina.publico;
   return (
-    <BancoProvider slug={n.slug} modo="publico" publico={n} inicial={pagina.banco} local={pagina.local}>
-      <Provedores>
-        <VitrineRaiz tema={n.tema} pele={n.pele}>
-          {children}
-        </VitrineRaiz>
-      </Provedores>
-    </BancoProvider>
+    <>
+      {pagina.banco?.negocio.contato.whatsapp && <ZapDoAviso whatsapp={pagina.banco.negocio.contato.whatsapp} nome={n.nome} />}
+      <BancoProvider slug={n.slug} modo="publico" publico={n} inicial={pagina.banco} local={pagina.local}>
+        <Provedores>
+          <VitrineRaiz tema={n.tema} pele={n.pele}>
+            {children}
+          </VitrineRaiz>
+        </Provedores>
+      </BancoProvider>
+    </>
   );
 }

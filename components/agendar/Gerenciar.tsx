@@ -20,10 +20,9 @@ import { useAvisos, useConfirmar } from "@/components/ui/Avisos";
 import type { Escolha } from "./SeletorHorario";
 import { DiaHora } from "./DiaHora";
 import { LinhasDesconto } from "./Descontos";
-import { SeloAnimado, dadosIcs } from "./Confirmado";
+import { BotaoAgenda, SeloAnimado } from "./Confirmado";
 import { brl, duracao, primeiroNome } from "@/lib/formato";
 import { dataDe, dataLonga, difMin, horaDe } from "@/lib/datas";
-import { baixarIcs, gerarIcs } from "@/lib/ics";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { capitalizar } from "@/components/vitrine/util";
 
@@ -219,9 +218,7 @@ export function Gerenciar({ token }: { token: string }) {
                     Confirmar presença
                   </Botao>
                 )}
-                <Botao variante={ag.status === "pendente" ? "secundario" : "principal"} tamanho="g" icone="agendaMais" onClick={() => baixarIcs(`${n.slug}.ics`, gerarIcs(dadosIcs(b, ag)))}>
-                  Adicionar à minha agenda
-                </Botao>
+                <BotaoAgenda b={b} ag={ag} variante={ag.status === "pendente" ? "secundario" : "principal"} />
                 {dentroDoPrazo ? (
                   <>
                     <Botao variante="secundario" icone="calendario" onClick={() => setModo("remarcar")}>

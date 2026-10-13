@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Big_Shoulders, Fraunces, Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { NavegadorAntigo, TesteDoNavegador } from "@/components/ui/NavegadorAntigo";
+import { AvisoRodou } from "@/components/ui/AvisoRodou";
 import "./base.css";
 import "./inicio.css";
 
@@ -44,7 +46,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="pt-BR"
       className={`${geist.variable} ${mono.variable} ${instrument.variable} ${ombros.variable} ${fraunces.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <TesteDoNavegador />
+        {children}
+        <NavegadorAntigo />
+        <AvisoRodou />
+      </body>
     </html>
   );
 }

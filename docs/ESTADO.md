@@ -301,6 +301,21 @@ tornar o repositório privado e, se quiser, reescrever o histórico (exige
 force-push — só com autorização expressa). Dados de clientes nunca entram em
 arquivo versionado: vão para o banco, com RLS.
 
+## Celular e iPhone
+
+- **iPhone mínimo: iOS 16.4.** O Next 16 gera o código para Safari 16.4 ou mais;
+  num iPhone mais antigo a página nem começa. Nesses aparelhos aparece um aviso
+  para atualizar o sistema e, na página de um negócio, o botão "Agendar pelo
+  WhatsApp" dele (`components/ui/NavegadorAntigo.tsx` + `public/compat/`).
+- **"Adicionar à minha agenda"** abre `/<negocio>/a/<token>/agenda.ics`, servido
+  pelo site como `text/calendar`: no iPhone vai direto para o Calendário. Mesmo
+  guarda da página do link (negócio pelo endereço, agendamento só pelo token).
+- Campos com 16px em tela de toque (o iPhone dá zoom abaixo disso); listas que se
+  reordenam arrastam só pela alça ⋮ (o resto rola a página); folhas nunca ficam
+  mais largas que a tela.
+- Em aberto, para ver num iPhone de verdade: botões fixos embaixo com o teclado
+  aberto (continuar do agendamento, rodapé das folhas).
+
 ## Próximos passos
 
 1. **URL Configuration na Supabase** → convite do negócio de testes e da DepiLED pelo
@@ -311,7 +326,7 @@ arquivo versionado: vão para o banco, com RLS.
 3. **Meio de pagamento**: escolher (Mercado Pago, Asaas, Stripe…) e ligar o aviso de
    pagamento confirmado a `licenca_emitir` + envio do convite por e-mail. Depois:
    mensalidade, vencimento e o que acontece com o negócio quando a assinatura para.
-4. Carga dos **112 clientes** da DepiLED, depois da limpeza combinada.
+4. ~~Carga dos **112 clientes** da DepiLED~~ — feita (origem "importado").
 5. **Aviso de agendamento novo** no celular do dono (push) — hoje o painel relê a cada 30 s.
 6. **Imagens no Storage** (hoje a logo enviada pelo painel vai como imagem embutida na configuração, até 2 MB).
 7. Profissional só com a própria agenda na RLS (hoje a equipe inteira vê a agenda toda).

@@ -1,5 +1,31 @@
 // Arquivo .ics — "adicionar à minha agenda" no celular do cliente.
 // Hora de parede + TZID do negócio: o calendário do aparelho converte.
+//
+// Com banco, o botão abre o arquivo servido pelo próprio site
+// (/<negocio>/a/<token>/agenda.ics, text/calendar): no iPhone isso vai
+// direto para o Calendário. O download pelo navegador (baixarIcs) só
+// guardava o arquivo em Arquivos — fica para o modo sem banco.
+
+import type { Agendamento, Banco } from "./tipos";
+import { enderecoTexto, linkGestao } from "./whatsapp";
+
+/** Onde o site serve o arquivo da agenda de um agendamento. */
+export function enderecoIcs(slug: string, token: string): string {
+  return `/${slug}/a/${token}/agenda.ics`;
+}
+
+/** Os dados do evento — os mesmos no botão, na rota agenda.ics e no Google Agenda. */
+export function dadosIcs(b: Banco, ag: Agendamento, origem: string) {
+  return {
+    uid: ag.id,
+    titulo: `${ag.itens.map((i) => i.nome).join(" + ")} · ${b.negocio.nome}`,
+    descricao: `Gerenciar: ${linkGestao(b, ag, origem)}`,
+    local: enderecoTexto(b),
+    inicio: ag.inicio,
+    fim: ag.fim,
+    fuso: b.negocio.regras.fuso,
+  };
+}
 
 function carimbo(instante: string): string {
   return instante.replace(/[-:]/g, "") + "00";

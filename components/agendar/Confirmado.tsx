@@ -14,7 +14,7 @@ import { Botao, BotaoCopiar } from "@/components/ui/basicos";
 import { LinhasDesconto } from "./Descontos";
 import { brl, duracao, primeiroNome } from "@/lib/formato";
 import { dataLonga, dataDe, horaDe } from "@/lib/datas";
-import { baixarIcs, gerarIcs, linkGoogleAgenda } from "@/lib/ics";
+import { baixarIcs, dadosIcs, enderecoIcs, gerarIcs, linkGoogleAgenda } from "@/lib/ics";
 import { enderecoTexto, linkWhatsApp } from "@/lib/whatsapp";
 import { gerarPixCopiaECola } from "@/lib/pix";
 import { capitalizar } from "@/components/vitrine/util";
@@ -59,16 +59,26 @@ export function SeloAnimado({ espera = false }: { espera?: boolean }) {
   );
 }
 
-export function dadosIcs(b: Banco, ag: Agendamento) {
-  return {
-    uid: ag.id,
-    titulo: `${ag.itens.map((i) => i.nome).join(" + ")} · ${b.negocio.nome}`,
-    descricao: `Gerenciar: ${typeof window !== "undefined" ? window.location.origin : ""}/${b.negocio.slug}/a/${ag.token}`,
-    local: enderecoTexto(b),
-    inicio: ag.inicio,
-    fim: ag.fim,
-    fuso: b.negocio.regras.fuso,
-  };
+const origem = () => (typeof window !== "undefined" ? window.location.origin : "");
+
+/**
+ * "Adicionar à minha agenda". Com banco, abre o arquivo servido pelo site
+ * (no iPhone vai direto para o Calendário); sem banco, baixa o arquivo.
+ */
+export function BotaoAgenda({ b, ag, variante = "principal" }: { b: Banco; ag: Agendamento; variante?: "principal" | "secundario" }) {
+  const { remoto, slug } = useLoja();
+  if (remoto) {
+    return (
+      <a className={`ui-botao ui-botao-${variante} ui-botao-g`} href={enderecoIcs(slug, ag.token)}>
+        <Icone nome="agendaMais" tamanho={18} /> Adicionar à minha agenda
+      </a>
+    );
+  }
+  return (
+    <Botao variante={variante} tamanho="g" icone="agendaMais" onClick={() => baixarIcs(`${b.negocio.slug}-${dataDe(ag.inicio)}.ics`, gerarIcs(dadosIcs(b, ag, origem())))}>
+      Adicionar à minha agenda
+    </Botao>
+  );
 }
 
 export function Confirmado({ ag }: { ag: Agendamento }) {
@@ -196,10 +206,8 @@ export function Confirmado({ ag }: { ag: Agendamento }) {
         )}
 
         <div className="ok-acoes">
-          <Botao variante="principal" tamanho="g" icone="agendaMais" onClick={() => baixarIcs(`${n.slug}-${dataDe(ag.inicio)}.ics`, gerarIcs(dadosIcs(b, ag)))}>
-            Adicionar à minha agenda
-          </Botao>
-          <a className="ui-botao ui-botao-secundario ui-botao-m" href={linkGoogleAgenda(dadosIcs(b, ag))} target="_blank" rel="noopener noreferrer">
+          <BotaoAgenda b={b} ag={ag} />
+          <a className="ui-botao ui-botao-secundario ui-botao-m" href={linkGoogleAgenda(dadosIcs(b, ag, origem()))} target="_blank" rel="noopener noreferrer">
             <Icone nome="calendario" tamanho={18} /> Google Agenda
           </a>
           {n.endereco.rua ? (

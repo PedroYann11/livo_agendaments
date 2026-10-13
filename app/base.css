@@ -863,3 +863,55 @@ select.ui-entrada {
   border-radius: 8px;
   background: rgb(255 255 255 / 0.12);
 }
+
+/* ---------------------------------------------------------------------
+   Aviso de navegador antigo (NavegadorAntigo): cobre a página que não
+   consegue rodar. Só CSS simples e cores fixas — tem que funcionar
+   justamente no navegador antigo.
+   --------------------------------------------------------------------- */
+.navegador-antigo {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f5f4f0;
+  color: #17171a;
+  text-align: center;
+  font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.navegador-antigo[hidden] {
+  display: none;
+}
+.navegador-antigo > div {
+  max-width: 360px;
+}
+.navegador-antigo strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 21px;
+  line-height: 1.25;
+}
+.navegador-antigo p {
+  margin: 0 0 6px;
+  color: #4a4a50;
+}
+.navegador-antigo .navegador-antigo-como {
+  font-size: 14px;
+  color: #6b6b72;
+}
+.navegador-antigo a {
+  display: inline-block;
+  margin-top: 18px;
+  padding: 13px 22px;
+  border-radius: 12px;
+  background: #1f8f4e;
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+}
