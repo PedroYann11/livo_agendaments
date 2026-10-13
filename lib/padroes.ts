@@ -108,7 +108,7 @@ export const TEMA_NEUTRO: Tema = {
 };
 
 export const RETRATO_VAZIO: Retrato = { url: null, semFundo: null };
-export const FOTO_SOBRE_VAZIA: FotoSobre = { url: null, legenda: "" };
+export const FOTO_SOBRE_VAZIA: FotoSobre = { url: null, semFundo: null, legenda: "" };
 
 /** Até quantas fotos do espaço a página mostra. */
 export const MAX_GALERIA = 6;

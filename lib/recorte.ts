@@ -1,5 +1,5 @@
 // =====================================================================
-// Tirar o fundo da foto do topo, no próprio navegador.
+// Tirar o fundo de uma foto (a do topo ou a do Sobre), no próprio navegador.
 //
 // Usa o MediaPipe do Google (licença Apache 2.0) com o modelo de selfie
 // em várias classes (fundo, cabelo, pele, roupa…): o que não é "fundo" fica.

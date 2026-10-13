@@ -267,7 +267,7 @@ function SecaoPagina({ n, muda }: PropsSecao) {
           <>
             <CampoFoto url={n.retrato.url} pasta="retrato" onMudar={(url) => muda({ retrato: { url, semFundo: null } })} />
             {!n.retrato.url && sobre.url && (
-              <Botao variante="secundario" icone="imagem" style={{ justifySelf: "start" }} onClick={() => muda({ retrato: { url: sobre.url, semFundo: null } })}>
+              <Botao variante="secundario" icone="imagem" style={{ justifySelf: "start" }} onClick={() => muda({ retrato: { url: sobre.url, semFundo: sobre.semFundo } })}>
                 Usar a foto do Sobre
               </Botao>
             )}
@@ -276,12 +276,13 @@ function SecaoPagina({ n, muda }: PropsSecao) {
         )}
       </Bloco>
       <Bloco titulo="Foto do Sobre" texto="Ao lado do texto do Sobre.">
-        <CampoFoto url={sobre.url} pasta="retrato" onMudar={(url) => muda({ fotoSobre: { ...sobre, url } })} />
+        <CampoFoto url={sobre.url} pasta="retrato" onMudar={(url) => muda({ fotoSobre: { ...sobre, url, semFundo: null } })} />
         {!sobre.url && n.retrato.url && (
-          <Botao variante="secundario" icone="imagem" style={{ justifySelf: "start" }} onClick={() => muda({ fotoSobre: { ...sobre, url: n.retrato.url } })}>
+          <Botao variante="secundario" icone="imagem" style={{ justifySelf: "start" }} onClick={() => muda({ fotoSobre: { ...sobre, url: n.retrato.url, semFundo: n.retrato.semFundo } })}>
             Usar a foto do topo
           </Botao>
         )}
+        {sobre.url && <TirarFundo url={sobre.url} semFundo={sobre.semFundo} onMudar={(semFundo) => muda({ fotoSobre: { ...sobre, semFundo } })} />}
         {sobre.url && (
           <Campo rotulo="Legenda" opcional>
             <Entrada

@@ -93,7 +93,7 @@ type RetratoAntigo = Partial<Retrato> & { legenda?: string; noSobre?: boolean };
 function fotoSobreDe(j: NegocioDoBanco): FotoSobre {
   if (j.fotoSobre) return { ...FOTO_SOBRE_VAZIA, ...j.fotoSobre };
   const antigo = j.retrato as RetratoAntigo | undefined;
-  return antigo?.url && antigo.noSobre !== false ? { url: antigo.url, legenda: antigo.legenda ?? "" } : FOTO_SOBRE_VAZIA;
+  return antigo?.url && antigo.noSobre !== false ? { url: antigo.url, semFundo: null, legenda: antigo.legenda ?? "" } : FOTO_SOBRE_VAZIA;
 }
 
 /** O negócio do banco por cima do padrão: configuração nova nunca quebra uma tela antiga. */

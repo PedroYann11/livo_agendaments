@@ -15,7 +15,7 @@ import { linkWhatsApp, enderecoTexto } from "@/lib/whatsapp";
 import { resumoPromocao } from "@/lib/precos";
 import { Arte, Emergir, Revelar } from "./efeitos";
 import { Galeria } from "./Galeria";
-import { RetratoTopo } from "./RetratoTopo";
+import { Recorte, RetratoTopo } from "./RetratoTopo";
 import { capitalizar, gruposVisiveis, menorPreco, servicosVisiveis } from "./util";
 
 /** Os próximos horários livres do serviço mais pedido — o atalho do herói. */
@@ -84,6 +84,7 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
   const semFundo = n.retrato?.semFundo ?? null;
   const fotoNoTopo = n.enfeiteTopo === "foto" && !!retrato;
   const fotoSobre = n.fotoSobre?.url ?? null;
+  const sobreSemFundo = n.fotoSobre?.semFundo ?? null;
   const legendaSobre = n.fotoSobre?.legenda ?? "";
   const altRetrato = `Foto de quem atende na ${n.nome}`;
   const promos = (["variosItens", "primeiraVez", "aniversario"] as const)
@@ -379,10 +380,16 @@ function Conteudo({ b, agora, slug, rolou }: { b: Banco; agora: string; slug: st
           <Revelar className={fotoSobre ? "vt-sobre-pessoa" : undefined}>
             {fotoSobre && (
               <figure className="vt-sobre-retrato">
-                <span className="vt-moldura">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={fotoSobre} alt={legendaSobre || altRetrato} loading="lazy" decoding="async" />
-                </span>
+                {sobreSemFundo ? (
+                  <span className="vt-retrato-recorte sobre">
+                    <Recorte src={sobreSemFundo} alt={legendaSobre || altRetrato} preguicoso />
+                  </span>
+                ) : (
+                  <span className="vt-moldura">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={fotoSobre} alt={legendaSobre || altRetrato} loading="lazy" decoding="async" />
+                  </span>
+                )}
                 {legendaSobre && <figcaption>{legendaSobre}</figcaption>}
               </figure>
             )}

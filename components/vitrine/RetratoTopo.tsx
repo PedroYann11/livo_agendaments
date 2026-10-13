@@ -18,9 +18,7 @@ export function RetratoTopo({ url, semFundo, alt, variante }: { url: string; sem
   if (semFundo) {
     return (
       <motion.figure className={`vt-retrato-recorte ${variante}`} {...entrada}>
-        <span className="vt-moldura vt-retrato-fundo" aria-hidden="true" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={semFundo} alt={alt} decoding="async" />
+        <Recorte src={semFundo} alt={alt} />
       </motion.figure>
     );
   }
@@ -29,5 +27,16 @@ export function RetratoTopo({ url, semFundo, alt, variante }: { url: string; sem
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={url} alt={alt} decoding="async" />
     </motion.figure>
+  );
+}
+
+/** A pessoa sem fundo "saindo" da forma do estilo — no topo e no Sobre (dentro de .vt-retrato-recorte). */
+export function Recorte({ src, alt, preguicoso = false }: { src: string; alt: string; preguicoso?: boolean }) {
+  return (
+    <>
+      <span className="vt-moldura vt-retrato-fundo" aria-hidden="true" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} decoding="async" loading={preguicoso ? "lazy" : undefined} />
+    </>
   );
 }

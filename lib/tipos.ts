@@ -158,6 +158,8 @@ export type Retrato = {
 
 export type FotoSobre = {
   url: string | null;
+  /** a mesma foto sem o fundo (recorte com transparência) */
+  semFundo: string | null;
   /** ex.: "Marcela Souza · especialista em laser" */
   legenda: string;
 };

@@ -1302,6 +1302,15 @@
   display: grid;
   gap: 12px;
 }
+/* Sobre sem fundo: a pessoa sai da forma do estilo, como no topo */
+.vt-retrato-recorte.sobre {
+  display: block;
+  aspect-ratio: 4 / 5;
+}
+/* a legenda começa onde começa a forma (8% para dentro) */
+.vt-retrato-recorte.sobre + figcaption {
+  padding-inline: 8%;
+}
 .vt-sobre-retrato figcaption {
   font-size: 14px;
   color: var(--c-texto-2);
