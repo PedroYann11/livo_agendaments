@@ -5,6 +5,7 @@ import { BancoProvider } from "@/lib/dados/loja";
 import { Provedores } from "@/components/ui/Avisos";
 import { VitrineRaiz } from "@/components/vitrine/VitrineRaiz";
 import "./vitrine.css";
+import "../agendar-comum.css";
 import "./agendar.css";
 
 type Props = { children: React.ReactNode; params: Promise<{ negocio: string }> };

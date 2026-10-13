@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { PainelRaiz } from "@/components/painel/PainelRaiz";
+import "../agendar-comum.css";
 import "./painel.css";
 
 export const metadata: Metadata = {

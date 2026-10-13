@@ -715,6 +715,8 @@ select.ui-entrada {
 .ui-folha-corpo {
   padding: 18px 20px 24px;
   overflow-y: auto;
+  /* uma folha nunca rola para o lado (no celular, isso cortava a tela) */
+  overflow-x: hidden;
   overscroll-behavior: contain;
   flex: 1;
 }

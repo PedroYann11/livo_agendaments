@@ -2,11 +2,12 @@
 
 // =====================================================================
 // Faixa de dias + horários livres — o jeito do PAINEL escolher (novo
-// agendamento, encaixe, remarcar). O cliente usa o calendário do mês
-// (DiaHora). A regra de vaga é uma só — lib/disponibilidade.
+// agendamento, encaixe, remarcar). "Ver o mês" troca a faixa pelo
+// calendário (Mes) para pular para uma data longe. O cliente usa o
+// calendário do mês (DiaHora). A regra de vaga é uma só — lib/disponibilidade.
 // =====================================================================
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import type { Banco } from "@/lib/tipos";
 import { horariosDisponiveis, diaFechado, type Vaga } from "@/lib/disponibilidade";
@@ -14,6 +15,8 @@ import { NOMES_DIAS_CURTOS, NOMES_MESES, dataCurta, diaDaSemana, somarDias } fro
 import { Icone } from "@/components/ui/Icone";
 import { Botao } from "@/components/ui/basicos";
 import { GradeHorarios } from "./DiaHora";
+import { Mes } from "./Mes";
+import { capitalizar } from "@/components/vitrine/util";
 
 export type Escolha = { data: string; hora: string; profissionalId: string };
 
@@ -64,12 +67,19 @@ export function SeletorHorario({
     if (primeiro && !data) onData(primeiro);
   }, [data, dias, vagasPorDia, onData]);
 
+  // o mês inteiro, para pular direto para uma data mais longe
+  const [verMes, setVerMes] = useState(false);
   const faixa = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!data) return;
-    const el = faixa.current?.querySelector<HTMLElement>(`[data-dia="${data}"]`);
-    el?.scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" });
-  }, [data]);
+    if (!data || verMes) return;
+    // rola SÓ a faixa (scrollIntoView também arrastava a folha inteira para o lado)
+    const f = faixa.current;
+    const el = f?.querySelector<HTMLElement>(`[data-dia="${data}"]`);
+    if (!f || !el) return;
+    const r = el.getBoundingClientRect();
+    const fr = f.getBoundingClientRect();
+    if (r.left < fr.left || r.right > fr.right) f.scrollBy({ left: r.left + r.width / 2 - (fr.left + fr.width / 2), behavior: "smooth" });
+  }, [data, verMes]);
 
   const vagas = data ? vagasPorDia[data] ?? [] : [];
   const proximoComVaga = data ? dias.find((d) => d > data && vagasPorDia[d]?.length) : null;
@@ -77,36 +87,56 @@ export function SeletorHorario({
   const mesVisivel = data ?? hoje;
 
   return (
-    <div>
+    <div className="ag-seletor">
       <div className="ag-mes">
-        <strong>
-          {NOMES_MESES[Number(mesVisivel.slice(5, 7)) - 1]} {mesVisivel.slice(0, 4)}
-        </strong>
+        <strong>{verMes ? "Escolha o dia" : `${capitalizar(NOMES_MESES[Number(mesVisivel.slice(5, 7)) - 1])} ${mesVisivel.slice(0, 4)}`}</strong>
+        <Botao variante="fantasma" tamanho="p" icone={verMes ? "fechar" : "calendario"} aria-expanded={verMes} onClick={() => setVerMes((v) => !v)}>
+          {verMes ? "Fechar o mês" : "Ver o mês"}
+        </Botao>
       </div>
-      <div className="ag-dias" ref={faixa} role="listbox" aria-label="Dias">
-        {dias.map((d) => {
-          const qtd = vagasPorDia[d]?.length ?? 0;
-          const ativo = d === data;
-          return (
-            <button
-              key={d}
-              type="button"
-              data-dia={d}
-              role="option"
-              aria-selected={ativo}
-              className={`ag-dia${ativo ? " ativo" : ""}`}
-              disabled={!qtd && !ativo}
-              onClick={() => onData(d)}
-              aria-label={`${dataCurta(d)}: ${qtd ? `${qtd} horários` : "sem horários"}`}
-            >
-              {ativo && <motion.span layoutId="ag-dia" className="ag-dia-fundo" transition={{ type: "spring", stiffness: 480, damping: 38 }} />}
-              <small>{d === hoje ? "hoje" : NOMES_DIAS_CURTOS[diaDaSemana(d)]}</small>
-              <b>{Number(d.slice(8))}</b>
-              <i />
-            </button>
-          );
-        })}
-      </div>
+      {verMes ? (
+        <Mes
+          inicial={data ?? hoje}
+          data={data}
+          hoje={hoje}
+          min={hoje}
+          max={dias[dias.length - 1]}
+          legenda="dias com horário livre"
+          onDia={(d) => {
+            onData(d);
+            setVerMes(false);
+          }}
+          sobre={(d) => {
+            const qtd = vagasPorDia[d]?.length ?? 0;
+            return { livre: qtd > 0, destaque: qtd > 0, rotulo: `${dataCurta(d)}: ${qtd ? `${qtd} horários` : "sem horários"}` };
+          }}
+        />
+      ) : (
+        <div className="ag-dias" ref={faixa} role="listbox" aria-label="Dias">
+          {dias.map((d) => {
+            const qtd = vagasPorDia[d]?.length ?? 0;
+            const ativo = d === data;
+            return (
+              <button
+                key={d}
+                type="button"
+                data-dia={d}
+                role="option"
+                aria-selected={ativo}
+                className={`ag-dia${ativo ? " ativo" : ""}`}
+                disabled={!qtd && !ativo}
+                onClick={() => onData(d)}
+                aria-label={`${dataCurta(d)}: ${qtd ? `${qtd} horários` : "sem horários"}`}
+              >
+                {ativo && <motion.span layoutId="ag-dia" className="ag-dia-fundo" transition={{ type: "spring", stiffness: 480, damping: 38 }} />}
+                <small>{d === hoje ? "hoje" : NOMES_DIAS_CURTOS[diaDaSemana(d)]}</small>
+                <b>{Number(d.slice(8))}</b>
+                <i />
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div style={{ marginTop: 14 }}>
         {data && vagas.length === 0 ? (

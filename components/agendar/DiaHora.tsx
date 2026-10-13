@@ -7,22 +7,22 @@
 // aparecem logo abaixo. A regra de vaga é uma só — lib/disponibilidade.
 //
 // O painel continua com a faixa de dias (SeletorHorario), mais rápida para
-// quem marca vários horários seguidos.
+// quem marca vários horários seguidos — com o mesmo calendário (Mes) a um toque.
 // =====================================================================
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Banco } from "@/lib/tipos";
 import type { Vaga } from "@/lib/disponibilidade";
 import { useVagas, type PedidoVagas } from "@/lib/dados/vagas";
 import { Botao, Esqueleto } from "@/components/ui/basicos";
-import { NOMES_MESES, dataLonga, diaDaSemana, fimDoMes, inicioDoMes, somarDias, somarMeses } from "@/lib/datas";
+import { dataLonga, somarDias } from "@/lib/datas";
 import { linkWhatsApp } from "@/lib/whatsapp";
 import { Icone } from "@/components/ui/Icone";
 import { capitalizar } from "@/components/vitrine/util";
 import type { Escolha } from "./SeletorHorario";
+import { Mes } from "./Mes";
 
-const SEMANA = ["D", "S", "T", "Q", "Q", "S", "S"];
 const SAIDA = [0.23, 1, 0.32, 1] as const;
 
 export function DiaHora({
@@ -62,7 +62,7 @@ export function DiaHora({
   }
   if (!porDia) {
     return (
-      <div className="cal" aria-busy="true" style={{ display: "grid", gap: 12 }}>
+      <div className="cal" aria-busy="true" style={{ display: "grid", gap: 12, marginTop: 16 }}>
         <Esqueleto altura={28} largura="50%" />
         <Esqueleto altura={250} raio={16} />
       </div>
@@ -106,17 +106,7 @@ function Calendario({
   onHora: (e: Escolha) => void;
 }) {
   const hoje = agora.slice(0, 10);
-  const ultimo = somarDias(hoje, janela);
-  const [mes, setMes] = useState(() => inicioDoMes(data ?? primeiroLivre));
-  const [direcao, setDirecao] = useState(1);
   const horarios = useRef<HTMLDivElement>(null);
-
-  const podeVoltar = mes > inicioDoMes(hoje);
-  const podeAvancar = mes < inicioDoMes(ultimo);
-  const trocarMes = (passo: number) => {
-    setDirecao(passo);
-    setMes((m) => somarMeses(m, passo));
-  };
 
   const escolherDia = (d: string) => {
     onData(d);
@@ -124,69 +114,24 @@ function Calendario({
     setTimeout(() => horarios.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   };
 
-  const vazios = diaDaSemana(mes);
-  const total = Number(fimDoMes(mes).slice(8));
-  const dias = Array.from({ length: total }, (_, i) => somarDias(mes, i));
   const vagas = data ? vagasPorDia.get(data) ?? [] : [];
 
   return (
     <div>
-      <div className="cal">
-        <div className="cal-topo">
-          <button type="button" className="ui-botao-icone" aria-label="Mês anterior" disabled={!podeVoltar} onClick={() => trocarMes(-1)}>
-            <Icone nome="esquerda" />
-          </button>
-          <strong aria-live="polite">
-            {capitalizar(NOMES_MESES[Number(mes.slice(5, 7)) - 1])} {mes.slice(0, 4)}
-          </strong>
-          <button type="button" className="ui-botao-icone" aria-label="Próximo mês" disabled={!podeAvancar} onClick={() => trocarMes(1)}>
-            <Icone nome="direita" />
-          </button>
-        </div>
-        <div className="cal-semana" aria-hidden="true">
-          {SEMANA.map((d, i) => (
-            <span key={i}>{d}</span>
-          ))}
-        </div>
-        <AnimatePresence mode="wait" initial={false} custom={direcao}>
-          <motion.div
-            key={mes}
-            className="cal-grade"
-            role="grid"
-            aria-label="Dias do mês"
-            custom={direcao}
-            variants={{ entra: (d: number) => ({ opacity: 0, x: d * 28 }), fica: { opacity: 1, x: 0 }, sai: (d: number) => ({ opacity: 0, x: d * -28 }) }}
-            initial="entra"
-            animate="fica"
-            exit="sai"
-            transition={{ duration: 0.22, ease: SAIDA }}
-          >
-            {Array.from({ length: vazios }, (_, i) => (
-              <span key={`v${i}`} />
-            ))}
-            {dias.map((d) => {
-              const qtd = vagasPorDia.get(d)?.length ?? 0;
-              const ativo = d === data;
-              return (
-                <button
-                  key={d}
-                  type="button"
-                  className={`cal-dia${qtd ? " livre" : ""}${ativo ? " ativo" : ""}${d === hoje ? " hoje" : ""}`}
-                  disabled={!qtd}
-                  aria-pressed={ativo}
-                  aria-label={`${dataLonga(d)}: ${qtd ? `${qtd} horários livres` : "sem horários"}`}
-                  onClick={() => escolherDia(d)}
-                >
-                  {ativo && <motion.span layoutId="cal-dia" className="cal-dia-fundo" transition={{ type: "spring", stiffness: 520, damping: 38 }} />}
-                  {Number(d.slice(8))}
-                </button>
-              );
-            })}
-          </motion.div>
-        </AnimatePresence>
-        <p className="cal-legenda">
-          <i /> dias com horário livre
-        </p>
+      <div style={{ marginTop: 16 }}>
+        <Mes
+          inicial={data ?? primeiroLivre}
+          data={data}
+          hoje={hoje}
+          min={hoje}
+          max={somarDias(hoje, janela)}
+          legenda="dias com horário livre"
+          onDia={escolherDia}
+          sobre={(d) => {
+            const qtd = vagasPorDia.get(d)?.length ?? 0;
+            return { livre: qtd > 0, destaque: qtd > 0, rotulo: `${dataLonga(d)}: ${qtd ? `${qtd} horários livres` : "sem horários"}` };
+          }}
+        />
       </div>
 
       <div ref={horarios} className="cal-horarios">

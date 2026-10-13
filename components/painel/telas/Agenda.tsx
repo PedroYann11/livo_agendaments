@@ -17,6 +17,7 @@ import { useBanco, useLoja } from "@/lib/dados/loja";
 import { usePainel } from "../PainelRaiz";
 import { Cabecalho } from "../Cabecalho";
 import { STATUS } from "../DetalheAgendamento";
+import { Mes } from "@/components/agendar/Mes";
 import { Icone } from "@/components/ui/Icone";
 import { Avatar, Botao, BotaoIcone, Campo, Entrada, Interruptor, Segmentado, Selo } from "@/components/ui/basicos";
 import { Folha, useTelaLarga } from "@/components/ui/Folha";
@@ -60,6 +61,7 @@ export function Agenda() {
   const [cancelados, setCancelados] = useState(false);
   const [bloquear, setBloquear] = useState(false);
   const [abrirDia, setAbrirDia] = useState(false);
+  const [escolherData, setEscolherData] = useState(false);
   const soPendentes = params.get("filtro") === "pendente";
   const { mudar } = useLoja();
   const avisar = useAvisos();
@@ -164,9 +166,11 @@ export function Agenda() {
           <Botao variante="secundario" tamanho="p" onClick={() => setData(hoje)} disabled={data === hoje}>
             Hoje
           </Botao>
-          <strong style={{ marginLeft: 6 }}>
-            {visao === "semana" ? `Semana de ${dataCurta(inicioDaSemana(data))}` : capitalizar(dataLonga(data))}
-          </strong>
+          {/* tocar na data abre o mês: vai direto a uma data distante */}
+          <button type="button" className="ag-painel-data-escolher" onClick={() => setEscolherData(true)} aria-haspopup="dialog">
+            <strong>{visao === "semana" ? `Semana de ${dataCurta(inicioDaSemana(data))}` : capitalizar(dataLonga(data))}</strong>
+            <Icone nome="calendario" tamanho={17} />
+          </button>
         </div>
         <div style={{ flex: 1 }} />
         {larga && (
@@ -210,6 +214,18 @@ export function Agenda() {
 
       <FolhaBloqueio aberta={bloquear} onFechar={() => setBloquear(false)} data={data} equipe={equipe} />
       <FolhaAbrirDia aberta={abrirDia} onFechar={() => setAbrirDia(false)} data={data} />
+      <FolhaData
+        aberta={escolherData}
+        onFechar={() => setEscolherData(false)}
+        b={b}
+        data={data}
+        hoje={hoje}
+        equipe={colunas.map((p) => p.id)}
+        onData={(d) => {
+          setData(d);
+          setEscolherData(false);
+        }}
+      />
     </div>
   );
 }
@@ -570,6 +586,60 @@ function Semana({ b, data, hoje, filtro, onDia }: { b: Banco; data: string; hoje
 }
 
 /** Dia avulso de atendimento: o negócio abre só nesta data (toda a equipe). */
+/** Ir para qualquer data pelo calendário do mês; os dias com agendamento ficam em destaque. */
+function FolhaData({
+  aberta,
+  onFechar,
+  b,
+  data,
+  hoje,
+  equipe,
+  onData,
+}: {
+  aberta: boolean;
+  onFechar: () => void;
+  b: Banco;
+  data: string;
+  hoje: string;
+  equipe: string[];
+  onData: (d: string) => void;
+}) {
+  const chave = equipe.join(",");
+  const porDia = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of b.agendamentos) {
+      if (!STATUS_OCUPAM.includes(a.status) || !equipe.includes(a.profissionalId)) continue;
+      const d = a.inicio.slice(0, 10);
+      m.set(d, (m.get(d) ?? 0) + 1);
+    }
+    return m;
+  }, [b.agendamentos, chave]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <Folha aberta={aberta} onFechar={onFechar} titulo="Ir para a data" largura={420}>
+      {aberta && (
+        <div style={{ display: "grid", gap: 14 }}>
+          <Mes
+            inicial={data}
+            data={data}
+            hoje={hoje}
+            legenda="dias com agendamento"
+            onDia={onData}
+            sobre={(d) => {
+              const n = porDia.get(d) ?? 0;
+              return { livre: true, destaque: n > 0, rotulo: `${capitalizar(dataLonga(d))}: ${n ? `${n} agendamento${n > 1 ? "s" : ""}` : "nada marcado"}` };
+            }}
+          />
+          {data !== hoje && (
+            <Botao variante="secundario" icone="agenda" onClick={() => onData(hoje)}>
+              Voltar para hoje
+            </Botao>
+          )}
+        </div>
+      )}
+    </Folha>
+  );
+}
+
 function FolhaAbrirDia({ aberta, onFechar, data }: { aberta: boolean; onFechar: () => void; data: string }) {
   const { banco, mudar } = useLoja();
   const avisar = useAvisos();
