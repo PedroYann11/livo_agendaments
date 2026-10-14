@@ -103,13 +103,24 @@ begin
       repeat('H', 87), repeat('g', 22), 'Computador ' || i);
   end loop;
   perform pg_temp.manutencao();
-  select count(*) into n from public.aparelhos_aviso where tenant_id = 'bbbbbbbb-0000-0000-0000-000000000001';
+  select count(*) into n from public.aparelhos_aviso where tenant_id = 'bbbbbbbb-0000-0000-0000-000000000001' and ativo;
   if n <> 20 then raise exception 'T57 FALHOU: B ficou com % aparelhos', n; end if;
-  if exists (select 1 from public.aparelhos_aviso where endpoint like '%/b-1') then
-    raise exception 'T57 FALHOU: o aparelho mais antigo de B ficou';
+  if exists (select 1 from public.aparelhos_aviso where endpoint like '%/b-1' and ativo) then
+    raise exception 'T57 FALHOU: o aparelho mais antigo de B ficou ligado';
+  end if;
+  -- desligar não apaga nada (remoção suave) e religar volta o mesmo aparelho
+  if (select count(*) from public.aparelhos_aviso where tenant_id = 'bbbbbbbb-0000-0000-0000-000000000001') <> 21 then
+    raise exception 'T57 FALHOU: o limite apagou aparelho';
+  end if;
+  perform pg_temp.como('authenticated', dono_b);
+  perform public.aviso_aparelho_salvar('teste-b', 'https://updates.push.services.mozilla.com/wpush/v2/b-1', repeat('H', 87), repeat('g', 22), 'Computador 1');
+  perform pg_temp.manutencao();
+  if not exists (select 1 from public.aparelhos_aviso where endpoint like '%/b-1' and ativo)
+     or (select count(*) from public.aparelhos_aviso where tenant_id = 'bbbbbbbb-0000-0000-0000-000000000001' and ativo) <> 20 then
+    raise exception 'T57 FALHOU: religar o aparelho antigo';
   end if;
 end $$;
-\echo T57 ok · aparelhos só pelas portas, cada um vê o seu, endereço só de serviço de push, até 20 por negócio
+\echo T57 ok · aparelhos só pelas portas, cada um vê o seu, endereço só de serviço de push, até 20 ligados por negócio (nada apagado)
 
 -- T58 a cliente agenda pelo site → um pedido para a edge, com o texto pronto
 do $$ declare
@@ -334,6 +345,10 @@ begin
   end;
   perform pg_temp.como('authenticated', recepcao_a);
   perform public.aviso_aparelho_remover('teste-a', 'https://fcm.googleapis.com/fcm/send/recepcao-a');
+  if public.aviso_situacao('teste-a', 'https://fcm.googleapis.com/fcm/send/recepcao-a') ->> 'esteAparelho' <> 'false'
+     or (public.aviso_situacao('teste-a', null) ->> 'aparelhos')::int <> 1 then
+    raise exception 'T63 FALHOU: aparelho desligado ainda conta';
+  end if;
   begin
     perform public.aviso_teste('teste-a');
     raise exception 'T63 FALHOU: teste sem aparelho';

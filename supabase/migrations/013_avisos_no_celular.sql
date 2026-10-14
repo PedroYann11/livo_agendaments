@@ -33,8 +33,11 @@
 -- O AGENDAMENTO NUNCA DEPENDE DO AVISO: falha no envio vira WARNING e o
 -- agendamento grava normalmente.
 --
--- ROLLBACK: drop trigger agendamentos_avisar; drop das funções aviso_* e
---           de public.aparelhos_aviso. Os segredos podem ficar no Vault.
+-- REMOÇÃO SUAVE: desligar os avisos num aparelho só o marca como inativo
+-- (ativo = false), como o resto do banco. Nada é apagado.
+--
+-- PARA DESFAZER: remover o gatilho agendamentos_avisar, as funções aviso_*
+-- e a tabela aparelhos_aviso. Os segredos podem ficar no Vault.
 -- =====================================================================
 
 begin;
@@ -69,7 +72,10 @@ create table public.aparelhos_aviso (
   auth text not null check (auth ~ '^[A-Za-z0-9_=-]{16,32}$'),
   -- "iPhone", "Android", "Computador" — para a pessoa reconhecer o aparelho
   nome text not null default '' check (char_length(nome) <= 80),
-  criado_em timestamptz not null default clock_timestamp(),
+  -- desligado neste aparelho (pela pessoa, pelo limite ou pelo serviço de push)
+  ativo boolean not null default true,
+  -- quando os avisos foram ligados pela última vez neste aparelho
+  ligado_em timestamptz not null default clock_timestamp(),
   testado_em timestamptz,
   primary key (tenant_id, id),
   unique (tenant_id, endpoint)
@@ -80,7 +86,7 @@ alter table public.aparelhos_aviso enable row level security;
 revoke all on public.aparelhos_aviso from anon, authenticated;
 grant select on public.aparelhos_aviso to authenticated;
 create policy aparelhos_aviso_ler on public.aparelhos_aviso for select to authenticated
-  using (usuario_id = (select auth.uid()) and public.is_member(tenant_id));
+  using (ativo and usuario_id = (select auth.uid()) and public.is_member(tenant_id));
 
 -- ---------------------------------------------------------------------
 -- 2. Segredos e a chamada à edge
@@ -151,7 +157,7 @@ create or replace function public.aviso_disparar(p_tenant uuid, p_aviso jsonb, p
 returns boolean language plpgsql volatile security definer set search_path = '' as $$
 begin
   if not exists (select 1 from public.aparelhos_aviso a
-                 where a.tenant_id = p_tenant and (p_usuario is null or a.usuario_id = p_usuario)) then
+                 where a.tenant_id = p_tenant and a.ativo and (p_usuario is null or a.usuario_id = p_usuario)) then
     return false;
   end if;
   return public.aviso_chamar_edge(jsonb_build_object(
@@ -293,8 +299,8 @@ begin
   return jsonb_build_object(
     -- sem chave pública, o servidor ainda não está pronto para avisar
     'chave', public.aviso_segredo('avisos_vapid_publica'),
-    'esteAparelho', exists (select 1 from public.aparelhos_aviso a where a.tenant_id = tid and a.endpoint = p_endpoint),
-    'aparelhos', (select count(*) from public.aparelhos_aviso a where a.tenant_id = tid));
+    'esteAparelho', exists (select 1 from public.aparelhos_aviso a where a.tenant_id = tid and a.ativo and a.endpoint = p_endpoint),
+    'aparelhos', (select count(*) from public.aparelhos_aviso a where a.tenant_id = tid and a.ativo));
 end $$;
 
 create or replace function public.aviso_aparelho_salvar(p_slug text, p_endpoint text, p_p256dh text, p_auth text, p_nome text)
@@ -308,10 +314,11 @@ begin
   insert into public.aparelhos_aviso as a (tenant_id, usuario_id, endpoint, p256dh, auth, nome)
   values (tid, (select auth.uid()), p_endpoint, p_p256dh, p_auth, left(coalesce(p_nome, ''), 80))
   on conflict (tenant_id, endpoint) do update set
-    usuario_id = excluded.usuario_id, p256dh = excluded.p256dh, auth = excluded.auth, nome = excluded.nome;
-  -- até 20 aparelhos por negócio: o mais antigo sai
-  delete from public.aparelhos_aviso a where a.tenant_id = tid and a.id in (
-    select x.id from public.aparelhos_aviso x where x.tenant_id = tid order by x.criado_em desc offset 20);
+    usuario_id = excluded.usuario_id, p256dh = excluded.p256dh, auth = excluded.auth, nome = excluded.nome,
+    ativo = true, ligado_em = clock_timestamp();
+  -- até 20 aparelhos ligados por negócio: o mais antigo é desligado
+  update public.aparelhos_aviso a set ativo = false where a.tenant_id = tid and a.id in (
+    select x.id from public.aparelhos_aviso x where x.tenant_id = tid and x.ativo order by x.ligado_em desc offset 20);
   return jsonb_build_object('ok', true);
 end $$;
 
@@ -320,7 +327,7 @@ returns jsonb language plpgsql volatile security definer set search_path = '' as
 declare
   tid uuid := public.aviso_negocio(p_slug);
 begin
-  delete from public.aparelhos_aviso a where a.tenant_id = tid and a.endpoint = p_endpoint;
+  update public.aparelhos_aviso a set ativo = false where a.tenant_id = tid and a.endpoint = p_endpoint;
   return jsonb_build_object('ok', true);
 end $$;
 
@@ -332,11 +339,12 @@ declare
   eu uuid := (select auth.uid());
   n int;
 begin
-  if not exists (select 1 from public.aparelhos_aviso a where a.tenant_id = tid and a.usuario_id = eu) then
+  if not exists (select 1 from public.aparelhos_aviso a where a.tenant_id = tid and a.ativo and a.usuario_id = eu) then
     raise exception 'Ligue os avisos neste aparelho primeiro.';
   end if;
   update public.aparelhos_aviso a set testado_em = now()
-  where a.tenant_id = tid and a.usuario_id = eu and (a.testado_em is null or a.testado_em < now() - interval '15 seconds');
+  where a.tenant_id = tid and a.ativo and a.usuario_id = eu
+    and (a.testado_em is null or a.testado_em < now() - interval '15 seconds');
   get diagnostics n = row_count;
   if n = 0 then raise exception 'Aviso de teste enviado há pouco. Espere alguns segundos.'; end if;
   if not public.aviso_disparar(tid, jsonb_build_object(
@@ -357,13 +365,13 @@ create or replace function public.aviso_destinos(p_tenant uuid, p_usuario uuid d
 returns table (id uuid, endpoint text, p256dh text, auth text)
 language sql stable security definer set search_path = '' as $$
   select a.id, a.endpoint, a.p256dh, a.auth from public.aparelhos_aviso a
-  where a.tenant_id = p_tenant and (p_usuario is null or a.usuario_id = p_usuario)
+  where a.tenant_id = p_tenant and a.ativo and (p_usuario is null or a.usuario_id = p_usuario)
 $$;
 
-/** O serviço de push disse que o aparelho não existe mais (404/410). */
+/** O serviço de push disse que o aparelho não existe mais (404/410): desliga. */
 create or replace function public.aviso_esquecer(p_tenant uuid, p_id uuid)
 returns void language sql volatile security definer set search_path = '' as $$
-  delete from public.aparelhos_aviso a where a.tenant_id = p_tenant and a.id = p_id
+  update public.aparelhos_aviso a set ativo = false where a.tenant_id = p_tenant and a.id = p_id
 $$;
 
 -- ---------------------------------------------------------------------
