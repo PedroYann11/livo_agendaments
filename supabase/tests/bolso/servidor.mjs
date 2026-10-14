@@ -58,6 +58,12 @@ function jwt(usuario) {
   const agora = Math.floor(Date.now() / 1000);
   return [b64({ alg: "HS256", typ: "JWT" }), b64({ sub: usuario.id, email: usuario.email, role: "authenticated", aud: "authenticated", iat: agora, exp: agora + 3600 }), "bolso"].join(".");
 }
+
+/** como o PostgREST: todo pedido leva as claims do JWT (anônimo também) */
+function claimsDe(usuario) {
+  return JSON.stringify(usuario ? { role: "authenticated", sub: usuario.sub } : { role: "anon" });
+}
+
 function lerJwt(cabecalho) {
   const token = (cabecalho ?? "").replace(/^Bearer\s+/i, "");
   const partes = token.split(".");
@@ -114,7 +120,7 @@ async function rpc(fn, corpo, usuario) {
   const nomes = Object.keys(corpo);
   const v = versoes.find((x) => nomes.every((n) => x.nomes.includes(n)));
   if (!v) return [404, { code: "PGRST202", message: `Could not find the function public.${fn}` }];
-  const vars = { sub: usuario?.sub ?? "" };
+  const vars = { sub: usuario?.sub ?? "", claims: claimsDe(usuario) };
   const args = nomes.map((nome, i) => {
     const tipo = v.tipos[v.nomes.indexOf(nome)];
     const valor = corpo[nome];
@@ -136,6 +142,7 @@ async function rpc(fn, corpo, usuario) {
     `\\set VERBOSITY verbose
 begin;
 select set_config('request.jwt.claim.sub', :'sub', true) is null;
+select set_config('request.jwt.claims', :'claims', true) is null;
 set local role ${usuario ? "authenticated" : "anon"};
 select 'RESULTADO:' || ${expr};
 commit;`,
@@ -263,10 +270,11 @@ async function comoQuemChamou(usuario, sql, vars = {}) {
   const r = await psql(
     `begin;
 select set_config('request.jwt.claim.sub', :'sub', true) is null;
+select set_config('request.jwt.claims', :'claims', true) is null;
 set local role ${usuario ? "authenticated" : "anon"};
 ${sql};
 commit;`,
-    { sub: usuario?.sub ?? "", ...vars },
+    { sub: usuario?.sub ?? "", claims: claimsDe(usuario), ...vars },
   );
   if (r.codigo !== 0) return { erro: r.err.match(/ERROR:\s+(.*)/)?.[1] ?? r.err.trim() };
   const linha = r.out.split("\n").find((l) => l.startsWith("RESULTADO:"));

@@ -36,8 +36,15 @@ do $$ begin
   end if;
 end $$;
 
+-- igual à da Supabase: o papel do pedido, pelas claims do JWT
+create or replace function auth.role() returns text
+language sql stable as $$
+  select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''),
+                  (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'))::text
+$$;
+
 grant usage on schema public, auth to anon, authenticated, service_role;
-grant execute on function auth.uid() to anon, authenticated, service_role;
+grant execute on function auth.uid(), auth.role() to anon, authenticated, service_role;
 
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
@@ -81,3 +88,37 @@ end $$;
 grant usage on schema storage to anon, authenticated, service_role;
 grant all on storage.objects, storage.buckets to anon, authenticated, service_role;
 grant execute on function storage.foldername(text) to anon, authenticated, service_role;
+
+-- Vault: na Supabase os segredos ficam cifrados; aqui, guardados como vieram.
+-- Mesmos nomes de tabela, visão e função que as migrations usam.
+create schema if not exists vault;
+create table if not exists vault.secrets (
+  id uuid primary key default gen_random_uuid(),
+  name text unique,
+  description text not null default '',
+  secret text not null,
+  created_at timestamptz not null default now()
+);
+create or replace view vault.decrypted_secrets as
+  select id, name, description, secret, secret as decrypted_secret, created_at from vault.secrets;
+create or replace function vault.create_secret(new_secret text, new_name text default null,
+  new_description text default '', new_key_id uuid default null) returns uuid
+language sql as $$
+  insert into vault.secrets (name, description, secret) values (new_name, new_description, new_secret) returning id
+$$;
+
+-- pg_net: aqui nenhum pedido sai; cada chamada fica anotada em
+-- net.pedidos_teste para a suíte conferir o que seria enviado.
+create schema if not exists net;
+create table if not exists net.pedidos_teste (
+  id bigserial primary key,
+  url text,
+  headers jsonb,
+  body jsonb,
+  criado_em timestamptz not null default clock_timestamp()
+);
+create or replace function net.http_post(url text, body jsonb default '{}'::jsonb, params jsonb default '{}'::jsonb,
+  headers jsonb default '{"Content-Type": "application/json"}'::jsonb, timeout_milliseconds int default 5000)
+returns bigint language sql as $$
+  insert into net.pedidos_teste (url, headers, body) values (url, headers, body) returning id
+$$;
