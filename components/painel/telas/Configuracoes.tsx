@@ -32,8 +32,9 @@ import { brl } from "@/lib/formato";
 import { novoId } from "@/lib/id";
 import { sair } from "@/lib/sessao";
 import { faxinaDeFotos } from "@/lib/fotos";
+import { SecaoAvisos } from "../AvisosCelular";
 
-type Secao = "pagina" | "aparencia" | "funcionamento" | "regras" | "contato" | "pagamentos" | "modulos" | "promocoes" | "avaliacoes" | "conta";
+type Secao = "pagina" | "aparencia" | "funcionamento" | "regras" | "contato" | "pagamentos" | "modulos" | "promocoes" | "avaliacoes" | "avisos" | "conta";
 
 const SECOES: { id: Secao; rotulo: string; icone: NomeIcone }[] = [
   { id: "pagina", rotulo: "Minha página", icone: "pagina" },
@@ -45,6 +46,7 @@ const SECOES: { id: Secao; rotulo: string; icone: NomeIcone }[] = [
   { id: "modulos", rotulo: "Funções", icone: "grade" },
   { id: "promocoes", rotulo: "Promoções", icone: "cupom" },
   { id: "avaliacoes", rotulo: "Avaliações", icone: "estrela" },
+  { id: "avisos", rotulo: "Avisos no celular", icone: "sino" },
   { id: "conta", rotulo: "Conta", icone: "cliente" },
 ];
 
@@ -129,6 +131,11 @@ export function Configuracoes() {
                 </>
               )}
               {secao === "avaliacoes" && <SecaoAvaliacoes />}
+              {secao === "avisos" && (
+                <Bloco titulo="Avisos no celular" texto="Um aviso quando a cliente agenda, remarca ou cancela pelo seu link — mesmo com o painel fechado. O que você faz no painel não gera aviso.">
+                  <SecaoAvisos />
+                </Bloco>
+              )}
               {secao === "conta" && <SecaoConta />}
             </motion.div>
           </AnimatePresence>

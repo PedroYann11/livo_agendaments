@@ -1,0 +1,18 @@
+{
+  "id": "/painel",
+  "name": "Livo Agenda",
+  "short_name": "Agenda",
+  "description": "Sua agenda, seus clientes e o aviso de cada agendamento novo.",
+  "start_url": "/painel",
+  "scope": "/painel",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f4f0",
+  "theme_color": "#f5f4f0",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/icones/painel-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icones/painel-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icones/painel-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

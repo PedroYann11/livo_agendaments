@@ -305,9 +305,15 @@ function ProvedorPainel({ slug, onSemAgenda, children }: { slug: string; onSemAg
     };
     const t = setInterval(reler, RELER_A_CADA);
     document.addEventListener("visibilitychange", reler);
+    // chegou um aviso no celular (public/sw.js): relê agora, sem esperar a volta
+    const avisou = (e: MessageEvent) => {
+      if (e.data?.tipo === "agenda-mudou" && pendentes.current === 0) recarregar();
+    };
+    navigator.serviceWorker?.addEventListener("message", avisou);
     return () => {
       clearInterval(t);
       document.removeEventListener("visibilitychange", reler);
+      navigator.serviceWorker?.removeEventListener("message", avisou);
     };
   }, [recarregar]);
 

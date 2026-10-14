@@ -6,6 +6,10 @@ import "./painel.css";
 export const metadata: Metadata = {
   title: { default: "Painel", template: "%s · Painel" },
   robots: { index: false, follow: false },
+  // o painel instalável (no iPhone, é o que permite receber avisos)
+  manifest: "/painel.webmanifest",
+  appleWebApp: { capable: true, title: "Agenda", statusBarStyle: "default" },
+  icons: { apple: "/icones/painel-180.png" },
 };
 
 export const viewport: Viewport = { themeColor: "#f5f4f0" };

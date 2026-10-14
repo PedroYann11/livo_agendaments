@@ -74,7 +74,7 @@ function erroDe(e: { message?: string; code?: string } | null): ErroBanco {
   return new ErroBanco("Não foi possível falar com o servidor agora. Tente de novo.", codigo);
 }
 
-async function chamar<T>(fn: string, args: Record<string, unknown>): Promise<T> {
+export async function chamar<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await getSupabase().rpc(fn, args);
   if (error) throw erroDe(error);
   return data as T;

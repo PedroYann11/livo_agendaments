@@ -2777,3 +2777,50 @@ label.ui-botao.desligado {
     font-size: 16px;
   }
 }
+
+/* avisos no celular */
+.av-recado {
+  font-size: 13.5px;
+  color: var(--c-texto-2);
+  line-height: 1.5;
+}
+.av-passos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.av-passos li {
+  display: grid;
+  grid-template-columns: 22px 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.av-passo-numero {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-texto-3);
+  text-align: center;
+}
+.av-passo-icone {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--c-marca-sutil);
+  color: var(--c-marca-tinta);
+}
+.av-convite {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.av-convite .ini-atencao {
+  flex: 1;
+  min-width: 0;
+}
