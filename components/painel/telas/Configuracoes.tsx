@@ -7,6 +7,7 @@
 // "salvar" — nada muda no site antes de ele confirmar.
 // =====================================================================
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -1073,9 +1074,16 @@ function SecaoConta() {
             <b>{sessao.nome}</b> · {sessao.email}
           </span>
         </div>
-        <Botao variante="secundario" icone="sair" onClick={() => sair()}>
-          Sair
-        </Botao>
+        <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {/* a mesma tela do link de "esqueci minha senha": logado, ela já abre pronta */}
+          <Link href="/painel/nova-senha" className="ui-botao ui-botao-secundario ui-botao-m">
+            <Icone nome="cadeado" tamanho={18} />
+            Trocar senha
+          </Link>
+          <Botao variante="secundario" icone="sair" onClick={() => sair()}>
+            Sair
+          </Botao>
+        </span>
       </Bloco>
     </>
   );
