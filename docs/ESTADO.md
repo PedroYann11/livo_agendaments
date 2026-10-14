@@ -1,4 +1,4 @@
-# Estado atual — 09/10/2026
+# Estado atual — 14/10/2026
 
 > O que existe, o que falta confirmar com a DepiLED e o que vem a seguir.
 > Confirme sempre na fonte (`git log`, `list_migrations`) — documento envelhece.
@@ -98,14 +98,29 @@ arquivo `.vcf` em Importar), com o sufixo "Cliente <negócio>" tirado do nome.
 | `010_promocoes` | promoções automáticas (primeira vez, volta, aniversário) e cupom; o preço final é decidido no banco | **aplicada** (`painel_salvar` pelo Pedro no SQL Editor) |
 | `011_fotos` | pasta `fotos` no Storage: pública para ver, só JPEG até 2 MB; só dono/admin envia e apaga, só na pasta do próprio negócio | **aplicada** (aprovada pelo Pedro). Advisor: só os avisos já conhecidos |
 | `012_fotos_sem_fundo` | a mesma pasta aceita também PNG e WebP (o recorte da "Sua foto" tem fundo transparente); SVG e GIF continuam de fora | **aplicada** (13/10, aprovada pelo Pedro, depois de o recorte ser recusado no painel sem ela). Advisor: só os avisos já conhecidos |
+| `013_avisos_no_celular` | aviso no celular quando a **cliente** agenda, remarca ou cancela pelo site: aparelhos que recebem (`aparelhos_aviso`, desligar só marca `ativo = false`), gatilho em `agendamentos`, texto montado no banco, entrega pela edge `avisos` com pg_net; segredo e chaves VAPID só no Vault | **aplicada** (14/10, aprovada pelo Pedro). Edge `avisos` publicada (verify_jwt false, portão pelo segredo). Chaves geradas dentro da edge. Cadeia conferida em produção (banco → edge → Google). Advisor: as 4 portas do painel no aviso esperado de "authenticated executa SECURITY DEFINER"; pg_net com o registro em `public` (ver abaixo) |
 
 A 008 entrou antes da 007 (que dependia do Pedro no SQL Editor); o registro da 007 no
 histórico do banco ganhou a versão `20261009140000`, entre a 006 e a 008, e o histórico
 segue a ordem do repositório: 001 a 008.
 
 **Migration com `delete` dentro** (como a 007): a ferramenta da Supabase pede uma
-confirmação que não chega ao app e expira. Caminho: o Pedro cola no SQL Editor e o
-Claude confere e registra no histórico.
+confirmação que não chega ao app e expira (conferido de novo em 14/10: um `delete`
+numa tabela temporária já trava). Caminho: o Pedro cola no SQL Editor e o Claude
+confere e registra no histórico — ou, quando faz sentido, remoção suave (`ativo =
+false`), que é a regra do projeto e passa direto (foi o caso da 013).
+
+**pg_net (desde a 013)** — o banco chama a edge `avisos` por ele. Dois pontos
+conferidos e aceitos:
+- o advisor diz "extension in public": todos os objetos do pg_net ficam no schema `net`;
+  só o registro da extensão diz `public`. Mudar exige reinstalar a extensão (`drop` +
+  `create extension pg_net with schema extensions`, pelo SQL Editor, num momento sem
+  aviso em andamento).
+- a Supabase deixa `anon`/`authenticated` (e PUBLIC) usarem o schema `net`, inclusive
+  ler a fila de pedidos, onde o segredo do aviso passa por instantes. Ninguém chega lá
+  pela API (só o schema `public` é exposto) e só o `supabase_admin` pode mudar essas
+  permissões — o `postgres` não tem como (conferido). Se um dia o schema `net` for
+  exposto na API, isso muda: trocar o segredo e revisar.
 
 **O que a agenda no banco (003 a 007) traz**
 
@@ -159,8 +174,9 @@ Claude confere e registra no histórico.
 ferramenta da Supabase. Cada parte é uma migration; o histórico do banco e o
 repositório têm as mesmas 5.
 
-**Testes** — `./supabase/tests/rodar.sh`: 56 testes (suítes 001, 002, a da agenda, `007_agenda.sql`, a 009,
-a do cadastro, `008_cadastro.sql`, promoções, fotos e foto sem fundo), a conferência dos endereços reservados, a
+**Testes** — `./supabase/tests/rodar.sh`: 63 testes (suítes 001, 002, a da agenda, `007_agenda.sql`, a 009,
+a do cadastro, `008_cadastro.sql`, promoções, fotos, foto sem fundo e avisos no celular; Vault e pg_net
+imitados em `00_ambiente.sql`), a conferência dos endereços reservados, a
 paridade de preços (navegador × banco) e a
 **paridade** — agendas sorteadas, o motor do navegador e o do banco têm que dar as
 mesmas vagas, pedido por pedido (1.200 pedidos por rodada; conferido que pega
@@ -316,6 +332,26 @@ arquivo versionado: vão para o banco, com RLS.
 - Em aberto, para ver num iPhone de verdade: botões fixos embaixo com o teclado
   aberto (continuar do agendamento, rodapé das folhas).
 
+## Avisos no celular (desde 14/10)
+
+- **O que avisa**: a cliente agendou, remarcou ou cancelou pelo site. O que a equipe
+  faz no painel não avisa. Pedido em confirmação manual chega como "Pedido de
+  agendamento". Tocar no aviso abre a agenda no dia; com o painel aberto, a agenda é
+  relida na hora.
+- **Como liga**: Configurações › Avisos no celular (e um convite no Início). Liga por
+  aparelho; ao ligar, chega um aviso de teste. Há o botão "Mandar um aviso de teste".
+- **iPhone**: só com a Agenda na Tela de Início (regra da Apple, iOS 16.4+), pelo
+  Safari: Compartilhar › Adicionar à Tela de Início › abrir pelo ícone › entrar de novo
+  (o ícone tem login próprio) › ligar. O painel mostra esse passo a passo sozinho.
+- **Como funciona**: `lib/avisos.ts` (aparelho) · `public/sw.js` (mostra o aviso, só no
+  `/painel`) · `public/painel.webmanifest` + `public/icones/` (painel instalável) ·
+  migration 013 (banco) · `supabase/functions/avisos/` (edge; `nucleo.ts` é testável
+  sem rede). Segredo e chaves VAPID nascem e ficam no Vault.
+- **Testado**: 7 testes no banco (T57–T63); a edge com o web-push de verdade (o aviso
+  é decifrado como o celular faria e a assinatura VAPID conferida); o painel no
+  navegador (computador, iPhone sem instalar, iPhone instalado); em produção, a cadeia
+  banco → edge → Google. Falta o teste no iPhone de verdade.
+
 ## Próximos passos
 
 1. **URL Configuration na Supabase** → convite do negócio de testes e da DepiLED pelo
@@ -327,7 +363,7 @@ arquivo versionado: vão para o banco, com RLS.
    pagamento confirmado a `licenca_emitir` + envio do convite por e-mail. Depois:
    mensalidade, vencimento e o que acontece com o negócio quando a assinatura para.
 4. ~~Carga dos **112 clientes** da DepiLED~~ — feita (origem "importado").
-5. **Aviso de agendamento novo** no celular do dono (push) — hoje o painel relê a cada 30 s.
+5. ~~**Aviso de agendamento novo** no celular do dono~~ — feito (14/10, "Avisos no celular" acima).
 6. **Imagens no Storage** (hoje a logo enviada pelo painel vai como imagem embutida na configuração, até 2 MB).
 7. Profissional só com a própria agenda na RLS (hoje a equipe inteira vê a agenda toda).
 8. Tema por negócio (a planejar).

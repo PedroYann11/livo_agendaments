@@ -20,6 +20,10 @@
 | `components/vitrine/` (peles) | `app/experiencias/registro.ts` | padrão — "um motor, várias peles" |
 | `supabase/migrations/001_plataforma.sql` | migrations 001, 003, 005, 008, 014, 026, 051 | adaptado em uma baseline limpa |
 | `supabase/tests/00_ambiente.sql`, `rodar.sh` | `supabase/tests/` | reduzido ao que a 001 precisa |
+| `supabase/functions/avisos/` | `supabase/functions/notify-new-order/index.ts` | `segredoConfere` copiado igual; o resto adaptado — texto vem pronto do banco, chaves VAPID nascem na edge, banco só por RPC |
+| `lib/avisos.ts` | `lib/push.ts` | adaptado — chave pública vem do banco, portas por negócio, service worker só no `/painel` |
+| `public/sw.js` | `public/sw.js` | adaptado — textos da agenda, relê o painel aberto, toque abre o dia |
+| `supabase/migrations/013_avisos_no_celular.sql` | migrations 004, 016 e 034 | padrão — gatilho + pg_net + segredo no Vault; "o que a equipe faz não avisa" vem da 034 |
 
 Padrões repetidos sem copiar arquivo: RLS por `is_member`, `anon` só por RPC
 `SECURITY DEFINER` com colunas em whitelist, configuração chave/valor em
