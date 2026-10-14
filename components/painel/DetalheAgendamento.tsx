@@ -16,7 +16,7 @@ import { Avatar, Botao, Campo, Entrada, Selo } from "@/components/ui/basicos";
 import { useAvisos, useConfirmar } from "@/components/ui/Avisos";
 import { SeletorHorario, type Escolha } from "@/components/agendar/SeletorHorario";
 import { cancelar, concluir, marcarSinalPago, mudarStatus, registrarMensagem, remarcar } from "@/lib/dados/acoes";
-import { estatisticaCliente } from "@/lib/metricas";
+import { clientesAntigos, estatisticaCliente } from "@/lib/metricas";
 import { brl, duracao, primeiroNome } from "@/lib/formato";
 import { aniversarioEntre, dataCurta, dataDe, dataLonga, haQuanto, horaDe, somarDias } from "@/lib/datas";
 import { centavosParaReais, formatarValorCampo, mascaraTelefone } from "@/lib/masks";
@@ -265,7 +265,13 @@ function Conteudo({ b, ag, onFechar }: { b: Banco; ag: Agendamento; onFechar: ()
                   </div>
                   <div>
                     <small>Última vez</small>
-                    <b style={{ fontSize: 14 }}>{est.ultima && est.ultima.id !== ag.id ? haQuanto(dataDe(est.ultima.inicio), hoje) : "primeira"}</b>
+                    <b style={{ fontSize: 14 }}>
+                      {est.ultima && est.ultima.id !== ag.id
+                        ? haQuanto(dataDe(est.ultima.inicio), hoje)
+                        : clientesAntigos(b).has(c.id)
+                          ? "no app antigo"
+                          : "primeira"}
+                    </b>
                   </div>
                 </div>
               )}

@@ -7,6 +7,7 @@
 
 import type { Agendamento, Banco, Cliente, Profissional, Servico } from "./tipos";
 import { aniversarioEntre, diaDaSemana, difMin, minDoDia, ms, somarDias } from "./datas";
+import { apenasDigitos } from "./masks";
 import { diaFechado, janelasDoDia } from "./disponibilidade";
 
 export function realizado(a: Agendamento): number {
@@ -60,6 +61,22 @@ export type Resumo = {
   totalAgendamentos: number;
 };
 
+/**
+ * Quem já era cliente antes do app: veio da lista importada, ou tem o
+ * telefone de alguém que veio (a mesma regra da "primeira vez" do preço,
+ * public.cliente_e_novo). Devolve os ids.
+ */
+export function clientesAntigos(b: Banco): Set<string> {
+  const telefones = new Set(
+    b.clientes.filter((c) => c.origem === "importado" && c.telefone).map((c) => apenasDigitos(c.telefone)),
+  );
+  return new Set(
+    b.clientes
+      .filter((c) => c.origem === "importado" || (c.telefone && telefones.has(apenasDigitos(c.telefone))))
+      .map((c) => c.id),
+  );
+}
+
 export function resumo(b: Banco, de: string, ate: string): Resumo {
   const ags = b.agendamentos.filter((a) => noPeriodo(a, de, ate));
   const concluidos = ags.filter((a) => a.status === "concluido");
@@ -78,7 +95,9 @@ export function resumo(b: Banco, de: string, ate: string): Resumo {
     .filter((a) => OCUPAM_TEMPO.includes(a.status))
     .reduce((s, a) => s + difMin(a.inicio, a.fim), 0);
 
-  // novo = primeira visita do cliente cai no período
+  // novo = primeira visita do cliente cai no período — quem veio da lista
+  // antiga já era cliente, mesmo sem visita registrada aqui
+  const antigos = clientesAntigos(b);
   const primeira = new Map<string, string>();
   for (const a of b.agendamentos) {
     if (a.status === "cancelado") continue;
@@ -88,6 +107,7 @@ export function resumo(b: Banco, de: string, ate: string): Resumo {
   const atendidos = new Set(concluidos.map((a) => a.clienteId));
   let novos = 0;
   for (const id of atendidos) {
+    if (antigos.has(id)) continue;
     const p = primeira.get(id)?.slice(0, 10);
     if (p && p >= de && p <= ate) novos++;
   }
