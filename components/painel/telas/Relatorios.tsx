@@ -11,27 +11,65 @@ import { useBanco, useLoja } from "@/lib/dados/loja";
 import { Cabecalho } from "../Cabecalho";
 import { BarrasH, Colunas, MapaCalor, Pilha } from "../graficos";
 import { Icone } from "@/components/ui/Icone";
-import { Avatar, Medidor, NumeroAnimado, Segmentado } from "@/components/ui/basicos";
+import { Avatar, Medidor, NumeroAnimado } from "@/components/ui/basicos";
 import { mapaCalor, porProfissional, porServico, resumo, serieDiaria } from "@/lib/metricas";
 import { brl, brlCurto, numero, pct } from "@/lib/formato";
-import { dataCurta, difDias, inicioDoMes, somarDias } from "@/lib/datas";
+import { dataCurta, difDias, fimDoMes, inicioDoMes, mesAno, mesCurto, somarDias, somarMeses } from "@/lib/datas";
 import { PALETA, corDaPessoa } from "@/lib/paleta";
 
-type Periodo = "7" | "30" | "90" | "mes";
+/**
+ * O histórico inteiro fica no banco (nada some depois de 90 dias). Os
+ * períodos em meses fecham no mês inteiro: num negócio que abre um sábado
+ * por mês, "3 meses" são três sábados, comparados aos três anteriores.
+ */
+const PERIODOS = [
+  { id: "mes", rotulo: "Este mês" },
+  { id: "mes-passado", rotulo: "Mês passado" },
+  { id: "7", rotulo: "Últimos 7 dias" },
+  { id: "30", rotulo: "Últimos 30 dias" },
+  { id: "3m", rotulo: "Últimos 3 meses" },
+  { id: "6m", rotulo: "Últimos 6 meses" },
+  { id: "12m", rotulo: "Últimos 12 meses" },
+  { id: "tudo", rotulo: "Desde o início" },
+] as const;
+type Periodo = (typeof PERIODOS)[number]["id"];
+
+/** [de, até] do período e [de, até] do anterior equivalente (null em "desde o início"). */
+function intervalos(periodo: Periodo, hoje: string, primeiroDia: string) {
+  const meses = (n: number, fim = hoje): [string, string] => [inicioDoMes(somarMeses(fim, -(n - 1))), fimDoMes(fim)];
+  let atual: [string, string];
+  let n = 0; // em meses; 0 = em dias
+  if (periodo === "mes") [atual, n] = [meses(1), 1];
+  else if (periodo === "mes-passado") [atual, n] = [meses(1, somarMeses(inicioDoMes(hoje), -1)), 1];
+  else if (periodo === "3m" || periodo === "6m" || periodo === "12m") {
+    n = Number(periodo.slice(0, -1));
+    atual = meses(n);
+  } else if (periodo === "tudo") atual = [primeiroDia < hoje ? primeiroDia : inicioDoMes(hoje), fimDoMes(hoje)];
+  else atual = [somarDias(hoje, -(Number(periodo) - 1)), hoje];
+  const dias = difDias(atual[0], atual[1]) + 1;
+  const anterior: [string, string] | null =
+    periodo === "tudo" ? null : n ? [inicioDoMes(somarMeses(atual[0], -n)), somarDias(atual[0], -1)] : [somarDias(atual[0], -dias), somarDias(atual[0], -1)];
+  return { de: atual[0], ate: atual[1], dias, meses: n, anterior };
+}
 
 export function Relatorios() {
   const b = useBanco();
   const { agora } = useLoja();
   const hoje = agora().slice(0, 10);
-  const [periodo, setPeriodo] = useState<Periodo>("30");
+  const [periodo, setPeriodo] = useState<Periodo>("mes");
 
-  const [de, ate] = periodo === "mes" ? [inicioDoMes(hoje), hoje] : [somarDias(hoje, -(Number(periodo) - 1)), hoje];
-  const dias = difDias(de, ate) + 1;
-  const anterior: [string, string] = [somarDias(de, -dias), somarDias(de, -1)];
+  const primeiroDia = useMemo(
+    () => b.agendamentos.reduce((m, a) => (a.inicio.slice(0, 10) < m ? a.inicio.slice(0, 10) : m), hoje),
+    [b.agendamentos, hoje],
+  );
+  const { de, ate, dias, meses, anterior: antes } = intervalos(periodo, hoje, primeiroDia);
+  // "desde o início" não tem com o que comparar: as setinhas somem
+  const anterior: [string, string] = antes ?? ["0000-01-01", "0000-01-01"];
 
   const r = useMemo(() => resumo(b, de, ate), [b, de, ate]);
   const ra = useMemo(() => resumo(b, ...anterior), [b, anterior[0], anterior[1]]); // eslint-disable-line react-hooks/exhaustive-deps
   const serie = useMemo(() => serieDiaria(b, de, somarDias(ate, periodo === "7" ? 7 : 0), hoje), [b, de, ate, hoje, periodo]);
+  const porMes = meses >= 6 || dias > 200;
   const servicos = useMemo(() => porServico(b, de, ate), [b, de, ate]);
   const pros = useMemo(() => porProfissional(b, de, ate), [b, de, ate]);
   const calor = useMemo(() => mapaCalor(b, de, ate), [b, de, ate]);
@@ -41,27 +79,27 @@ export function Relatorios() {
     return c;
   }, [b, de, ate]);
 
-  const porSemana = dias > 45;
-  const colunas = porSemana ? agruparSemanas(serie) : serie.map((p) => ({ ...p, rotulo: p.data.slice(8), dica: dataCurta(p.data) }));
+  const porSemana = !porMes && dias > 45;
+  const colunas = porMes
+    ? agruparMeses(serie)
+    : porSemana
+      ? agruparSemanas(serie)
+      : serie.map((p) => ({ ...p, rotulo: p.data.slice(8), dica: dataCurta(p.data) }));
+  const comparacao = antes ? ` · comparado ${meses ? (meses === 1 ? "ao mês anterior" : `aos ${meses} meses anteriores`) : `aos ${dias} dias anteriores`}` : "";
 
   return (
     <div className="pn-pagina">
       <Cabecalho
         titulo="Relatórios"
-        texto={`${dataCurta(de)} a ${dataCurta(ate)} · comparado aos ${dias} dias anteriores`}
+        texto={`${dataCurta(de)} a ${dataCurta(ate)}${comparacao}`}
         acoes={
-          <Segmentado
-            rotulo="Período"
-            tamanho="p"
-            valor={periodo}
-            onMudar={setPeriodo}
-            opcoes={[
-              { id: "7", rotulo: "7 dias" },
-              { id: "30", rotulo: "30 dias" },
-              { id: "90", rotulo: "90 dias" },
-              { id: "mes", rotulo: "Este mês" },
-            ]}
-          />
+          <select className="ui-entrada" aria-label="Período" value={periodo} onChange={(e) => setPeriodo(e.target.value as Periodo)} style={{ width: "auto" }}>
+            {PERIODOS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.rotulo}
+              </option>
+            ))}
+          </select>
         }
       />
 
@@ -76,7 +114,7 @@ export function Relatorios() {
 
       <div className="pn-cartao" style={{ marginTop: 14 }}>
         <div className="pn-cartao-cabeca">
-          <h2>Quanto entrou {porSemana ? "por semana" : "por dia"}</h2>
+          <h2>Quanto entrou {porMes ? "por mês" : porSemana ? "por semana" : "por dia"}</h2>
           <div className="gf-legenda">
             <span>
               <i style={{ background: PALETA[0] }} /> Realizado
@@ -284,3 +322,14 @@ function agruparSemanas(serie: PontoSerie[]) {
   return grupos;
 }
 
+function agruparMeses(serie: PontoSerie[]) {
+  const grupos = new Map<string, { rotulo: string; dica: string; realizado: number; previsto: number }>();
+  for (const p of serie) {
+    const chave = p.data.slice(0, 7);
+    const g = grupos.get(chave) ?? { rotulo: mesCurto(p.data), dica: mesAno(p.data), realizado: 0, previsto: 0 };
+    g.realizado += p.realizado;
+    g.previsto += p.previsto;
+    grupos.set(chave, g);
+  }
+  return [...grupos.values()];
+}
