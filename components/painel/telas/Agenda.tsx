@@ -17,6 +17,7 @@ import { useBanco, useLoja } from "@/lib/dados/loja";
 import { usePainel } from "../PainelRaiz";
 import { Cabecalho } from "../Cabecalho";
 import { STATUS } from "../DetalheAgendamento";
+import { FaixaConcluirDia, FolhaConcluirDia, emAbertoNoDia } from "../ConcluirDia";
 import { Mes } from "@/components/agendar/Mes";
 import { Icone } from "@/components/ui/Icone";
 import { Avatar, Botao, BotaoIcone, Campo, Entrada, EstadoVazio, Interruptor, Segmentado, Selo } from "@/components/ui/basicos";
@@ -62,6 +63,7 @@ export function Agenda() {
   const [bloquear, setBloquear] = useState(false);
   const [abrirDia, setAbrirDia] = useState(false);
   const [escolherData, setEscolherData] = useState(false);
+  const [concluirDia, setConcluirDia] = useState(false);
   const soPendentes = params.get("filtro") === "pendente";
   const { mudar } = useLoja();
   const avisar = useAvisos();
@@ -89,6 +91,8 @@ export function Agenda() {
   // dia sem atendimento: o canto de cima leva ao próximo dia aberto (a partir de hoje)
   const proximoAberto = aberto ? null : proximoDiaDeAtendimento(b, data < hoje ? somarDias(hoje, -1) : data, equipe);
   const marcados = doDia.filter((a) => STATUS_OCUPAM.includes(a.status)).length;
+  // já passaram e ninguém concluiu: sem isso, não entram no faturamento nem na ficha
+  const emAberto = emAbertoNoDia(doDia, momento);
 
   const mover = (dias: number) => setData((d) => somarDias(d, visao === "semana" ? dias * 7 : dias));
 
@@ -128,7 +132,8 @@ export function Agenda() {
           // Cada botão com uma função só: o "+" (e o "Novo agendamento" do menu) marca no
           // próximo horário livre; o cartão do dia marca / abre / reabre ESTE dia; aqui em
           // cima ficam as ações do dia aberto — ou, sem atendimento, o atalho até o próximo dia aberto.
-          aberto ? (
+          // dia que já passou: fechar/bloquear não fazem mais sentido (lá, o que vale é "Concluir o dia")
+          aberto && data >= hoje ? (
             <>
               <Botao variante="secundario" icone="agendaX" onClick={fecharDia}>
                 {avulso.length ? "Desmarcar dia" : "Fechar o dia"}
@@ -137,7 +142,7 @@ export function Agenda() {
                 Bloquear horário
               </Botao>
             </>
-          ) : proximoAberto ? (
+          ) : !aberto && proximoAberto ? (
             <Botao variante="principal" iconeDepois="avancar" onClick={() => setData(proximoAberto)}>
               Próximo dia aberto · {dataCurta(proximoAberto)}
             </Botao>
@@ -200,6 +205,8 @@ export function Agenda() {
 
       {!larga && <FaixaSemana b={b} data={data} hoje={hoje} onData={setData} filtro={visiveis} equipe={equipe} />}
 
+      {visao === "dia" && emAberto.length > 0 && <FaixaConcluirDia quantos={emAberto.length} onAbrir={() => setConcluirDia(true)} />}
+
       {larga && visao === "semana" ? (
         <Semana b={b} data={data} hoje={hoje} filtro={visiveis} onDia={(d) => { setData(d); setVisao("dia"); }} />
       ) : (
@@ -216,6 +223,7 @@ export function Agenda() {
       )}
 
       <FolhaBloqueio aberta={bloquear} onFechar={() => setBloquear(false)} data={data} equipe={equipe} />
+      {concluirDia && <FolhaConcluirDia b={b} data={data} ags={emAberto} onFechar={() => setConcluirDia(false)} />}
       <FolhaAbrirDia aberta={abrirDia} onFechar={() => setAbrirDia(false)} data={data} />
       <FolhaData
         aberta={escolherData}

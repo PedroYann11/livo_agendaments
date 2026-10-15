@@ -256,6 +256,25 @@ export function mudarStatus(b: Banco, id: string, status: StatusAgendamento, ago
   };
 }
 
+/** O que se recebe ao concluir: o total, menos o sinal já pago; sessão de pacote não cobra. */
+export function valorAReceber(a: Agendamento): number {
+  return a.pacoteClienteId ? 0 : a.total - (a.sinal?.pago ? a.sinal.valor : 0);
+}
+
+/**
+ * Fim do dia, de uma vez: quem veio é concluído com a forma de pagamento
+ * dela (e o valor de valorAReceber); quem não veio fica como falta.
+ */
+export function concluirDia(b: Banco, itens: { id: string; forma: FormaPagamento | "faltou" }[], agora: string): Banco {
+  return itens.reduce((x, i) => {
+    const a = x.agendamentos.find((y) => y.id === i.id);
+    if (!a || (a.status !== "confirmado" && a.status !== "pendente")) return x;
+    return i.forma === "faltou"
+      ? mudarStatus(x, i.id, "faltou", agora)
+      : concluir(x, i.id, { forma: i.forma, valor: valorAReceber(a) }, agora);
+  }, b);
+}
+
 export function cancelar(b: Banco, id: string, por: "cliente" | "negocio", motivo: string): Banco {
   return {
     ...b,
