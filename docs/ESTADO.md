@@ -354,13 +354,13 @@ arquivo versionado: vão para o banco, com RLS.
 
 ## Próximos passos
 
-1. **URL Configuration na Supabase** → convite do negócio de testes e da DepiLED pelo
-   fluxo do cliente (passos em "Como alguém passa a usar").
-2. **Configurar o login na Supabase** (SMTP próprio, endereço de retorno, textos em
-   português e o hook "Before User Created") → emitir um convite de teste e fazer um
-   cadastro de verdade. **Importante**: sem SMTP próprio, a Supabase só entrega e-mail
-   para quem é da equipe do projeto — a dona de um negócio não recebe "esqueci minha
-   senha". Passo a passo e modelos prontos em `docs/emails/README.md`.
+1. ~~**URL Configuration na Supabase**~~ — feita (15/10).
+2. ~~**Configurar o login na Supabase**~~ — feito pelo Pedro em 15/10: e-mail próprio
+   pelo Resend (`livo.tec.br` verificado; registros DKIM/SPF cadastrados na Vercel pelo
+   "Auto configure"), remetente "Livo Agenda" <nao-responda@livo.tec.br>, textos em
+   português (`docs/emails/`), endereço de retorno `https://agenda.livo.tec.br/**` e o
+   hook "Before User Created" → `public.hook_antes_de_criar_conta`. A chave do Resend
+   está só na Supabase.
 3. **Meio de pagamento**: escolher (Mercado Pago, Asaas, Stripe…) e ligar o aviso de
    pagamento confirmado a `licenca_emitir` + envio do convite por e-mail. Depois:
    mensalidade, vencimento e o que acontece com o negócio quando a assinatura para.
