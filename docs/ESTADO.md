@@ -17,8 +17,9 @@
 | D-9 | Negócio de testes da Livo | O Pedro testa funções num **negócio próprio de testes** (plano `interno`), criado pelo mesmo convite do cliente. Entra no mesmo painel dos donos e não vê nada dos clientes: a RLS da agenda só deixa entrar quem é membro do negócio — nem administrador da plataforma lê dado de cliente |
 | D-8 | Cadastro com pagamento | **Conta só depois do pagamento** (Pedro, 09/10). Quem pagou recebe um link de convite e cria o próprio login, senha e negócio — a Livo não cria acesso. Uma compra = um negócio, presa ao e-mail de quem pagou |
 | — | Tema por negócio | A planejar. Hoje: 4 "peles", cores e logo editáveis no painel |
-| D-10 | Contratação | Pelo **WhatsApp comercial da Livo: +55 (88) 9 9310-7761** (Pedro, 16/10). Na Vercel: `NEXT_PUBLIC_LIVO_WHATSAPP=5588993107761` — sem ela, "Quero minha agenda" não leva a lugar nenhum |
+| D-10 | Contratação | Pelo **WhatsApp comercial da Livo: +55 (88) 9 9310-7761** (Pedro, 16/10). Número, mensagens prontas, perguntas e clientes exibidos ficam em `lib/comercial.ts`; `NEXT_PUBLIC_LIVO_WHATSAPP` na Vercel (cadastrada em 17/10) vale mais que o arquivo |
 | D-11 | Preço | **R$ 50/mês** ou **R$ 500/ano** (desconto de R$ 100). **Sem taxa de adesão** (Pedro, 16/10) |
+| D-15 | Página de vendas | Direção "Letreiro" (a do anúncio). **Sem preço na página**: valores e forma de pagamento só na conversa do WhatsApp. Sem depoimento da DepiLED; ela aparece como cliente, com logo e link. Rodapé "feito no Ceará" (Pedro, 17/10) |
 | D-12 | DepiLED na página da Livo Agenda | **Autorizada** a aparecer como cliente, com nome e link da página (Pedro, 16/10). A foto da dona não entra no repositório (é público) |
 | D-13 | Instagram da Livo | **@_livostudio** |
 | D-14 | Novo nicho (ideia) | **Quadras e arenas**: society, vôlei, beach tennis e futsal, às vezes tudo num lugar só (Pedro, 16/10). A planejar — ver "Ideias" abaixo |

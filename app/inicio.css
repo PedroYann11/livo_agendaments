@@ -1,207 +1,779 @@
-/* Página inicial da Livo Agenda — identidade da Livo (a mesma do painel). */
+/*
+ * Página inicial da Livo Agenda — direção "Letreiro" (a mesma do anúncio):
+ * papel claro, tinta quase preta e o limão só como placa inteira, no topo e
+ * no fechamento. A letra larga (Archivo) aparece só nas placas.
+ */
 
-.li {
-  --c-fundo: #f5f4f0;
-  --c-superficie: #fff;
-  --c-texto: #17171a;
-  --c-texto-2: #5c5c66;
-  --c-texto-3: #8b8b94;
-  --c-linha: #e7e5df;
-  --c-sutil: #f1efea;
-  --c-marca: #17171a;
-  --c-sobre-marca: #fff;
-  --c-marca-tinta: #17171a;
-  --c-marca-sutil: #ecebe6;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 0 18px 40px;
-  color: var(--c-texto);
+.lv {
+  --papel: #f5f4f0;
+  --branco: #fff;
+  --tinta: #17171a;
+  --grafite: #5c5c66;
+  --limao: #d9f35b;
+  --linha: #dcdad2;
+  --margem: 20px;
+  --largura: 1120px;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: var(--f-sans), system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
-.li-topo {
+.lv h1,
+.lv h2,
+.lv h3,
+.lv p {
+  margin: 0;
+}
+
+/* ---------- peças ---------- */
+
+.lv-letreiro {
+  font-family: var(--f-letreiro), var(--f-sans), sans-serif;
+  font-weight: 900;
+  font-stretch: 125%;
+  font-variation-settings: "wdth" 125;
+  text-transform: uppercase;
+  font-size: clamp(34px, 10.2vw, 84px);
+  line-height: 0.94;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.lv-letreiro span {
+  display: block;
+}
+
+.lv-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 0 24px;
+  border-radius: 14px;
+  background: var(--tinta);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 620;
+  text-decoration: none;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.lv-botao:hover {
+  background: #000;
+  transform: translateY(-1px);
+}
+.lv-botao:active {
+  transform: translateY(1px);
+}
+
+.lv-link {
+  display: inline-block;
+  padding: 8px 0;
+  color: var(--tinta);
+  font-weight: 620;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+}
+.lv-link:hover {
+  text-decoration-thickness: 3px;
+}
+
+.lv a:focus-visible,
+.lv summary:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.lv-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 24px;
+}
+
+/* ---------- topo ---------- */
+
+.lv-topo {
+  background: var(--limao);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 68px;
+  height: 64px;
+  padding: 0 max(var(--margem), calc((100% - var(--largura)) / 2));
 }
-.li-marca {
+.lv-marca {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 680;
+  color: var(--tinta);
+  font-weight: 700;
   letter-spacing: -0.02em;
+  text-decoration: none;
 }
-.li-marca span {
+.lv-marca span {
   width: 32px;
   height: 32px;
   border-radius: 9px;
   display: grid;
   place-items: center;
-  background: #17171a;
+  background: var(--tinta);
   color: #fff;
 }
-.li-heroi {
-  padding: 56px 0 40px;
-  max-width: 820px;
-}
-.li-selo {
-  display: inline-block;
-  font-size: 12.5px;
+.lv-entrar {
+  color: var(--tinta);
+  font-size: 15px;
   font-weight: 620;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--c-linha);
-  background: #fff;
-  color: var(--c-texto-2);
+  text-decoration: none;
+  padding: 8px 16px;
+  border: 1.5px solid var(--tinta);
+  border-radius: 12px;
 }
-.li-heroi h1 {
-  margin-top: 18px;
-  font-size: clamp(40px, 9vw, 76px);
-  line-height: 1;
-  letter-spacing: -0.045em;
+.lv-entrar:hover {
+  background: var(--tinta);
+  color: var(--limao);
+}
+
+/* ---------- placa (abertura e fechamento) ---------- */
+
+.lv-placa {
+  background: var(--limao);
+}
+.lv-placa-dentro {
+  max-width: var(--largura);
+  margin: 0 auto;
+  padding: 36px var(--margem) 56px;
+}
+.lv-abertura {
+  display: grid;
+  gap: 44px;
+}
+.lv-abertura-texto {
+  display: grid;
+  gap: 22px;
+  align-content: start;
+}
+.lv-chamada {
+  font-size: 18px;
+  line-height: 1.5;
+  max-width: 34em;
+}
+.lv-abertura .lv-acoes {
+  margin-top: 6px;
+}
+
+/* conversa: as perguntas chegam uma a uma e a resposta é o link */
+.lv-conversa {
+  margin: 0;
+  align-self: end;
+}
+.lv-conversa ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.lv-balao {
+  max-width: 88%;
+  background: var(--branco);
+  border-radius: 18px 18px 18px 6px;
+  padding: 9px 14px;
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 500;
+  box-shadow: 0 10px 24px -14px rgba(23, 23, 26, 0.5);
+  animation: lv-chega 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 0.5s + 0.3s);
+}
+.lv-balao time {
+  margin-left: 10px;
+  font-size: 11.5px;
+  color: #8b8b94;
+  font-weight: 500;
+}
+/* a resposta e o "digitando" ocupam o mesmo lugar: nada pula na tela */
+.lv-balao-digitando,
+.lv-balao-resposta {
+  align-self: flex-end;
+  border-radius: 18px 18px 6px 18px;
+  background: var(--tinta);
+  color: #fff;
+}
+.lv-balao-resposta {
+  display: block;
+  animation-delay: 4.1s;
+}
+.lv-balao-resposta time {
+  color: #a3a3ab;
+}
+.lv-balao-link {
+  display: block;
+  margin-top: 4px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.lv-balao-digitando {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 5px;
+  padding: 14px 16px;
+  animation: lv-digita 1.3s 2.9s both;
+}
+.lv-balao-digitando span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  animation: lv-ponto 0.9s infinite ease-in-out;
+}
+.lv-balao-digitando span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.lv-balao-digitando span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.lv-conversa ol {
+  position: relative;
+}
+@keyframes lv-chega {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+}
+@keyframes lv-digita {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+}
+@keyframes lv-ponto {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+/* ---------- seções ---------- */
+
+.lv-secao {
+  max-width: var(--largura);
+  margin: 0 auto;
+  padding: 72px var(--margem) 0;
+}
+.lv-secao-cabeca {
+  display: grid;
+  gap: 10px;
+  max-width: 40em;
+  margin-bottom: 36px;
+}
+.lv-secao h2 {
+  font-size: clamp(30px, 5.6vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
   font-weight: 700;
   text-wrap: balance;
 }
-.li-heroi h1 em {
-  font-family: var(--f-beleza), serif;
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  color: #6b6b74;
+.lv-secao-cabeca p {
+  color: var(--grafite);
 }
-.li-texto {
-  margin-top: 20px;
-  font-size: 17.5px;
-  color: var(--c-texto-2);
-  max-width: 56ch;
-  line-height: 1.55;
+.lv-secao h3 {
+  font-size: 19px;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  font-weight: 680;
 }
-.li-acoes {
-  margin-top: 28px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+.lv-secao-acao {
+  margin-top: 36px;
 }
-.li-rotulo {
-  font-size: 12.5px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--c-texto-3);
-  margin-bottom: 12px;
+
+/* aparelho desenhado em volta da captura */
+.lv-aparelho {
+  display: block;
+  border: 7px solid var(--tinta);
+  border-radius: 34px;
+  overflow: hidden;
+  background: var(--branco);
+  box-shadow: 0 30px 60px -34px rgba(23, 23, 26, 0.55);
 }
-.li-nichos {
+.lv-aparelho img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* trilho que rola de lado no celular e vira colunas no computador */
+.lv-passos,
+.lv-historia-cenas {
+  list-style: none;
+  margin: 0 calc(var(--margem) * -1);
+  padding: 4px var(--margem) 24px;
   display: grid;
-  gap: 8px;
+  grid-auto-flow: column;
+  grid-auto-columns: min(74vw, 300px);
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 var(--margem);
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
 }
-@media (min-width: 720px) {
-  .li-nichos {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.lv-passos::-webkit-scrollbar,
+.lv-historia-cenas::-webkit-scrollbar {
+  display: none;
 }
-@media (min-width: 1020px) {
-  .li-nichos {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-.li-nicho {
-  display: grid;
-  gap: 4px;
-  padding: 16px 18px;
-  border-radius: 16px;
-  background: var(--c-superficie);
-  border: 1px solid var(--c-linha);
-}
-.li-nicho strong {
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
-}
-.li-nicho span {
-  font-size: 13px;
-  color: var(--c-texto-2);
-  line-height: 1.45;
-}
-.li-recursos {
-  display: grid;
-  gap: 10px;
-  margin-top: 56px;
-}
-@media (min-width: 720px) {
-  .li-recursos {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-  }
-}
-.li-recurso {
-  padding: 20px;
-  border-radius: 18px;
-  background: #fff;
-  border: 1px solid var(--c-linha);
+.lv-passos > li,
+.lv-historia-cenas > article {
+  scroll-snap-align: start;
   display: grid;
   gap: 8px;
   align-content: start;
 }
-.li-recurso span {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: var(--c-sutil);
+.lv-passos .lv-aparelho,
+.lv-historia-tela .lv-aparelho {
+  margin-bottom: 14px;
 }
-.li-recurso strong {
+.lv-passos p,
+.lv-historia-cenas p {
+  color: var(--grafite);
   font-size: 16px;
-  font-weight: 650;
-  margin-top: 6px;
-}
-.li-recurso p {
-  font-size: 14.5px;
-  color: var(--c-texto-2);
-  line-height: 1.5;
-}
-.li-rodape {
-  margin-top: 56px;
-  padding-top: 24px;
-  border-top: 1px solid var(--c-linha);
-  font-size: 13px;
-  color: var(--c-texto-3);
-  text-align: center;
-}
-.li-rodape a {
-  color: var(--c-texto);
-  font-weight: 600;
 }
 
-.nao-encontrado {
-  min-height: 100dvh;
+/* a sequência é de verdade: o número diz a ordem dos passos */
+.lv-passos,
+.lv-etapas {
+  counter-reset: passo;
+}
+.lv-passos h3,
+.lv-etapas h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lv-passos h3::before,
+.lv-etapas h3::before {
+  counter-increment: passo;
+  content: counter(passo);
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   display: grid;
-  place-content: center;
-  justify-items: center;
-  text-align: center;
-  gap: 12px;
-  padding: 24px;
-  --c-superficie: #fff;
-  --c-linha: #e7e5df;
-  --c-texto: #17171a;
-}
-.nao-encontrado-codigo {
-  font-size: 72px;
+  place-items: center;
+  background: var(--tinta);
+  color: #fff;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: -0.05em;
-  color: #c9c7c0;
+}
+
+.lv-tambem {
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 2px solid var(--tinta);
+}
+.lv-tambem ul {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+}
+.lv-tambem li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--linha);
+}
+
+/* quem já usa */
+.lv-cliente {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 20px;
+  align-items: start;
+  padding: 24px;
+  background: var(--branco);
+  border-radius: 24px;
+  border: 1px solid var(--linha);
+}
+.lv-cliente img {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  border-radius: 18px;
+  background: var(--papel);
+}
+.lv-cliente > div {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.lv-cliente h3 span {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--grafite);
+  margin-left: 6px;
+}
+.lv-cliente p {
+  color: var(--grafite);
+  max-width: 36em;
+}
+
+/* tipos de negócio, lidos como uma placa de serviços */
+.lv-tipos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 0;
+  font-size: clamp(22px, 3.6vw, 34px);
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.lv-tipos-lista li:not(:last-child)::after {
+  content: "/";
+  margin: 0 0.4em;
+  color: var(--linha);
+  font-weight: 400;
+}
+.lv-arena {
+  margin-top: 36px;
+  padding: 22px;
+  border: 2px dashed var(--tinta);
+  border-radius: 20px;
+  display: grid;
+  gap: 14px;
+  justify-items: start;
+}
+.lv-arena p {
+  color: var(--grafite);
+  margin-top: 4px;
+  max-width: 38em;
+}
+
+/* como contratar */
+.lv-etapas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 24px;
+}
+.lv-etapas li {
+  display: grid;
+  gap: 6px;
+}
+.lv-etapas p {
+  color: var(--grafite);
+  padding-left: 38px;
+  max-width: 30em;
+}
+
+/* perguntas */
+.lv-perguntas {
+  border-top: 2px solid var(--tinta);
+}
+.lv-perguntas details {
+  border-bottom: 1px solid var(--linha);
+}
+.lv-perguntas summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0;
+  font-size: 18px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+.lv-perguntas summary::-webkit-details-marker {
+  display: none;
+}
+.lv-perguntas summary::after {
+  content: "+";
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--tinta);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  font-weight: 400;
   line-height: 1;
+  transition: transform 0.2s ease;
 }
-.nao-encontrado h1 {
-  font-size: 24px;
-  letter-spacing: -0.02em;
+.lv-perguntas details[open] summary::after {
+  transform: rotate(45deg);
 }
-.nao-encontrado p {
-  color: #5c5c66;
-  max-width: 42ch;
+.lv-perguntas details p {
+  color: var(--grafite);
+  padding: 0 46px 20px 0;
+  max-width: 40em;
 }
-.nao-encontrado-painel {
-  font-size: 13px;
-  color: #5c5c66;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.lv-duvidas-mais {
+  margin-top: 20px;
+  color: var(--grafite);
+}
+.lv-duvidas-mais a {
+  color: var(--tinta);
+  font-weight: 620;
+  text-underline-offset: 4px;
+}
+
+/* fechamento */
+.lv-fim {
+  margin-top: 88px;
+}
+.lv-fim .lv-placa-dentro {
+  padding-top: 64px;
+  padding-bottom: 72px;
+  display: grid;
+  gap: 32px;
+}
+.lv-fim-numero {
+  font-size: 16px;
+}
+
+/* rodapé */
+.lv-rodape {
+  max-width: var(--largura);
+  margin: 0 auto;
+  padding: 28px var(--margem) 40px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  font-size: 15px;
+  color: var(--grafite);
+}
+.lv-rodape a {
+  color: var(--tinta);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-underline-offset: 4px;
+}
+
+/* barra do WhatsApp no celular */
+.lv-barra {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 20;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(245, 244, 240, 0.94);
+  border-top: 1px solid var(--linha);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transform: translateY(110%);
+  transition: transform 0.25s ease;
+}
+.lv-barra[data-visivel="true"] {
+  transform: none;
+}
+.lv-barra .lv-botao {
+  width: 100%;
+}
+
+/* o celular parado da história só existe no computador */
+.lv-historia-fixo {
+  display: none;
+}
+
+/* ---------- telas maiores ---------- */
+
+@media (max-width: 719px) {
+  .lv-rodape {
+    padding-bottom: 104px;
+  }
+}
+
+@media (min-width: 720px) {
+  .lv {
+    --margem: 32px;
+    font-size: 18px;
+  }
+  .lv-barra {
+    display: none;
+  }
+  /* cada frase da placa numa linha só: o tamanho sai da largura disponível
+     (11,6 e 14 são as larguras, em "em", da frase mais longa de cada placa) */
+  .lv-abertura .lv-letreiro {
+    font-size: min(92px, calc((min(100vw, var(--largura)) - 2 * var(--margem)) / 11.6));
+  }
+  .lv-fim .lv-letreiro {
+    font-size: min(84px, calc((min(100vw, var(--largura)) - 2 * var(--margem)) / 14));
+  }
+  .lv-placa-dentro {
+    padding-top: 56px;
+    padding-bottom: 80px;
+  }
+  .lv-secao {
+    padding-top: 112px;
+  }
+  .lv-tambem ul {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 40px;
+  }
+  .lv-etapas {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+  }
+  .lv-arena {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 26px 30px;
+  }
+  .lv-cliente {
+    grid-template-columns: 120px 1fr;
+    padding: 32px;
+  }
+  .lv-cliente img {
+    width: 120px;
+    height: 120px;
+  }
+  .lv-fim {
+    margin-top: 128px;
+  }
+}
+
+@media (min-width: 960px) {
+  .lv-placa-dentro {
+    padding-top: 72px;
+    padding-bottom: 96px;
+  }
+  .lv-passos {
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 48px;
+  }
+  .lv-passos .lv-aparelho {
+    max-width: 290px;
+  }
+  /* abertura: a placa ocupa a largura toda; a conversa responde ao lado */
+  .lv-abertura {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
+    grid-template-rows: auto auto 1fr;
+    column-gap: 64px;
+    row-gap: 28px;
+  }
+  .lv-abertura-texto {
+    display: contents;
+  }
+  .lv-abertura .lv-letreiro {
+    grid-column: 1 / -1;
+  }
+  .lv-chamada {
+    grid-column: 1;
+    font-size: 21px;
+    max-width: 30em;
+    align-self: start;
+  }
+  .lv-abertura .lv-acoes {
+    grid-column: 1;
+    align-self: start;
+    margin-top: 0;
+  }
+  .lv-conversa {
+    grid-column: 2;
+    grid-row: 2 / span 2;
+    align-self: start;
+  }
+  .lv-balao {
+    font-size: 16px;
+  }
+
+  /* o lado do dono: o celular fica parado e a tela troca com o texto */
+  .lv-historia {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 64px;
+  }
+  .lv-historia-cenas {
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    gap: 0;
+  }
+  .lv-historia-cenas > article {
+    min-height: 62vh;
+    align-content: center;
+    opacity: 0.35;
+    transition: opacity 0.3s ease;
+  }
+  .lv-historia-cenas > article[data-ativa="true"] {
+    opacity: 1;
+  }
+  .lv-historia-tela {
+    display: none;
+  }
+  .lv-historia-cenas h3 {
+    font-size: 30px;
+    letter-spacing: -0.03em;
+  }
+  .lv-historia-cenas p {
+    font-size: 19px;
+    max-width: 26em;
+  }
+  .lv-historia-fixo {
+    display: block;
+    position: sticky;
+    top: calc(50vh - 345px);
+    align-self: start;
+    margin-top: 4vh;
+  }
+  .lv-historia-fixo .lv-aparelho {
+    display: grid;
+  }
+  .lv-historia-fixo img {
+    grid-area: 1 / 1;
+    width: 100%;
+    height: auto;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  .lv-historia-fixo img[data-ativa="true"] {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lv-historia-cenas > article,
+  .lv-historia-fixo img {
+    transition: none;
+  }
+  .lv-balao,
+  .lv-balao-digitando span {
+    animation: none;
+  }
+  .lv-balao-digitando {
+    display: none;
+  }
+  .lv-botao,
+  .lv-barra,
+  .lv-perguntas summary::after {
+    transition: none;
+  }
 }

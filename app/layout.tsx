@@ -3,7 +3,6 @@ import { Big_Shoulders, Fraunces, Geist, Geist_Mono, Instrument_Serif } from "ne
 import { NavegadorAntigo, TesteDoNavegador } from "@/components/ui/NavegadorAntigo";
 import { AvisoRodou } from "@/components/ui/AvisoRodou";
 import "./base.css";
-import "./inicio.css";
 
 // Fontes servidas pelo próprio app (next/font baixa no build): nenhuma
 // requisição ao Google no navegador do cliente, e a CSP fica em 'self'.

@@ -915,3 +915,38 @@ select.ui-entrada {
   font-weight: 600;
   text-decoration: none;
 }
+
+/* Página "não encontrada" (global: vale para endereço de negócio desconhecido). */
+.nao-encontrado {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 24px;
+  --c-superficie: #fff;
+  --c-linha: #e7e5df;
+  --c-texto: #17171a;
+}
+.nao-encontrado-codigo {
+  font-size: 72px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  color: #c9c7c0;
+  line-height: 1;
+}
+.nao-encontrado h1 {
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+.nao-encontrado p {
+  color: #5c5c66;
+  max-width: 42ch;
+}
+.nao-encontrado-painel {
+  font-size: 13px;
+  color: #5c5c66;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

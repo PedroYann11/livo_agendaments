@@ -9,12 +9,13 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { motion } from "motion/react";
 import { Icone } from "@/components/ui/Icone";
+import { WHATSAPP } from "@/lib/comercial";
 import { PALETA } from "@/lib/paleta";
 
 const ENTRAR = [0.23, 1, 0.32, 1] as const;
 
-/** WhatsApp comercial da Livo (variável da Vercel). Sem ele, as telas não mostram o botão de contratar. */
-export const WHATSAPP_LIVO = process.env.NEXT_PUBLIC_LIVO_WHATSAPP ?? "";
+/** WhatsApp comercial da Livo (lib/comercial.ts): o caminho de quem ainda não contratou. */
+export const WHATSAPP_LIVO = WHATSAPP;
 
 export function CascaAcesso({ titulo, subtitulo, children }: { titulo: string; subtitulo?: ReactNode; children: ReactNode }) {
   return (
