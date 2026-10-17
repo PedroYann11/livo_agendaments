@@ -2,8 +2,9 @@
 
 // Cadastro de quem PAGOU, em dois passos: o negócio e o acesso. Abre só com
 // o link de convite que chega depois do pagamento (?convite=…), com o
-// e-mail preso ao da compra. A conta nasce no Supabase Auth (o banco recusa
-// e-mail sem compra) e o negócio, no primeiro login com o e-mail confirmado
+// e-mail preso ao da compra. A conta nasce no Supabase Auth (o banco só aceita
+// o e-mail da compra com o código do convite — 014) e o negócio, no primeiro
+// login com o e-mail confirmado
 // (negocio_criar_meu gasta a compra — migration 008). Convite de negócio
 // PRONTO (009): só o passo do acesso; no primeiro login a pessoa vira dona.
 // Quem já tem conta com o e-mail do convite aceita com um botão.
@@ -16,7 +17,7 @@ import { Botao, Campo, Entrada, Esqueleto } from "@/components/ui/basicos";
 import { Icone } from "@/components/ui/Icone";
 import { AvisoAcesso, CadastroEmBreve, CascaAcesso, PeAcesso, WHATSAPP_LIVO } from "@/components/painel/Acesso";
 import { FormNegocio, NEGOCIO_EM_BRANCO, negocioPronto, type EstadoSlug } from "@/components/painel/FormNegocio";
-import { aceitarConvite, conferirConvite, contaLogada, criarConta, reenviarConfirmacao, sair, type Convite, type NegocioDoCadastro } from "@/lib/sessao";
+import { aceitarConvite, conferirConvite, contaLogada, criarConta, guardarConvite, reenviarConfirmacao, sair, type Convite, type NegocioDoCadastro } from "@/lib/sessao";
 import { supabaseOn } from "@/lib/supabase";
 import { linkWhatsApp } from "@/lib/whatsapp";
 
@@ -39,13 +40,16 @@ export default function CriarConta() {
   const [reenvio, setReenvio] = useState<"enviando" | "enviado" | null>(null);
   // null = conferindo o convite
   const [convite, setConvite] = useState<Convite | null>(null);
+  // o código do link: vai junto no cadastro (o banco só cria a conta com ele)
+  const [codigo, setCodigo] = useState("");
   // já existe uma conta logada neste aparelho
   const [logado, setLogado] = useState<string | null>(null);
 
   useEffect(() => {
-    const codigo = new URLSearchParams(window.location.search).get("convite") ?? "";
-    if (!codigo) return setConvite(supabaseOn ? { estado: "invalido" } : { estado: "em_breve" });
-    Promise.all([conferirConvite(codigo), contaLogada()]).then(([c, conta]) => {
+    const doLink = new URLSearchParams(window.location.search).get("convite") ?? "";
+    if (!doLink) return setConvite(supabaseOn ? { estado: "invalido" } : { estado: "em_breve" });
+    setCodigo(doLink);
+    Promise.all([conferirConvite(doLink), contaLogada()]).then(([c, conta]) => {
       if (c.estado === "valido") {
         setEmail(c.email);
         // negócio pronto: não há negócio a descrever, só o acesso (o nome do negócio já serve de nome no painel)
@@ -91,7 +95,7 @@ export default function CriarConta() {
     if (faltando.dono || faltando.senha) return;
     setEnviando(true);
     const pronto = convite?.estado === "valido" && convite.negocio;
-    const r = await criarConta({ nome, email, senha, negocio: pronto ? undefined : { ...negocio, slug: negocio.slug.replace(/-+$/g, "") } });
+    const r = await criarConta({ nome, email, senha, convite: codigo, negocio: pronto ? undefined : { ...negocio, slug: negocio.slug.replace(/-+$/g, "") } });
     setEnviando(false);
     if (!r.ok) {
       if (r.campo === "slug") {
@@ -139,7 +143,7 @@ export default function CriarConta() {
   const pronto = convite.negocio;
 
   if (logado) {
-    return <ComConta convite={convite} logado={logado} />;
+    return <ComConta convite={convite} codigo={codigo} logado={logado} />;
   }
 
   if (passo === "confirmar") {
@@ -241,7 +245,7 @@ export default function CriarConta() {
 }
 
 /** Já há uma conta logada: com o mesmo e-mail, aceita o convite num toque; com outro, sai primeiro. */
-function ComConta({ convite, logado }: { convite: Extract<Convite, { estado: "valido" }>; logado: string }) {
+function ComConta({ convite, codigo, logado }: { convite: Extract<Convite, { estado: "valido" }>; codigo: string; logado: string }) {
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -261,8 +265,14 @@ function ComConta({ convite, logado }: { convite: Extract<Convite, { estado: "va
 
   const aceitar = async () => {
     setErro(null);
-    if (!convite.negocio) return router.push("/painel/criar-negocio");
     setEnviando(true);
+    // o banco confere o código do convite na conta, ao criar ou assumir o negócio
+    const falha = await guardarConvite(codigo);
+    if (falha) {
+      setEnviando(false);
+      return setErro(falha);
+    }
+    if (!convite.negocio) return router.push("/painel/criar-negocio");
     const r = await aceitarConvite();
     setEnviando(false);
     if (!r.ok) return setErro(r.motivo);

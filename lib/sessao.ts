@@ -14,6 +14,7 @@
 import type { Nicho, Papel } from "./tipos";
 import { getSupabase, supabaseOn } from "./supabase";
 import { negocioNovo } from "./padroes";
+import { esquecerEsteAparelho } from "./avisos";
 
 export type Sessao = {
   slug: string;
@@ -44,10 +45,13 @@ export function salvarSessao(s: Sessao) {
 }
 
 export async function sair() {
+  const sessao = lerSessao();
   try {
     localStorage.removeItem(CHAVE);
   } catch {}
   if (supabaseOn) {
+    // quem sai não recebe mais aviso de agendamento neste aparelho (enquanto ainda tem sessão para pedir)
+    if (sessao) await esquecerEsteAparelho(sessao.negocios.map((n) => n.slug)).catch(() => {});
     try {
       await getSupabase().auth.signOut();
     } catch {}
@@ -93,8 +97,8 @@ function motivoDoAuth(e: { code?: string; status?: number; message?: string } | 
       return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
   }
   if (e?.status === 429) return "Muitas tentativas seguidas. Espere alguns minutos e tente de novo.";
-  // recusado antes de a conta existir (hook_antes_de_criar_conta, migration 008)
-  if (e?.status === 403) return "Este e-mail não tem uma compra ativa. Use o link de convite que você recebeu depois do pagamento.";
+  // recusado antes de a conta existir (hook_antes_de_criar_conta, migrations 008 e 014)
+  if (e?.status === 403) return "Use o link de convite que você recebeu depois do pagamento, com o mesmo e-mail da compra.";
   if (e?.message === "Invalid login credentials") return "E-mail ou senha incorretos.";
   return "Não foi possível agora. Confira a internet e tente de novo.";
 }
@@ -180,15 +184,18 @@ export type ResultadoCadastro =
   | { ok: true; confirmar: true }
   | { ok: false; motivo: string; campo?: string };
 
-/** negocio: o negócio novo descrito no cadastro; sem ele, o convite é de um negócio pronto (009). */
-export async function criarConta(d: { nome: string; email: string; senha: string; negocio?: NegocioDoCadastro }): Promise<ResultadoCadastro> {
+/**
+ * negocio: o negócio novo descrito no cadastro; sem ele, o convite é de um negócio pronto (009).
+ * convite: o código do link — o banco só deixa a conta nascer com ele (014).
+ */
+export async function criarConta(d: { nome: string; email: string; senha: string; convite: string; negocio?: NegocioDoCadastro }): Promise<ResultadoCadastro> {
   if (!supabaseOn) return { ok: false, motivo: NAO_CONFIGURADO };
   const { data, error } = await getSupabase().auth.signUp({
     email: d.email.trim(),
     password: d.senha,
     options: {
       // guardado na conta: o negócio nasce no primeiro login, já com o e-mail confirmado
-      data: d.negocio ? { nome: d.nome.trim(), negocio: d.negocio } : { nome: d.nome.trim() },
+      data: { nome: d.nome.trim(), convite: d.convite, ...(d.negocio ? { negocio: d.negocio } : {}) },
       emailRedirectTo: `${window.location.origin}/painel/entrar`,
     },
   });
@@ -200,6 +207,16 @@ export async function criarConta(d: { nome: string; email: string; senha: string
   const r = await concluirEntrada();
   if (r.ok) return r;
   return { ok: false, motivo: r.motivo };
+}
+
+/**
+ * Quem já tem conta e abriu um convite novo: o código vai para a conta, que é
+ * onde o banco o confere ao criar ou assumir o negócio (014).
+ */
+export async function guardarConvite(codigo: string): Promise<string | null> {
+  if (!supabaseOn) return NAO_CONFIGURADO;
+  const { error } = await getSupabase().auth.updateUser({ data: { convite: codigo } });
+  return error ? motivoDoAuth(error) : null;
 }
 
 export async function reenviarConfirmacao(email: string): Promise<string | null> {
@@ -293,6 +310,25 @@ export async function definirNovaSenha(senha: string): Promise<ResultadoLogin> {
   const { error } = await getSupabase().auth.updateUser({ password: senha });
   if (error) return { ok: false, motivo: motivoDoAuth(error) };
   return concluirEntrada();
+}
+
+/**
+ * "Trocar senha" de quem já está logado (Configurações › Conta): confere a
+ * senha atual antes — quem pegou o celular desbloqueado não troca a senha.
+ * O link de "esqueci minha senha" não passa por aqui.
+ */
+export async function trocarSenha(atual: string, nova: string): Promise<ResultadoLogin> {
+  if (!supabaseOn) return { ok: false, motivo: NAO_CONFIGURADO };
+  const sb = getSupabase();
+  const { data } = await sb.auth.getUser();
+  const email = data.user?.email;
+  if (!email) return { ok: false, motivo: "Sua sessão terminou. Entre de novo." };
+  const { error } = await sb.auth.signInWithPassword({ email, password: atual });
+  if (error) {
+    const errada = error.code === "invalid_credentials" || error.message === "Invalid login credentials";
+    return { ok: false, motivo: errada ? "A senha atual não confere." : motivoDoAuth(error) };
+  }
+  return definirNovaSenha(nova);
 }
 
 export function trocarNegocio(s: Sessao, slug: string) {

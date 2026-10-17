@@ -137,6 +137,14 @@ export async function desligarAvisos(slug: string): Promise<void> {
   await sub.unsubscribe().catch(() => {});
 }
 
+/** Ao sair da conta: este aparelho para de receber avisos de todos os negócios dela. */
+export async function esquecerEsteAparelho(slugs: string[]): Promise<void> {
+  const sub = await assinaturaAtual();
+  if (!sub) return;
+  await Promise.allSettled(slugs.map((slug) => chamar("aviso_aparelho_remover", { p_slug: slug, p_endpoint: sub.endpoint })));
+  await sub.unsubscribe().catch(() => {});
+}
+
 export async function testarAvisos(slug: string): Promise<void> {
   await chamar("aviso_teste", { p_slug: slug });
 }

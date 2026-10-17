@@ -22,7 +22,7 @@ import { Icone, type NomeIcone } from "@/components/ui/Icone";
 import { Botao, BotaoCopiar, BotaoIcone, Campo, Entrada, Estrelas, Interruptor, Segmentado, Selo, Texto } from "@/components/ui/basicos";
 import { useAvisos, useConfirmar } from "@/components/ui/Avisos";
 import type { Cupom, Negocio, Pele, Promocoes } from "@/lib/tipos";
-import { removerCupom, salvarCupom, salvarDepoimento, salvarNegocio } from "@/lib/dados/acoes";
+import { removerCupom, salvarCupom, salvarDepoimento, salvarNegocio, usosDoCupom } from "@/lib/dados/acoes";
 import { FOTO_SOBRE_VAZIA, MODULOS, NICHOS, modulosDoNicho } from "@/lib/padroes";
 import { buscarCep, buscarFeriados, type Feriado } from "@/lib/feriados";
 import { capitalizar } from "@/components/vitrine/util";
@@ -1003,7 +1003,7 @@ function SecaoCupons() {
             <span className="pn-linha-info">
               <strong style={{ fontFamily: "var(--f-mono)" }}>{c.codigo}</strong>
               <small>
-                {c.tipo === "percentual" ? `${c.valor}% de desconto` : `${brl(c.valor)} de desconto`} · usado {c.usos}×
+                {c.tipo === "percentual" ? `${c.valor}% de desconto` : `${brl(c.valor)} de desconto`} · usado {usosDoCupom(b, c)}×
               </small>
             </span>
             <Interruptor ligado={c.ativo} onMudar={(v) => mudar((x) => salvarCupom(x, { ...c, ativo: v }))} rotulo="Ativo" />
@@ -1014,11 +1014,27 @@ function SecaoCupons() {
       <div className="ui-grade-campos duas">
         <Entrada value={novo.codigo} onChange={(e) => setNovo({ ...novo, codigo: e.target.value.toUpperCase().replace(/\s/g, "") })} placeholder="CÓDIGO" />
         <div style={{ display: "flex", gap: 8 }}>
-          <select className="ui-entrada" style={{ width: 110 }} value={novo.tipo} onChange={(e) => setNovo({ ...novo, tipo: e.target.value as Cupom["tipo"] })}>
+          <select
+            className="ui-entrada"
+            style={{ width: 110 }}
+            value={novo.tipo}
+            onChange={(e) => {
+              const tipo = e.target.value as Cupom["tipo"];
+              setNovo({ ...novo, tipo, valor: tipo === "percentual" ? Math.min(novo.valor, 100) : novo.valor });
+            }}
+          >
             <option value="percentual">%</option>
             <option value="valor">R$</option>
           </select>
-          <Entrada inputMode="numeric" value={String(novo.valor)} onChange={(e) => setNovo({ ...novo, valor: Number(e.target.value.replace(/\D/g, "")) || 0 })} />
+          <Entrada
+            inputMode="numeric"
+            value={String(novo.valor)}
+            // em %, no máximo 100 (o banco recusa mais que isso)
+            onChange={(e) => {
+              const v = Number(e.target.value.replace(/\D/g, "")) || 0;
+              setNovo({ ...novo, valor: novo.tipo === "percentual" ? Math.min(v, 100) : v });
+            }}
+          />
           <Botao
             variante="principal"
             disabled={!novo.codigo || !novo.valor}
@@ -1075,8 +1091,8 @@ function SecaoConta() {
           </span>
         </div>
         <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {/* a mesma tela do link de "esqueci minha senha": logado, ela já abre pronta */}
-          <Link href="/painel/nova-senha" className="ui-botao ui-botao-secundario ui-botao-m">
+          {/* a mesma tela do link de "esqueci minha senha", pedindo antes a senha atual */}
+          <Link href="/painel/nova-senha?trocar=1" className="ui-botao ui-botao-secundario ui-botao-m">
             <Icone nome="cadeado" tamanho={18} />
             Trocar senha
           </Link>

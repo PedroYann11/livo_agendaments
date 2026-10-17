@@ -2,6 +2,7 @@
 
 // Aberta pelo link de "esqueci minha senha": o Supabase lê o link e abre a
 // sessão; aqui a pessoa escolhe a senha nova e já entra no painel.
+// Com ?trocar=1 (Configurações › Conta), pede antes a senha atual.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,7 +10,7 @@ import { useEffect, useState } from "react";
 import { Botao, Campo, Entrada, Esqueleto } from "@/components/ui/basicos";
 import { Icone } from "@/components/ui/Icone";
 import { AvisoAcesso, CascaAcesso } from "@/components/painel/Acesso";
-import { contaLogada, definirNovaSenha } from "@/lib/sessao";
+import { contaLogada, definirNovaSenha, trocarSenha } from "@/lib/sessao";
 
 const SENHA_MIN = 8;
 
@@ -17,6 +18,9 @@ export default function NovaSenha() {
   const router = useRouter();
   const [estado, setEstado] = useState<"conferindo" | "pronto" | "sem_link">("conferindo");
   const [email, setEmail] = useState("");
+  // trocando a senha logado (não pelo link do e-mail): confere a atual
+  const [trocando, setTrocando] = useState(false);
+  const [atual, setAtual] = useState("");
   const [senha, setSenha] = useState("");
   const [repetir, setRepetir] = useState("");
   const [verSenha, setVerSenha] = useState(false);
@@ -24,6 +28,7 @@ export default function NovaSenha() {
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
+    setTrocando(new URLSearchParams(window.location.search).get("trocar") === "1");
     contaLogada().then((c) => {
       if (!c) return setEstado("sem_link");
       setEmail(c.email);
@@ -33,11 +38,12 @@ export default function NovaSenha() {
 
   const salvar = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (trocando && !atual) return setErro("Digite a senha atual.");
     if (senha.length < SENHA_MIN) return setErro(`Use pelo menos ${SENHA_MIN} caracteres.`);
     if (senha !== repetir) return setErro("As duas senhas não são iguais.");
     setErro(null);
     setEnviando(true);
-    const r = await definirNovaSenha(senha);
+    const r = trocando ? await trocarSenha(atual, senha) : await definirNovaSenha(senha);
     setEnviando(false);
     if (r.ok) return router.replace("/painel");
     if (r.semNegocio) return router.replace("/painel/criar-negocio");
@@ -74,9 +80,14 @@ export default function NovaSenha() {
     <CascaAcesso titulo="Crie uma senha nova" subtitulo={<>Para a conta <strong>{email}</strong>.</>}>
       <form onSubmit={salvar} className="en-campos">
         {erro && <AvisoAcesso>{erro}</AvisoAcesso>}
+        {trocando && (
+          <Campo rotulo="Senha atual">
+            <Entrada type={verSenha ? "text" : "password"} autoComplete="current-password" value={atual} onChange={(e) => setAtual(e.target.value)} required icone="cadeado" autoFocus />
+          </Campo>
+        )}
         <Campo rotulo="Senha nova" ajuda={`Pelo menos ${SENHA_MIN} caracteres.`}>
           <span className="en-senha">
-            <Entrada type={verSenha ? "text" : "password"} autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} required icone="cadeado" autoFocus />
+            <Entrada type={verSenha ? "text" : "password"} autoComplete="new-password" value={senha} onChange={(e) => setSenha(e.target.value)} required icone="cadeado" autoFocus={!trocando} />
             <button type="button" onClick={() => setVerSenha(!verSenha)} aria-label={verSenha ? "Esconder senha" : "Mostrar senha"}>
               <Icone nome={verSenha ? "esconder" : "ver"} tamanho={18} />
             </button>
