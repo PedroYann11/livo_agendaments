@@ -32,7 +32,7 @@ export default async function LayoutNegocio({ children, params }: Props) {
   return (
     <>
       {pagina.banco?.negocio.contato.whatsapp && <ZapDoAviso whatsapp={pagina.banco.negocio.contato.whatsapp} nome={n.nome} />}
-      <BancoProvider slug={n.slug} modo="publico" publico={n} inicial={pagina.banco} local={pagina.local}>
+      <BancoProvider slug={n.slug} modo="publico" publico={n} inicial={pagina.banco} indisponivel={pagina.indisponivel}>
         <Provedores>
           <VitrineRaiz tema={n.tema} pele={n.pele}>
             {children}

@@ -242,8 +242,27 @@ export async function carregarPainel(slug: string): Promise<Banco> {
   return bancoDoPainel(await chamar<PainelDoBanco>("painel_dados", { p_slug: slug }));
 }
 
-export async function salvarLote(slug: string, lote: Lote): Promise<void> {
-  await chamar("painel_salvar", { p_slug: slug, p_lote: lote });
+/**
+ * Grava o lote. Cada agendamento leva a `versao` que o painel viu; se o banco
+ * tem outra (a cliente mudou pelo link), recusa tudo e o painel relê.
+ * Devolve as versões novas dos agendamentos gravados.
+ */
+export async function salvarLote(slug: string, lote: Lote): Promise<Record<string, string>> {
+  const r = await chamar<{ versoes?: Record<string, string> } | null>("painel_salvar", { p_slug: slug, p_lote: lote });
+  return r?.versoes ?? {};
+}
+
+/**
+ * O lote com a versão mais nova que ESTE painel conhece de cada agendamento:
+ * dois toques seguidos no mesmo horário partem da gravação anterior, não da
+ * leitura antiga.
+ */
+export function comVersoes(lote: Lote, versoes: Map<string, string>): Lote {
+  if (!lote.agendamentos || !versoes.size) return lote;
+  const salvar = (lote.agendamentos.salvar as (Agendamento & { versao?: string })[]).map((a) =>
+    versoes.has(a.id) ? { ...a, versao: versoes.get(a.id) } : a,
+  );
+  return { ...lote, agendamentos: { ...lote.agendamentos, salvar } };
 }
 
 /** No servidor (uma vez por requisição) ou no navegador, sem sessão. */

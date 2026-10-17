@@ -116,7 +116,11 @@ function FluxoComDados({ b }: { b: Banco }) {
     if (codigo.length < 3) return;
     setConferindoCupom(true);
     const t = setTimeout(() => portas.cupom(codigo).finally(() => setConferindoCupom(false)), 450);
-    return () => clearTimeout(t);
+    // código apagado ou trocado antes da resposta: não fica "conferindo" para sempre
+    return () => {
+      clearTimeout(t);
+      setConferindoCupom(false);
+    };
   }, [cupom, portas]);
 
   const aptos = useMemo(() => profissionaisAptos(b, selecionados), [b, selecionados]);

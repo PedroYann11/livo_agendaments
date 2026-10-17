@@ -54,8 +54,12 @@ export type Pagina = {
   publico: NegocioPublico;
   /** o que a página mostra (catálogo, equipe, regras) — null no modo local, sem banco */
   banco: Banco | null;
-  /** o banco ainda não tem a agenda (migrations 003–007): a página segue no modo local */
-  local?: boolean;
+  /**
+   * o banco não respondeu como esperado (função ausente num deploy fora de
+   * ordem): a página mostra o negócio, mas não agenda — nunca confirma um
+   * horário que o negócio não vai receber
+   */
+  indisponivel?: boolean;
 };
 
 /** Caminho de antes da agenda no banco: só a identidade e o tema (migration 001). */
@@ -94,7 +98,7 @@ export const resolverPagina = cache(async (slug: string): Promise<Pagina | null>
       if (bancoSemAgenda(e)) {
         try {
           const publico = await identidadeDoBanco(slug);
-          return publico ? { publico, banco: null, local: true } : null;
+          return publico ? { publico, banco: null, indisponivel: true } : null;
         } catch {}
       }
       // banco fora: só os negócios com semente no código seguem no ar (e

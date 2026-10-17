@@ -35,6 +35,16 @@ export const STATUS_OCUPAM: Agendamento["status"][] = ["pendente", "confirmado",
 
 export type Vaga = { hora: string; profissionalId: string };
 
+/** Passo dos horários: no mínimo 5 min (o mesmo limite de vagas_do_dia no banco, migration 014). */
+export function passoDe(regras: Banco["negocio"]["regras"]): number {
+  return Math.max(regras.intervaloSlotsMin || 15, 5);
+}
+
+/** Até quantos dias à frente se agenda: no máximo 365 (o mesmo limite do banco). */
+export function janelaDe(regras: Banco["negocio"]["regras"]): number {
+  return Math.min(regras.janelaMaxDias ?? 45, 365);
+}
+
 export type Pedido = {
   servicosIds: string[];
   /** null = qualquer profissional */
@@ -142,7 +152,7 @@ export function horariosDisponiveis(b: Banco, pedido: Pedido): Vaga[] {
   const hoje = pedido.agora.slice(0, 10);
   if (!pedido.ignorarRegras) {
     if (pedido.data < hoje) return [];
-    if (pedido.data > somarDias(hoje, regras.janelaMaxDias)) return [];
+    if (pedido.data > somarDias(hoje, janelaDe(regras))) return [];
   }
   const limite = pedido.ignorarRegras
     ? pedido.agora
@@ -152,7 +162,7 @@ export function horariosDisponiveis(b: Banco, pedido: Pedido): Vaga[] {
     ? profissionaisAptos(b, pedido.servicosIds).filter((p) => p.id === pedido.profissionalId)
     : profissionaisAptos(b, pedido.servicosIds);
 
-  const passo = regras.intervaloSlotsMin;
+  const passo = passoDe(regras);
   const porHora = new Map<string, { profissionalId: string; carga: number }>();
 
   for (const pro of candidatos) {

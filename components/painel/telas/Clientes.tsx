@@ -36,6 +36,14 @@ export function resumirClientes(b: Banco, agora: string): Map<string, Resumido> 
   return m;
 }
 
+/**
+ * Célula do CSV que o Excel não executa: texto começando com = + - @ (ou tab,
+ * quebra de linha) vira fórmula lá. O nome vem de quem agenda pelo link.
+ */
+export function celulaSegura(x: string): string {
+  return /^[=+\-@\t\r]/.test(x) ? `'${x}` : x;
+}
+
 type Filtro = "todos" | "marcados" | "aniversario" | "retorno" | "faltosos" | "novos" | "vip";
 
 export function Clientes() {
@@ -93,7 +101,7 @@ export function Clientes() {
       const r = resumo.get(c.id)!;
       linhas.push([c.nome, mascaraTelefone(c.telefone), c.email, c.nascimento ? dataBr(c.nascimento) : "", String(r.visitas), r.gasto.toFixed(2).replace(".", ","), r.ultima ? dataBr(r.ultima.slice(0, 10)) : "", c.tags.join(", "), c.observacoes]);
     }
-    const csv = "﻿" + linhas.map((l) => l.map((x) => `"${String(x).replace(/"/g, '""')}"`).join(";")).join("\r\n");
+    const csv = "﻿" + linhas.map((l) => l.map((x) => `"${celulaSegura(String(x)).replace(/"/g, '""')}"`).join(";")).join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;

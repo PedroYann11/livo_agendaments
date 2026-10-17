@@ -32,7 +32,7 @@ for (let i = 0; i < N; i++) {
   const nascimento = um([
     null,
     data(1950, 2010),
-    `${entre(1950, 2010)}-${String(md).padStart(2, "0")}-${String(Math.min(dd + entre(-4, 4), 28) || 1).padStart(2, "0")}`,
+    `${entre(1950, 2010)}-${String(md).padStart(2, "0")}-${String(Math.max(Math.min(dd + entre(-4, 4), 28), 1)).padStart(2, "0")}`,
     `${entre(1950, 2010)}-12-${entre(28, 31)}`,
     "2000-02-29",
   ]);
@@ -54,6 +54,8 @@ for (let i = 0; i < N; i++) {
       null,
       { codigo: "bemvinda", tipo: "percentual" as const, valor: entre(1, 50) },
       { codigo: "dez", tipo: "valor" as const, valor: entre(1, 30000) / 100 },
+      // fora do limite (cupom antigo ou gravado à mão): nos dois, fica entre 0 e 100% (014)
+      { codigo: "demais", tipo: "percentual" as const, valor: um([150, 100, -10]) },
     ]),
   });
 }

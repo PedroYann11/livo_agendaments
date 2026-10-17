@@ -240,8 +240,8 @@ export function criarAgendamento(b: Banco, d: DadosAgendamento): Resultado<Agend
   };
   if (ag.status === "confirmado") ag.confirmadoEm = d.agora;
 
+  // os usos do cupom são contados pelos agendamentos (usosDoCupom), como no banco: sem contador para disputar
   banco = { ...banco, agendamentos: [...banco.agendamentos, ag] };
-  if (cupomUsado) banco = { ...banco, cupons: trocar(banco.cupons, cupom!.id, (c) => ({ ...c, usos: c.usos + 1 })) };
   return { ok: true, banco, valor: ag };
 }
 
@@ -507,4 +507,10 @@ export function salvarCupom(b: Banco, c: Cupom): Banco {
 
 export function removerCupom(b: Banco, id: string): Banco {
   return { ...b, cupons: b.cupons.filter((c) => c.id !== id) };
+}
+
+/** Quantas vezes o cupom entrou num agendamento que não foi cancelado (a mesma conta do painel_dados). */
+export function usosDoCupom(b: Banco, c: Cupom): number {
+  const codigo = c.codigo.toUpperCase();
+  return b.agendamentos.filter((a) => a.cupom?.toUpperCase() === codigo && a.status !== "cancelado").length;
 }

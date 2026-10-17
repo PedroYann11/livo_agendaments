@@ -1,6 +1,6 @@
 // =====================================================================
 // A regra de preço, no navegador. ESPELHO de public.preco_calcular
-// (supabase/migrations/010_promocoes.sql): o link mostra a conta com ela e
+// (supabase/migrations/010_promocoes.sql e 014): o link mostra a conta com ela e
 // o painel grava com ela; quem decide o preço do link é o banco. O teste
 // supabase/tests/paridade/precos.mts sorteia casos e exige os dois iguais.
 //
@@ -52,23 +52,26 @@ type Candidato = { tipo: DescontoAplicado["tipo"]; nome: string; percentual: num
 
 const nomeOu = (nome: string | undefined) => (nome ?? "").trim() || "Desconto";
 
+/** Percentual entre 0 e 100: nenhum desconto passa da conta (migration 014). */
+const entre0e100 = (p: number) => Math.min(Math.max(p, 0), 100);
+
 export function calcularPreco(d: DadosPreco): Preco {
   const pr = d.promocoes;
   const subtotal = d.precos.reduce((s, p) => s + centavos(p), 0);
   const cands: Candidato[] = [];
   if (pr?.variosItens?.ativo && d.precos.length >= (pr.variosItens.minimo ?? 2)) {
-    cands.push({ tipo: "variosItens", nome: nomeOu(pr.variosItens.nome), percentual: pr.variosItens.percentual, fixo: null });
+    cands.push({ tipo: "variosItens", nome: nomeOu(pr.variosItens.nome), percentual: entre0e100(pr.variosItens.percentual), fixo: null });
   }
   if (pr?.primeiraVez?.ativo && d.novo) {
-    cands.push({ tipo: "primeiraVez", nome: nomeOu(pr.primeiraVez.nome), percentual: pr.primeiraVez.percentual, fixo: null });
+    cands.push({ tipo: "primeiraVez", nome: nomeOu(pr.primeiraVez.nome), percentual: entre0e100(pr.primeiraVez.percentual), fixo: null });
   }
   if (pr?.aniversario?.ativo && aniversarioNaJanela(d.nascimento, d.dia, pr.aniversario.janela ?? "mes")) {
-    cands.push({ tipo: "aniversario", nome: nomeOu(pr.aniversario.nome), percentual: pr.aniversario.percentual, fixo: null });
+    cands.push({ tipo: "aniversario", nome: nomeOu(pr.aniversario.nome), percentual: entre0e100(pr.aniversario.percentual), fixo: null });
   }
   if (d.cupom) {
     const codigo = d.cupom.codigo.toUpperCase();
     const pct = d.cupom.tipo === "percentual";
-    cands.push({ tipo: "cupom", nome: `Cupom ${codigo}`, codigo, percentual: pct ? d.cupom.valor : null, fixo: pct ? null : d.cupom.valor });
+    cands.push({ tipo: "cupom", nome: `Cupom ${codigo}`, codigo, percentual: pct ? entre0e100(d.cupom.valor) : null, fixo: pct ? null : d.cupom.valor });
   }
 
   // centavos: round(base × %) / 100, igual ao round(numeric) do banco

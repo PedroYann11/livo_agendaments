@@ -13,7 +13,10 @@
 //           pelo link aparece sozinho na agenda.
 //   publico (com Supabase) — a página do negócio: só o que o cliente pode
 //           ver (`pagina_publica`, já vem do servidor). Vagas e agendamento
-//           são decididos no banco; o link do cliente fala pelo token.
+//           são decididos no banco; o link do cliente fala pelo token. Com
+//           Supabase, a página NUNCA agenda no navegador: se o banco não
+//           responde como esperado, ela avisa que o agendamento está
+//           indisponível.
 //   local   (sem Supabase configurado) — tudo no navegador, a partir da
 //           semente pública (lib/sementes). É o modo de desenvolvimento.
 //
@@ -55,6 +58,7 @@ import {
   agendarNoBanco,
   carregarPagina,
   carregarPainel,
+  comVersoes,
   diferenca,
   esquecerVagas,
   salvarLote,
@@ -279,6 +283,9 @@ function ProvedorPainel({ slug, onSemAgenda, children }: { slug: string; onSemAg
   const pendentes = useRef(0);
   // cada mudança local sobe a geração: uma leitura que começou antes dela é descartada
   const geracao = useRef(0);
+  // a versão de cada agendamento depois da última gravação DESTE painel: o
+  // lote seguinte parte dela (o banco recusa versão velha — migration 014)
+  const versoes = useRef(new Map<string, string>());
 
   const aplicar = useCallback((b: Banco) => {
     atual.current = b;
@@ -290,7 +297,11 @@ function ProvedorPainel({ slug, onSemAgenda, children }: { slug: string; onSemAg
     const g = geracao.current;
     try {
       const b = await carregarPainel(slug);
-      if (forcar || (g === geracao.current && pendentes.current === 0)) aplicar(b);
+      if (forcar || (g === geracao.current && pendentes.current === 0)) {
+        // o que veio do banco já traz as versões de agora
+        versoes.current.clear();
+        aplicar(b);
+      }
       setErroCarga(null);
     } catch (e) {
       if (bancoSemAgenda(e)) onSemAgenda();
@@ -330,7 +341,8 @@ function ProvedorPainel({ slug, onSemAgenda, children }: { slug: string; onSemAg
       setSalvando(true);
       fila.current = fila.current.then(async () => {
         try {
-          await salvarLote(slug, lote);
+          const novas = await salvarLote(slug, comVersoes(lote, versoes.current));
+          for (const [id, v] of Object.entries(novas)) versoes.current.set(id, v);
         } catch (e) {
           setRecusa((r) => ({ texto: mensagem(e), n: (r?.n ?? 0) + 1 }));
           // o banco não aceitou: a tela volta ao que ele tem de verdade
@@ -360,8 +372,22 @@ function ProvedorPainel({ slug, onSemAgenda, children }: { slug: string; onSemAg
 // faz vai direto ao banco; a loja só guarda o que ele pode ver.
 // ---------------------------------------------------------------------
 
-function ProvedorPublico({ slug, publico, inicial, children }: { slug: string; publico?: NegocioPublico; inicial?: Banco | null; children: ReactNode }) {
-  const [banco, setBanco] = useState<Banco | null>(inicial ?? null);
+const INDISPONIVEL = "Agendamento indisponível agora. Tente de novo mais tarde ou fale com o negócio.";
+
+function ProvedorPublico({
+  slug,
+  publico,
+  inicial,
+  indisponivel,
+  children,
+}: {
+  slug: string;
+  publico?: NegocioPublico;
+  inicial?: Banco | null;
+  indisponivel?: boolean;
+  children: ReactNode;
+}) {
+  const [banco, setBanco] = useState<Banco | null>(inicial ?? (indisponivel && publico ? bancoVazio(publico) : null));
   const [erroCarga, setErroCarga] = useState<string | null>(null);
   const atual = useRef<Banco | null>(banco);
 
@@ -402,6 +428,10 @@ function ProvedorPublico({ slug, publico, inicial, children }: { slug: string; p
   );
 
   const portas = useMemo<Portas>(() => {
+    if (indisponivel) {
+      const recusa = async () => ({ ok: false as const, motivo: INDISPONIVEL });
+      return { agendar: recusa, abrirLink: async () => false, cancelar: recusa, confirmar: recusa, remarcar: recusa, avaliar: recusa, enviarFicha: recusa, cupom: async () => null };
+    }
     const tentar = async <T,>(f: () => Promise<T>): Promise<Feito<T>> => {
       try {
         return { ok: true, valor: await f() };
@@ -468,7 +498,7 @@ function ProvedorPublico({ slug, publico, inicial, children }: { slug: string; p
         return c;
       },
     };
-  }, [slug, juntar, mudar]);
+  }, [slug, juntar, mudar, indisponivel]);
 
   const fuso = banco?.negocio.regras.fuso ?? "America/Fortaleza";
   const agora = useCallback(() => agoraNo(fuso), [fuso]);
@@ -486,7 +516,7 @@ export function BancoProvider({
   modo,
   publico,
   inicial,
-  local,
+  indisponivel,
   children,
 }: {
   slug: string;
@@ -494,15 +524,16 @@ export function BancoProvider({
   publico?: NegocioPublico;
   /** página pública: o que o servidor já leu do banco nesta requisição */
   inicial?: Banco | null;
-  /** o servidor viu que o banco ainda não tem a agenda: modo local */
-  local?: boolean;
+  /** o servidor viu que o banco não responde como esperado: a página não agenda */
+  indisponivel?: boolean;
   children: ReactNode;
 }) {
   const [semAgenda, setSemAgenda] = useState(false);
   const aoFaltarAgenda = useCallback(() => setSemAgenda(true), []);
-  if (!supabaseOn || local || semAgenda) return <ProvedorLocal slug={slug} modo={modo} publico={publico}>{children}</ProvedorLocal>;
+  // só o painel cai no modo local (dados no navegador): a página pública, com Supabase, nunca
+  if (!supabaseOn || (modo === "painel" && semAgenda)) return <ProvedorLocal slug={slug} modo={modo} publico={publico}>{children}</ProvedorLocal>;
   if (modo === "painel") return <ProvedorPainel slug={slug} onSemAgenda={aoFaltarAgenda}>{children}</ProvedorPainel>;
-  return <ProvedorPublico slug={slug} publico={publico} inicial={inicial}>{children}</ProvedorPublico>;
+  return <ProvedorPublico slug={slug} publico={publico} inicial={inicial} indisponivel={indisponivel}>{children}</ProvedorPublico>;
 }
 
 export function useLoja(): Ctx {

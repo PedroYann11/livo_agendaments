@@ -10,7 +10,7 @@
 // =====================================================================
 
 import { useEffect, useMemo, useState } from "react";
-import { horariosDisponiveis, type Vaga } from "../disponibilidade";
+import { horariosDisponiveis, janelaDe, type Vaga } from "../disponibilidade";
 import { somarDias } from "../datas";
 import { useLoja } from "./loja";
 import { vagasDaJanela } from "./remoto";
@@ -42,7 +42,7 @@ export function useVagas(p: PedidoVagas): Vagas {
     if (!p.servicosIds.length) return r;
     const momento = agora();
     const hoje = momento.slice(0, 10);
-    for (let i = 0; i <= banco.negocio.regras.janelaMaxDias; i++) {
+    for (let i = 0; i <= janelaDe(banco.negocio.regras); i++) {
       const data = somarDias(hoje, i);
       const v = horariosDisponiveis(banco, {
         servicosIds: p.servicosIds,
