@@ -27,3 +27,6 @@ Thumbs.db
 
 # local do Claude Code
 .claude/settings.local.json
+
+# worktrees temporários do Claude Code
+.claude/worktrees/
